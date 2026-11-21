@@ -48,7 +48,7 @@ const rows: Row[] = [
   ['skull-crusher', 'French Press / Skull Crusher', 'Trizeps', [], 'SZ-Stange', 'strength', 'Liegend Stange zur Stirn senken, strecken.', ['triceps-pushdown']],
   ['close-grip-bench', 'Enges Bankdrücken', 'Trizeps', ['Brust'], 'Langhantel', 'strength', 'Schulterbreiter Griff, Ellbogen nah am Körper.', ['dips']],
   ['overhead-triceps', 'Trizepsstrecken über Kopf', 'Trizeps', [], 'Kurzhantel', 'strength', 'Hantel hinter dem Kopf senken und strecken.', ['triceps-pushdown']],
-  ['plank', 'Unterarmstütz (Plank)', 'Core', ['Schultern'], 'Körpergewicht', 'bodyweight', 'Körper in einer Linie halten. Wiederholungen = Sekunden.', ['dead-bug']],
+  ['plank', 'Unterarmstütz (Plank)', 'Core', ['Vordere Schulter'], 'Körpergewicht', 'bodyweight', 'Körper in einer Linie halten. Wiederholungen = Sekunden.', ['dead-bug']],
   ['dead-bug', 'Dead Bug', 'Core', [], 'Körpergewicht', 'bodyweight', 'Rückenlage, gegengleich Arm und Bein strecken, unterer Rücken am Boden.', ['plank']],
   ['hanging-leg-raise', 'Beinheben hängend', 'Core', ['Hüftbeuger'], 'Körpergewicht', 'bodyweight', 'Im Hang Beine kontrolliert anheben.', ['cable-crunch']],
   ['cable-crunch', 'Kabel-Crunch', 'Core', [], 'Kabelzug', 'strength', 'Kniend Oberkörper gegen den Widerstand einrollen.', ['hanging-leg-raise']],
@@ -66,14 +66,120 @@ const rows: Row[] = [
   ['rowing-machine', 'Rudergerät', 'Ausdauer', ['Oberer Rücken'], 'Rudergerät', 'cardio', 'Ausdauer am Rudergerät – im Ausdauer-Tracker erfassen.', []],
 ];
 
+// ---------- Weitere Freihantel-, Kabel- und Körpergewichtsübungen ----------
+rows.push(
+  ['arnold-press', 'Arnold Press', 'Vordere Schulter', ['Seitliche Schulter', 'Trizeps'], 'Kurzhantel', 'strength', 'Sitzend, Hanteln vor dem Gesicht mit Handflächen zum Körper; beim Drücken nach außen drehen.', ['db-shoulder-press']],
+  ['upright-row', 'Aufrechtes Rudern', 'Seitliche Schulter', ['Trapez'], 'Kurzhantel', 'strength', 'Hanteln eng am Körper bis Brusthöhe ziehen, Ellbogen führen.', ['lateral-raise']],
+  ['sumo-deadlift', 'Sumo-Kreuzheben', 'Gesäß', ['Adduktoren', 'Quadrizeps', 'Rückseite Oberschenkel'], 'Langhantel', 'strength', 'Breiter Stand, Griff innerhalb der Knie, aufrecht aus Hüfte und Beinen strecken.', ['deadlift']],
+  ['good-morning', 'Good Morning', 'Rückseite Oberschenkel', ['Unterer Rücken', 'Gesäß'], 'Langhantel', 'strength', 'Stange auf dem Rücken, Knie leicht gebeugt, mit geradem Rücken aus der Hüfte vorbeugen.', ['romanian-deadlift']],
+  ['step-up', 'Step-ups', 'Quadrizeps', ['Gesäß'], 'Kurzhantel', 'strength', 'Auf eine Box steigen, über das vordere Bein strecken, kontrolliert absteigen.', ['lunge']],
+  ['hyperextension', 'Rückenstrecken (Hyperextension)', 'Unterer Rücken', ['Gesäß', 'Rückseite Oberschenkel'], 'Körpergewicht', 'bodyweight', 'Am Hyperextension-Gerät aus der Hüfte absenken und bis zur Körperlinie aufrichten.', ['good-morning']],
+  ['db-pullover', 'Pullover (Kurzhantel)', 'Latissimus', ['Brust', 'Trizeps'], 'Kurzhantel', 'strength', 'Quer auf der Bank, Hantel mit leicht gebeugten Armen hinter den Kopf senken und zurückführen.', ['lat-pulldown']],
+  ['preacher-curl', 'Scottcurls', 'Bizeps', [], 'SZ-Stange', 'strength', 'Oberarme auf dem Polster, SZ-Stange kontrolliert beugen und strecken.', ['barbell-curl']],
+  ['concentration-curl', 'Konzentrationscurls', 'Bizeps', [], 'Kurzhantel', 'strength', 'Sitzend, Ellbogen am Oberschenkel abgestützt, Hantel zur Schulter beugen.', ['db-curl']],
+  ['triceps-kickback', 'Trizeps-Kickbacks', 'Trizeps', [], 'Kurzhantel', 'strength', 'Oberkörper vorgeneigt, Oberarm am Körper, Unterarm nach hinten strecken.', ['triceps-pushdown']],
+  ['bench-dips', 'Dips an der Bank', 'Trizeps', ['Brust'], 'Körpergewicht', 'bodyweight', 'Hände auf der Bankkante, Körper zwischen den Armen absenken und hochdrücken.', ['dips']],
+  ['cable-woodchop', 'Holzhacker am Kabel', 'Core', ['Vordere Schulter'], 'Kabelzug', 'strength', 'Seil diagonal von oben nach unten (oder umgekehrt) ziehen, Rumpf dreht kontrolliert mit.', ['russian-twist']],
+  ['pallof-press', 'Pallof Press', 'Core', [], 'Kabelzug', 'strength', 'Seitlich zum Kabel stehen, Griff vor der Brust nach vorne drücken, ohne dass der Rumpf mitdreht.', ['plank']],
+  ['russian-twist', 'Russian Twist', 'Core', [], 'Körpergewicht', 'bodyweight', 'Sitzend, Oberkörper leicht zurückgelehnt, Rumpf abwechselnd nach links und rechts drehen.', ['cable-woodchop']],
+  ['side-plank', 'Seitstütz', 'Core', ['Gesäß'], 'Körpergewicht', 'bodyweight', 'Auf Unterarm und Fußkante seitlich stützen, Körper in einer Linie halten. Wiederholungen = Sekunden.', ['plank']],
+  ['cable-crossover-low', 'Kabelzug-Flys von unten', 'Brust', ['Vordere Schulter'], 'Kabelzug', 'strength', 'Griffe von unten nach oben vor der Brust zusammenführen (obere Brust).', ['cable-fly']],
+  ['cable-curl', 'Bizepscurls am Kabel', 'Bizeps', [], 'Kabelzug', 'strength', 'Am unteren Kabel mit Stange oder Seil beugen, Ellbogen fixiert.', ['barbell-curl']],
+  ['straight-arm-pulldown', 'Überzüge am Kabel (gestreckte Arme)', 'Latissimus', [], 'Kabelzug', 'strength', 'Mit fast gestreckten Armen die Stange von oben bis zu den Oberschenkeln ziehen.', ['lat-pulldown']],
+  ['kettlebell-goblet-lunge', 'Ausfallschritte rückwärts (Kettlebell)', 'Quadrizeps', ['Gesäß'], 'Kettlebell', 'strength', 'Kettlebell vor der Brust, großer Schritt nach hinten, vorderes Knie stabil.', ['lunge']],
+  ['mountain-climber', 'Mountain Climbers', 'Core', ['Hüftbeuger', 'Vordere Schulter'], 'Körpergewicht', 'bodyweight', 'Im Liegestütz die Knie abwechselnd zügig zur Brust ziehen. Wiederholungen = Sekunden.', ['plank']],
+  ['foam-roll', 'Faszienrolle (Blackroll)', 'Ganzkörper', [], 'Faszienrolle', 'mobility', 'Muskelgruppen langsam abrollen, 30–60 s je Bereich. Wiederholungen = Sekunden.', []],
+);
+
+// ---------- Studio-Geräte: Vitova Medifit Wiesbaden-Nordenstadt ----------
+// Quelle der Ausstattung: Studio-Porträt/Angebotsseiten der Vitova-Gruppe (Technogym Selection Line, milon, Technogym Kinesis,
+// five, Dr. Wolff, DAVID, Arke, Sensopro, Cardio Technogym/milon). Die genaue Geräteauswahl vor Ort kann abweichen.
+export const VITOVA_NORDENSTADT = 'vitova-nordenstadt';
+export const GYMS: Record<string, string> = { [VITOVA_NORDENSTADT]: 'Vitova Medifit Nordenstadt' };
+
+const studioRows: Row[] = [
+  // Technogym Selection Line (chipkartengesteuerte Kraftmaschinen)
+  ['tg-leg-press', 'Beinpresse (Technogym Selection)', 'Quadrizeps', ['Gesäß', 'Rückseite Oberschenkel'], 'Technogym Selection', 'strength', 'Rücken fest am Polster, Füße hüftbreit auf der Platte; Knie kontrolliert beugen, nicht ganz durchstrecken.', ['leg-press', 'milon-leg-press']],
+  ['tg-leg-extension', 'Beinstrecker (Technogym Selection)', 'Quadrizeps', [], 'Technogym Selection', 'strength', 'Kniegelenk auf Höhe der Drehachse, Unterschenkel kontrolliert strecken.', ['leg-extension', 'milon-leg-extension']],
+  ['tg-leg-curl', 'Beinbeuger sitzend (Technogym Selection)', 'Rückseite Oberschenkel', ['Waden'], 'Technogym Selection', 'strength', 'Oberschenkel fixiert, Unterschenkel gegen das Polster nach unten-hinten beugen.', ['leg-curl', 'milon-leg-curl']],
+  ['tg-multi-hip', 'Multi Hip (Technogym Selection)', 'Gesäß', ['Hüftbeuger', 'Adduktoren'], 'Technogym Selection', 'strength', 'Stehend, Hüfte in alle Richtungen gegen das Polster bewegen (Streckung, Beugung, Ab-/Adduktion).', ['hip-thrust']],
+  ['tg-abductor', 'Abduktoren-Maschine (Technogym Selection)', 'Gesäß', [], 'Technogym Selection', 'strength', 'Sitzend Beine gegen die Polster nach außen öffnen.', ['milon-abductor']],
+  ['tg-adductor', 'Adduktoren-Maschine (Technogym Selection)', 'Adduktoren', [], 'Technogym Selection', 'strength', 'Sitzend Beine gegen die Polster schließen.', ['milon-adductor']],
+  ['tg-glute', 'Glute-Maschine (Technogym Selection)', 'Gesäß', ['Rückseite Oberschenkel'], 'Technogym Selection', 'strength', 'Ein Bein drückt das Pedal nach hinten, Hüfte streckt vollständig.', ['hip-thrust']],
+  ['tg-chest-press', 'Brustpresse (Technogym Selection)', 'Brust', ['Trizeps', 'Vordere Schulter'], 'Technogym Selection', 'strength', 'Griffe auf Brusthöhe, Schulterblätter am Polster, kontrolliert nach vorne drücken.', ['machine-chest-press', 'milon-chest-press']],
+  ['tg-pectoral', 'Butterfly (Technogym Selection)', 'Brust', ['Vordere Schulter'], 'Technogym Selection', 'strength', 'Arme leicht gebeugt im Bogen vor der Brust zusammenführen.', ['cable-fly', 'milon-butterfly']],
+  ['tg-rear-delt', 'Reverse Butterfly (Technogym Selection)', 'Hintere Schulter', ['Oberer Rücken'], 'Technogym Selection', 'strength', 'Brust am Polster, Arme seitlich nach hinten öffnen.', ['reverse-fly', 'milon-reverse-butterfly']],
+  ['tg-shoulder-press', 'Schulterpresse (Technogym Selection)', 'Vordere Schulter', ['Seitliche Schulter', 'Trizeps'], 'Technogym Selection', 'strength', 'Griffe auf Schulterhöhe, ohne Hohlkreuz nach oben drücken.', ['db-shoulder-press', 'milon-shoulder-press']],
+  ['tg-lat-machine', 'Latzug (Technogym Selection)', 'Latissimus', ['Bizeps', 'Oberer Rücken'], 'Technogym Selection', 'strength', 'Griffe zur oberen Brust ziehen, Ellbogen nach unten, Brust raus.', ['lat-pulldown', 'milon-lat-pulldown']],
+  ['tg-low-row', 'Rudern sitzend (Technogym Selection)', 'Oberer Rücken', ['Latissimus', 'Bizeps'], 'Technogym Selection', 'strength', 'Brust am Polster, Griffe zum Körper ziehen, Schulterblätter zusammen.', ['cable-row', 'milon-row']],
+  ['tg-vertical-traction', 'Klimmzug-/Dipmaschine unterstützt (Technogym Selection)', 'Latissimus', ['Bizeps', 'Trizeps'], 'Technogym Selection', 'strength', 'Kniend auf dem Polster mit Gegengewicht Klimmzüge oder Dips ausführen.', ['assisted-pull-up']],
+  ['tg-arm-curl', 'Bizepsmaschine (Technogym Selection)', 'Bizeps', [], 'Technogym Selection', 'strength', 'Oberarme auf dem Polster, Ellbogen an der Drehachse, Griffe beugen.', ['barbell-curl', 'milon-biceps']],
+  ['tg-arm-extension', 'Trizepsmaschine (Technogym Selection)', 'Trizeps', [], 'Technogym Selection', 'strength', 'Oberarme auf dem Polster, Unterarme gegen den Widerstand strecken.', ['triceps-pushdown', 'milon-triceps']],
+  ['tg-abdominal', 'Bauchmaschine (Technogym Selection)', 'Core', [], 'Technogym Selection', 'strength', 'Oberkörper kontrolliert einrollen, nicht mit den Armen ziehen.', ['cable-crunch', 'milon-abdominal']],
+  ['tg-lower-back', 'Rückenstrecker (Technogym Selection)', 'Unterer Rücken', ['Gesäß'], 'Technogym Selection', 'strength', 'Oberkörper aus der Beugung gegen das Rückenpolster aufrichten.', ['hyperextension', 'milon-back-extension']],
+  ['tg-rotary-torso', 'Rumpfrotation (Technogym Selection)', 'Core', [], 'Technogym Selection', 'strength', 'Becken fixiert, Oberkörper kontrolliert gegen den Widerstand drehen, beide Seiten.', ['russian-twist']],
+  // milon Gesundheitszirkel (elektronisch gesteuert, Chipkarte)
+  ['milon-chest-press', 'milon Brustpresse', 'Brust', ['Trizeps', 'Vordere Schulter'], 'milon', 'strength', 'Zirkelstation: Gerät stellt sich per Chipkarte ein. Gleichmäßiges Tempo nach Display.', ['tg-chest-press']],
+  ['milon-row', 'milon Rudern', 'Oberer Rücken', ['Latissimus', 'Bizeps'], 'milon', 'strength', 'Zirkelstation: Griffe zum Körper ziehen, Schulterblätter zusammen.', ['tg-low-row']],
+  ['milon-leg-press', 'milon Beinpresse', 'Quadrizeps', ['Gesäß'], 'milon', 'strength', 'Zirkelstation: Beine kontrolliert strecken und beugen.', ['tg-leg-press']],
+  ['milon-lat-pulldown', 'milon Latzug', 'Latissimus', ['Bizeps'], 'milon', 'strength', 'Zirkelstation: Griffe zur Brust ziehen.', ['tg-lat-machine']],
+  ['milon-shoulder-press', 'milon Schulterpresse', 'Vordere Schulter', ['Trizeps'], 'milon', 'strength', 'Zirkelstation: Griffe nach oben drücken.', ['tg-shoulder-press']],
+  ['milon-abdominal', 'milon Bauchtrainer', 'Core', [], 'milon', 'strength', 'Zirkelstation: Oberkörper einrollen.', ['tg-abdominal']],
+  ['milon-back-extension', 'milon Rückenstrecker', 'Unterer Rücken', ['Gesäß'], 'milon', 'strength', 'Zirkelstation: Oberkörper aufrichten.', ['tg-lower-back']],
+  ['milon-leg-extension', 'milon Beinstrecker', 'Quadrizeps', [], 'milon', 'strength', 'Zirkelstation: Unterschenkel strecken.', ['tg-leg-extension']],
+  ['milon-leg-curl', 'milon Beinbeuger', 'Rückseite Oberschenkel', [], 'milon', 'strength', 'Zirkelstation: Unterschenkel beugen.', ['tg-leg-curl']],
+  ['milon-abductor', 'milon Abduktor', 'Gesäß', [], 'milon', 'strength', 'Zirkelstation: Beine nach außen öffnen.', ['tg-abductor']],
+  ['milon-adductor', 'milon Adduktor', 'Adduktoren', [], 'milon', 'strength', 'Zirkelstation: Beine schließen.', ['tg-adductor']],
+  ['milon-butterfly', 'milon Butterfly', 'Brust', [], 'milon', 'strength', 'Zirkelstation: Arme vor der Brust schließen.', ['tg-pectoral']],
+  ['milon-reverse-butterfly', 'milon Reverse Butterfly', 'Hintere Schulter', ['Oberer Rücken'], 'milon', 'strength', 'Zirkelstation: Arme nach hinten öffnen.', ['tg-rear-delt']],
+  ['milon-biceps', 'milon Bizeps', 'Bizeps', [], 'milon', 'strength', 'Zirkelstation: Arme beugen.', ['tg-arm-curl']],
+  ['milon-triceps', 'milon Trizeps', 'Trizeps', [], 'milon', 'strength', 'Zirkelstation: Arme strecken.', ['tg-arm-extension']],
+  ['milon-rotation', 'milon Rumpfrotation', 'Core', [], 'milon', 'strength', 'Zirkelstation: Oberkörper gegen Widerstand drehen.', ['tg-rotary-torso']],
+  // Technogym Kinesis Stations (seilzugbasiertes Funktionstraining)
+  ['kinesis-chest-press', 'Kinesis Brustdrücken stehend', 'Brust', ['Trizeps', 'Core'], 'Technogym Kinesis', 'strength', 'Schrittstellung, beide Seile von hinten nach vorne drücken, Rumpf stabil.', ['tg-chest-press']],
+  ['kinesis-row', 'Kinesis Rudern stehend', 'Oberer Rücken', ['Latissimus', 'Core'], 'Technogym Kinesis', 'strength', 'Seile auf Brusthöhe zum Körper ziehen, aufrechter Stand.', ['tg-low-row']],
+  ['kinesis-squat-row', 'Kinesis Kniebeuge mit Rudern', 'Quadrizeps', ['Oberer Rücken', 'Gesäß'], 'Technogym Kinesis', 'strength', 'Aus der Kniebeuge aufrichten und gleichzeitig die Seile zum Körper ziehen.', ['goblet-squat']],
+  ['kinesis-lunge-press', 'Kinesis Ausfallschritt mit Drücken', 'Quadrizeps', ['Brust', 'Gesäß'], 'Technogym Kinesis', 'strength', 'Ausfallschritt nach vorne, dabei einarmig nach vorne drücken.', ['lunge']],
+  ['kinesis-rotation', 'Kinesis Rumpfrotation', 'Core', ['Vordere Schulter'], 'Technogym Kinesis', 'strength', 'Seitlich stehen, Seil mit gestreckten Armen über den Rumpf drehen.', ['cable-woodchop']],
+  ['kinesis-lat-pull', 'Kinesis Latzug einarmig', 'Latissimus', ['Bizeps'], 'Technogym Kinesis', 'strength', 'Kniend oder stehend ein Seil von oben zur Schulter ziehen.', ['lat-pulldown']],
+  ['kinesis-shoulder', 'Kinesis Schulterdrücken', 'Vordere Schulter', ['Trizeps'], 'Technogym Kinesis', 'strength', 'Seile von Schulterhöhe nach oben-vorne drücken.', ['db-shoulder-press']],
+  ['kinesis-curl-press', 'Kinesis Curl & Press', 'Bizeps', ['Vordere Schulter'], 'Technogym Kinesis', 'strength', 'Seile zur Schulter beugen und anschließend nach oben drücken.', ['cable-curl']],
+  // five (Beweglichkeit/Rücken)
+  ['five-back', 'five Rückenstreckung', 'Unterer Rücken', [], 'five', 'mobility', 'Aktive Dehnung der Rumpfvorderseite und Mobilisation der Wirbelsäule am five-Gerät. Wiederholungen = Sekunden.', ['cat-cow']],
+  ['five-hip', 'five Hüftbeuger-Dehnung', 'Hüftbeuger', [], 'five', 'mobility', 'Hüftstreckung gegen das Polster, Hüftbeuger aktiv verlängern. Wiederholungen = Sekunden.', ['hip-flexor-stretch']],
+  ['five-chest', 'five Brust-/Schulteröffnung', 'Brust', ['Vordere Schulter'], 'five', 'mobility', 'Arme nach hinten öffnen, Brustwirbelsäule aufrichten. Wiederholungen = Sekunden.', ['thoracic-rotation']],
+  ['five-hamstring', 'five Beinrückseite', 'Rückseite Oberschenkel', ['Waden'], 'five', 'mobility', 'Aktive Dehnung der Beinrückseite. Wiederholungen = Sekunden.', []],
+  ['five-side', 'five Seitneigung', 'Core', [], 'five', 'mobility', 'Rumpfseite verlängern, beide Seiten. Wiederholungen = Sekunden.', []],
+  // Rückentherapie-Geräte
+  ['wolff-back-extension', 'Dr. Wolff Rückenstrecker', 'Unterer Rücken', ['Gesäß'], 'Dr. Wolff', 'strength', 'Gerätegeführte Rumpfstreckung im Rückentraining nach Vorgabe der Therapeuten.', ['tg-lower-back']],
+  ['wolff-rotation', 'Dr. Wolff Rumpfrotation', 'Core', [], 'Dr. Wolff', 'strength', 'Gerätegeführte Rotation des Rumpfes, beide Seiten.', ['tg-rotary-torso']],
+  ['wolff-lateral', 'Dr. Wolff Seitneigung', 'Core', [], 'Dr. Wolff', 'strength', 'Gerätegeführte seitliche Rumpfneigung gegen Widerstand.', ['side-plank']],
+  ['david-lumbar', 'DAVID Lumbalextension (FPZ)', 'Unterer Rücken', ['Gesäß'], 'DAVID', 'strength', 'Analysegestütztes Rückentraining im FPZ-Konzept; Einstellungen durch Therapeuten.', ['tg-lower-back']],
+  ['david-rotation', 'DAVID Rotation (FPZ)', 'Core', [], 'DAVID', 'strength', 'Rotationstraining der Rumpfmuskulatur im FPZ-Konzept.', ['tg-rotary-torso']],
+  ['david-lateral', 'DAVID Lateralflexion (FPZ)', 'Core', [], 'DAVID', 'strength', 'Seitliche Rumpfmuskulatur im FPZ-Konzept.', ['wolff-lateral']],
+  ['david-cervical', 'DAVID Nackentraining (FPZ)', 'Trapez', [], 'DAVID', 'strength', 'Gerätegeführtes Training der Nackenmuskulatur im FPZ-Konzept.', []],
+  // Koordination & Core
+  ['sensopro', 'Sensopro Koordinationstraining', 'Ganzkörper', ['Core', 'Waden'], 'Sensopro', 'mobility', 'Gleichgewichts- und Koordinationsübungen auf dem schwingenden Sensopro-Trainer. Wiederholungen = Sekunden.', []],
+  ['arke-core', 'Arke Core-Training', 'Core', ['Vordere Schulter'], 'Arke', 'bodyweight', 'Funktionelles Core-Training mit dem Technogym-Arke-Equipment (z. B. Ball, Wobble, Gewichte). Wiederholungen = Sekunden oder Wdh.', ['plank']],
+  // Cardio (Einheiten bitte im Ausdauer-Tracker erfassen)
+  ['tg-treadmill', 'Laufband (Technogym)', 'Ausdauer', [], 'Technogym Cardio', 'cardio', 'Ausdauer auf dem Laufband – im Ausdauer-Tracker als „Laufen“ oder „Gehen“ erfassen.', ['run']],
+  ['tg-bike', 'Ergometer (Technogym)', 'Ausdauer', [], 'Technogym Cardio', 'cardio', 'Ausdauer auf dem Fahrrad-Ergometer – im Ausdauer-Tracker als „Radfahren“ erfassen.', []],
+  ['tg-crosstrainer', 'Crosstrainer (Technogym)', 'Ausdauer', [], 'Technogym Cardio', 'cardio', 'Ausdauer auf dem Crosstrainer – im Ausdauer-Tracker erfassen.', []],
+  ['milon-cardio', 'milon Ausdauergerät (Zirkel)', 'Ausdauer', [], 'milon', 'cardio', 'Ausdauerstation im milon-Zirkel – im Ausdauer-Tracker erfassen.', []],
+];
+
 export const MUSCLE_GROUPS = [
   'Brust', 'Latissimus', 'Oberer Rücken', 'Unterer Rücken', 'Trapez', 'Vordere Schulter', 'Seitliche Schulter', 'Hintere Schulter',
   'Bizeps', 'Trizeps', 'Unterarme', 'Quadrizeps', 'Rückseite Oberschenkel', 'Gesäß', 'Adduktoren', 'Waden', 'Core', 'Hüftbeuger', 'Ganzkörper', 'Ausdauer',
 ];
 
-export const EQUIPMENT = ['Langhantel', 'Kurzhantel', 'Kabelzug', 'Maschine', 'Körpergewicht', 'Kettlebell', 'SZ-Stange', 'Trap Bar', 'Rudergerät', 'Keins'];
+export const EQUIPMENT = ['Langhantel', 'Kurzhantel', 'Kabelzug', 'Maschine', 'Körpergewicht', 'Kettlebell', 'SZ-Stange', 'Trap Bar', 'Rudergerät', 'Faszienrolle', 'Keins', 'Technogym Selection', 'Technogym Kinesis', 'Technogym Cardio', 'milon', 'five', 'Dr. Wolff', 'DAVID', 'Sensopro', 'Arke'];
 
-export const EXERCISE_LIBRARY: Exercise[] = rows.map(([id, name, primaryMuscle, secondaryMuscles, equipment, kind, description, alternatives]) => ({
+/** Version der mitgelieferten Bibliothek – bei Änderungen erhöhen, damit bestehende Installationen aktualisiert werden. */
+export const LIBRARY_VERSION = 2;
+
+const studioIds = new Set(studioRows.map((r) => r[0]));
+export const EXERCISE_LIBRARY: Exercise[] = [...rows, ...studioRows].map(([id, name, primaryMuscle, secondaryMuscles, equipment, kind, description, alternatives]) => ({
   id,
   name,
   primaryMuscle,
@@ -83,4 +189,5 @@ export const EXERCISE_LIBRARY: Exercise[] = rows.map(([id, name, primaryMuscle, 
   description,
   alternatives: alternatives ?? [],
   isCustom: 0,
+  ...(studioIds.has(id) ? { gyms: [VITOVA_NORDENSTADT] } : {}),
 }));

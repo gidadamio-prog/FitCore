@@ -10,7 +10,9 @@ import { toast, confirmDialog } from '@/stores/ui';
 import { firstError } from '@/domain/schemas';
 import type { CardioActivity, CardioSession, Exercise, ExerciseKind, Plan } from '@/domain/types';
 import { CARDIO_LABELS, completedSets, pace, personalRecords, speedKmh, workoutVolume } from '@/domain/training';
-import { EQUIPMENT, MUSCLE_GROUPS } from '@/data/exerciseLibrary';
+import { EQUIPMENT, GYMS, MUSCLE_GROUPS } from '@/data/exerciseLibrary';
+import { PLAN_TEMPLATES, planFromTemplate } from '@/data/planTemplates';
+import { useSettings } from '@/hooks/data';
 import { sessionKcal } from '@/domain/balance';
 import { formatDuration } from '@/domain/dates';
 
@@ -62,6 +64,7 @@ function Plans() {
   const nav = useNavigate();
   const active = useActiveWorkout();
   const [showArchived, setShowArchived] = useState(false);
+  const [tplOpen, setTplOpen] = useState(false);
   const visible = plans.filter((p) => (showArchived ? p.status === 'archived' : p.status !== 'archived')).sort((a, b) => (a.status === 'active' ? -1 : b.status === 'active' ? 1 : 0));
   const newPlan = async () => {
     const p = await savePlan({ name: 'Neuer Plan', goal: '', split: 'fullbody', status: 'draft', notes: '', days: [{ id: uid(), name: 'Tag A', weekdays: [], exercises: [] }] });
@@ -82,6 +85,9 @@ function Plans() {
         <Button onClick={newPlan}>
           <Plus className="h-4 w-4" /> Neuer Plan
         </Button>
+        <Button variant="outline" onClick={() => setTplOpen(true)}>
+          <Copy className="h-4 w-4" /> Aus Vorlage
+        </Button>
         <Button variant="outline" onClick={() => start()}>
           <Play className="h-4 w-4" /> Freies Training
         </Button>
@@ -89,6 +95,17 @@ function Plans() {
           {showArchived ? 'Aktuelle Pläne' : 'Archiv'}
         </Button>
       </div>
+      {tplOpen && (
+        <TemplatePicker
+          onClose={() => setTplOpen(false)}
+          onPick={async (t) => {
+            const p = await savePlan(planFromTemplate(t));
+            setTplOpen(false);
+            toast('Vorlage übernommen – passe den Plan an und aktiviere ihn.', 'success');
+            nav('/training/plan/' + p.id);
+          }}
+        />
+      )}
       {!visible.length && <Empty icon={<Dumbbell className="h-8 w-8" />} title={showArchived ? 'Kein archivierter Plan' : 'Noch kein Trainingsplan'} text="Erstelle einen Plan mit Trainingstagen und Übungen." />}
       <div className="grid gap-3 md:grid-cols-2">
         {visible.map((p) => (
@@ -149,6 +166,31 @@ function Plans() {
         ))}
       </div>
     </div>
+  );
+}
+
+function TemplatePicker({ onClose, onPick }: { onClose: () => void; onPick: (t: (typeof PLAN_TEMPLATES)[number]) => void }) {
+  const settings = useSettings();
+  const list = [...PLAN_TEMPLATES].sort((a, b) => Number(b.gym === settings.homeGym && !!b.gym) - Number(a.gym === settings.homeGym && !!a.gym));
+  return (
+    <Sheet open onClose={onClose} title="Planvorlagen">
+      <ul className="space-y-2" data-testid="template-list">
+        {list.map((t) => (
+          <li key={t.id}>
+            <button className="w-full rounded-xl border p-3 text-left hover:bg-fg/[0.04]" onClick={() => onPick(t)}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">{t.name}</span>
+                {t.gym && <Badge tone="accent">{GYMS[t.gym]}</Badge>}
+              </div>
+              <div className="mt-0.5 text-xs text-muted">
+                {SPLIT_LABELS[t.split]} · {t.days.length} Tag(e) · {t.sets}×{t.repMin}–{t.repMax}
+              </div>
+              <p className="mt-1 text-sm text-muted">{t.description}</p>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
   );
 }
 
@@ -300,13 +342,52 @@ function CardioEdit({ s, onClose }: { s: CardioSession; onClose: () => void }) {
   );
 }
 
+export function useExerciseFilters() {
+  const settings = useSettings();
+  const [q, setQ] = useState('');
+  const [muscle, setMuscle] = useState('');
+  const [equipment, setEquipment] = useState('');
+  const [gymOnly, setGymOnly] = useState<boolean | null>(null);
+  const gym = settings.homeGym;
+  const onlyGym = gymOnly ?? !!gym;
+  return { q, setQ, muscle, setMuscle, equipment, setEquipment, gym, onlyGym, setGymOnly };
+}
+
+export function ExerciseFilterBar({ f }: { f: ReturnType<typeof useExerciseFilters> }) {
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Select aria-label="Muskelgruppe" value={f.muscle} onChange={(e) => f.setMuscle(e.target.value)}>
+          <option value="">Alle Muskelgruppen</option>
+          {MUSCLE_GROUPS.map((m) => (
+            <option key={m}>{m}</option>
+          ))}
+        </Select>
+        <Select aria-label="Gerät / Equipment" value={f.equipment} onChange={(e) => f.setEquipment(e.target.value)}>
+          <option value="">Alle Geräte</option>
+          {EQUIPMENT.map((m) => (
+            <option key={m}>{m}</option>
+          ))}
+        </Select>
+      </div>
+      {f.gym && (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" aria-pressed={f.onlyGym} onClick={() => f.setGymOnly(!f.onlyGym)} className={`h-8 rounded-full border px-3 text-xs ${f.onlyGym ? 'border-accent bg-accent/10 text-accent' : 'text-muted'}`}>
+            Nur {GYMS[f.gym] ?? 'mein Studio'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ExerciseLibrary() {
   const all = useExercises();
   const nav = useNavigate();
-  const [q, setQ] = useState('');
-  const [muscle, setMuscle] = useState('');
+  const f = useExerciseFilters();
+  const { q, setQ } = f;
   const [create, setCreate] = useState(false);
-  const list = useMemo(() => searchExercises(all, q, muscle || undefined), [all, q, muscle]);
+  const list = useMemo(() => searchExercises(all, f.q, f.muscle || undefined, { gym: f.onlyGym ? f.gym : undefined, equipment: f.equipment || undefined }), [all, f.q, f.muscle, f.onlyGym, f.gym, f.equipment]);
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
@@ -318,19 +399,15 @@ function ExerciseLibrary() {
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      <Select aria-label="Muskelgruppe" value={muscle} onChange={(e) => setMuscle(e.target.value)}>
-        <option value="">Alle Muskelgruppen</option>
-        {MUSCLE_GROUPS.map((m) => (
-          <option key={m}>{m}</option>
-        ))}
-      </Select>
+      <ExerciseFilterBar f={f} />
+      <p className="text-xs text-muted">{list.length} Übungen</p>
       <Card>
         <ul className="divide-y" data-testid="exercise-list">
           {list.map((e) => (
             <li key={e.id}>
               <button className="w-full py-2 text-left" onClick={() => nav('/training/exercise/' + e.id)}>
                 <div className="text-sm font-medium">
-                  {e.name} {e.isCustom ? <Badge>eigene</Badge> : null}
+                  {e.name} {e.isCustom ? <Badge>eigene</Badge> : null} {e.gyms?.length ? <Badge tone="accent">Studio</Badge> : null}
                 </div>
                 <div className="text-xs text-muted">
                   {e.primaryMuscle}

@@ -11,8 +11,7 @@ import { WEEKDAY_SHORT, uid } from '@/domain/dates';
 import { useExercises } from '@/hooks/data';
 import { toast } from '@/stores/ui';
 import { firstError } from '@/domain/schemas';
-import { SPLIT_LABELS, ExerciseForm } from './Training';
-import { MUSCLE_GROUPS } from '@/data/exerciseLibrary';
+import { SPLIT_LABELS, ExerciseForm, ExerciseFilterBar, useExerciseFilters } from './Training';
 
 export function PlanEditor() {
   const { id } = useParams();
@@ -158,10 +157,10 @@ export function PlanEditor() {
 
 export function ExercisePicker({ onClose, onPick }: { onClose: () => void; onPick: (e: Exercise) => void }) {
   const all = useExercises();
-  const [q, setQ] = useState('');
-  const [muscle, setMuscle] = useState('');
+  const f = useExerciseFilters();
+  const { q, setQ } = f;
   const [create, setCreate] = useState(false);
-  const list = useMemo(() => searchExercises(all, q, muscle || undefined), [all, q, muscle]);
+  const list = useMemo(() => searchExercises(all, f.q, f.muscle || undefined, { gym: f.onlyGym ? f.gym : undefined, equipment: f.equipment || undefined }), [all, f.q, f.muscle, f.onlyGym, f.gym, f.equipment]);
   return (
     <Sheet open onClose={onClose} title="Übung wählen">
       <div className="space-y-2">
@@ -169,12 +168,7 @@ export function ExercisePicker({ onClose, onPick }: { onClose: () => void; onPic
           <Search className="absolute left-3 top-3 h-5 w-5 text-muted" />
           <Input aria-label="Übung suchen" className="pl-10" placeholder="Suchen …" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <Select aria-label="Muskelgruppe" value={muscle} onChange={(e) => setMuscle(e.target.value)}>
-          <option value="">Alle Muskelgruppen</option>
-          {MUSCLE_GROUPS.map((m) => (
-            <option key={m}>{m}</option>
-          ))}
-        </Select>
+        <ExerciseFilterBar f={f} />
         <ul className="divide-y">
           {list.map((e) => (
             <li key={e.id}>

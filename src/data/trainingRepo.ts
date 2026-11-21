@@ -14,10 +14,16 @@ export async function saveCustomExercise(e: Omit<Exercise, 'id' | 'isCustom'> & 
   return ex;
 }
 
-export function searchExercises(all: Exercise[], q: string, muscle?: string) {
+export function searchExercises(all: Exercise[], q: string, muscle?: string, opts: { gym?: string; equipment?: string } = {}) {
   const n = q.trim().toLowerCase();
   return all
-    .filter((e) => (!muscle || e.primaryMuscle === muscle || e.secondaryMuscles.includes(muscle)) && (!n || (e.name + ' ' + e.primaryMuscle + ' ' + e.equipment).toLowerCase().includes(n)))
+    .filter(
+      (e) =>
+        (!muscle || e.primaryMuscle === muscle || e.secondaryMuscles.includes(muscle)) &&
+        (!opts.gym || e.gyms?.includes(opts.gym) || e.isCustom === 1) &&
+        (!opts.equipment || e.equipment === opts.equipment) &&
+        (!n || (e.name + ' ' + e.primaryMuscle + ' ' + e.equipment).toLowerCase().includes(n)),
+    )
     .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 }
 

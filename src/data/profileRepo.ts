@@ -3,7 +3,7 @@ import type { GoalType, GoalVersion, MacroStrategy, BmrFormula, Profile, Setting
 import { ageFromBirthDate, computeTargets, defaultWeeklyRate } from '@/domain/energy';
 import { profileSchema, type ProfileForm } from '@/domain/schemas';
 import { nowISO, today, uid } from '@/domain/dates';
-import { EXERCISE_LIBRARY } from './exerciseLibrary';
+import { EXERCISE_LIBRARY, LIBRARY_VERSION } from './exerciseLibrary';
 import { goalForDate } from '@/domain/balance';
 
 export async function getProfile(): Promise<Profile | undefined> {
@@ -121,8 +121,12 @@ export async function updateProfile(patch: Partial<Omit<Profile, 'id' | 'created
 }
 
 export async function ensureSeed() {
+  const v = await db.settings.get('libraryVersion');
   const count = await db.exercises.where('isCustom').equals(0).count();
-  if (count < EXERCISE_LIBRARY.length) await db.exercises.bulkPut(EXERCISE_LIBRARY.filter(() => true));
+  if ((v?.value as number | undefined) !== LIBRARY_VERSION || count < EXERCISE_LIBRARY.length) {
+    await db.exercises.bulkPut(EXERCISE_LIBRARY);
+    await db.settings.put({ key: 'libraryVersion', value: LIBRARY_VERSION });
+  }
 }
 
 // ---------- Einstellungen ----------
@@ -145,6 +149,8 @@ export interface AppSettings {
   customMeals: MealDef[];
   usdaApiKey: string;
   externalSearchConsent: boolean;
+  /** Heimstudio für den Geräte-Filter, '' = keins */
+  homeGym: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -153,6 +159,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   customMeals: [],
   usdaApiKey: '',
   externalSearchConsent: true,
+  homeGym: '',
 };
 
 export async function getSettings(): Promise<AppSettings> {

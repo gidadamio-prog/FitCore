@@ -14,7 +14,7 @@ import { firstError } from '@/domain/schemas';
 import { ACTIVITY_LABELS } from '@/domain/energy';
 import type { ActivityLevel, Profile } from '@/domain/types';
 import { GoalEditor, GoalHistory } from './goalShared';
-import { EQUIPMENT } from '@/data/exerciseLibrary';
+import { EQUIPMENT, GYMS } from '@/data/exerciseLibrary';
 import { openFoodFacts, usdaFoodData } from '@/data/foodProviders';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
@@ -184,6 +184,21 @@ function AppSettingsView() {
       <Card className="space-y-3">
         <CardTitle>Darstellung</CardTitle>
         <Tabs value={s.theme} onChange={(t) => setSetting('theme', t)} items={[{ value: 'system', label: 'System' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }]} />
+      </Card>
+      <Card className="space-y-3">
+        <CardTitle>Mein Studio</CardTitle>
+        <Field label="Heimstudio" hint="Übungsauswahl und Vorlagen zeigen dann zuerst die Geräte dieses Studios.">
+          {(id) => (
+            <Select id={id} value={s.homeGym} onChange={(e) => setSetting('homeGym', e.target.value)}>
+              <option value="">Kein bestimmtes Studio</option>
+              {Object.entries(GYMS).map(([k, l]) => (
+                <option key={k} value={k}>
+                  {l}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
       </Card>
       <Card className="space-y-3">
         <CardTitle>Mahlzeiten & Trinkziel</CardTitle>

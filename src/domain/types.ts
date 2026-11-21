@@ -181,6 +181,8 @@ export interface Exercise {
   description: string;
   alternatives: string[];
   isCustom: 0 | 1;
+  /** Studios, in denen das Gerät steht (z. B. 'vitova-nordenstadt'); Marke/Gerätelinie steht in `equipment`. */
+  gyms?: string[];
 }
 
 export type SplitType = 'fullbody' | 'upper_lower' | 'ppl' | 'custom' | 'strength' | 'endurance' | 'mobility' | 'bodyweight';

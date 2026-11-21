@@ -306,3 +306,23 @@ test('Barcode mit OFF-Produkt ohne Nährwerte → von der Packung ergänzen → 
   await expect(page.getByRole('dialog').getByTestId('nut-kcal')).toBeVisible();
   await expect(page.getByTestId('incomplete-hint')).toHaveCount(0);
 });
+
+test('Studio Vitova Nordenstadt: Heimstudio wählen → Vorlage übernehmen → Gerätefilter', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/#/settings');
+  await page.getByRole('tab', { name: 'App' }).click();
+  await page.getByLabel('Heimstudio').selectOption('vitova-nordenstadt');
+  await page.goto('/#/training');
+  await page.getByRole('button', { name: 'Aus Vorlage' }).click();
+  await expect(page.getByTestId('template-list').getByRole('button').first()).toContainText('Vitova Medifit Nordenstadt');
+  await page.getByRole('button', { name: /milon-Zirkel Ganzkörper/ }).click();
+  await expect(page.getByTestId('plan-exercise')).toHaveCount(8);
+  await expect(page.getByTestId('plan-exercise').first()).toContainText('milon Brustpresse');
+  await page.getByRole('button', { name: 'Speichern & aktivieren' }).click();
+  await expect(page.getByTestId('plan-card').first()).toContainText('aktiv');
+  await page.getByRole('tab', { name: 'Übungen' }).click();
+  await expect(page.getByRole('button', { name: 'Nur Vitova Medifit Nordenstadt' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel('Gerät / Equipment').selectOption('Technogym Selection');
+  await expect(page.getByTestId('exercise-list')).toContainText('Beinpresse (Technogym Selection)');
+  await expect(page.getByTestId('exercise-list')).not.toContainText('Kniebeuge (Langhantel)');
+});
