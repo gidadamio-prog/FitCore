@@ -3,6 +3,8 @@
 Local-first Fitness-, Ernährungs- und Körperanalyse-App als Progressive Web App (PWA).
 Ernährung, Training, Körperdaten und Ziele bilden ein gemeinsames System – alle Daten bleiben im Browser (IndexedDB), ohne Konto und ohne Cloud.
 
+**Live-App:** https://gidadamio-prog.github.io/FitCore/ (in Chrome öffnen → „App installieren“)
+
 ## Schnellstart (lokal)
 
 Voraussetzung: **Node.js ≥ 20** (empfohlen 22 LTS).
