@@ -36,8 +36,8 @@ export function Layout() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-6xl">
       <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col gap-1 border-r p-4 md:flex">
-        <div className="mb-4 px-2 text-lg font-bold tracking-tight">
-          Fit<span className="text-accent">Core</span>
+        <div className="mb-4 px-2 text-lg font-bold tracking-tight font-brand">
+          Fit<span className="text-gold">Core</span>
         </div>
         {NAV.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-fg/5 hover:text-fg')}>
@@ -51,8 +51,8 @@ export function Layout() {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-bg/85 px-4 backdrop-blur md:hidden">
-          <span className="text-lg font-bold tracking-tight">
-            Fit<span className="text-accent">Core</span>
+          <span className="font-brand text-lg font-bold tracking-tight">
+            Fit<span className="text-gold">Core</span>
           </span>
           <Button variant="ghost" size="icon" aria-label="Einstellungen und Profil" onClick={() => nav('/settings')}>
             <Settings className="h-5 w-5" />
@@ -64,7 +64,7 @@ export function Layout() {
           </div>
         )}
         {active && loc.pathname !== '/training/workout' && (
-          <button onClick={() => nav('/training/workout')} className="flex items-center justify-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-white">
+          <button onClick={() => nav('/training/workout')} className="flex items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-fg">
             <Timer className="h-4 w-4" /> Laufendes Workout: {active.name} – fortsetzen
           </button>
         )}
@@ -92,7 +92,7 @@ export function Toasts() {
         <button
           key={t.id}
           onClick={() => dismiss(t.id)}
-          className={cn('pointer-events-auto max-w-md rounded-xl px-4 py-3 text-left text-sm shadow-lg', t.tone === 'error' ? 'bg-danger text-white' : t.tone === 'success' ? 'bg-accent text-white' : 'bg-fg text-bg')}
+          className={cn('pointer-events-auto max-w-md rounded-xl px-4 py-3 text-left text-sm shadow-lg', t.tone === 'error' ? 'bg-danger text-white' : t.tone === 'success' ? 'bg-primary text-primary-fg ring-1 ring-gold/40' : 'bg-fg text-bg')}
         >
           {t.text}
         </button>

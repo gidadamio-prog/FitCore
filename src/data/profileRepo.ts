@@ -148,7 +148,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  theme: 'system',
+  theme: 'dark',
   waterGoalMl: 2500,
   customMeals: [],
   usdaApiKey: '',

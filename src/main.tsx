@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
+import '@fontsource/cinzel/600.css';
+import '@fontsource/cinzel/700.css';
 import './index.css';
 
 const queryClient = new QueryClient({

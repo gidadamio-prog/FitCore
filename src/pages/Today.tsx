@@ -304,7 +304,7 @@ function RecoveryCard({ date }: { date: string }) {
       <div className="mb-1 text-xs text-muted">{label}</div>
       <div className="flex gap-1" role="radiogroup" aria-label={label}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} role="radio" aria-checked={log?.[k] === n} onClick={() => update({ [k]: n })} className={`h-9 flex-1 rounded-lg text-sm ${log?.[k] === n ? 'bg-accent text-white' : 'bg-fg/[0.06]'}`}>
+          <button key={n} role="radio" aria-checked={log?.[k] === n} onClick={() => update({ [k]: n })} className={`h-9 flex-1 rounded-lg text-sm ${log?.[k] === n ? 'bg-accent text-accent-fg' : 'bg-fg/[0.06]'}`}>
             {n}
           </button>
         ))}

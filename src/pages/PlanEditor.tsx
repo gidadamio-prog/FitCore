@@ -86,7 +86,7 @@ export function PlanEditor() {
             {WEEKDAY_SHORT.map((w, i) => {
               const on = d.weekdays.includes(i + 1);
               return (
-                <button key={w} type="button" aria-pressed={on} onClick={() => updDay(d.id, (x) => ({ ...x, weekdays: on ? x.weekdays.filter((y) => y !== i + 1) : [...x.weekdays, i + 1].sort() }))} className={cn('h-9 flex-1 rounded-lg text-xs font-medium', on ? 'bg-accent text-white' : 'bg-fg/[0.06] text-muted')}>
+                <button key={w} type="button" aria-pressed={on} onClick={() => updDay(d.id, (x) => ({ ...x, weekdays: on ? x.weekdays.filter((y) => y !== i + 1) : [...x.weekdays, i + 1].sort() }))} className={cn('h-9 flex-1 rounded-lg text-xs font-medium', on ? 'bg-accent text-accent-fg' : 'bg-fg/[0.06] text-muted')}>
                   {w}
                 </button>
               );

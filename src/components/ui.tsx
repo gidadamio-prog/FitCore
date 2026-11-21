@@ -18,7 +18,7 @@ export const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
         size === 'md' && 'h-11 px-4 text-sm',
         size === 'lg' && 'h-12 px-5 text-base',
         size === 'icon' && 'h-11 w-11',
-        variant === 'primary' && 'bg-accent text-white shadow-sm hover:brightness-110',
+        variant === 'primary' && 'bg-primary text-primary-fg shadow-sm shadow-primary/30 ring-1 ring-inset ring-gold/30 hover:brightness-110',
         variant === 'secondary' && 'bg-fg/[0.06] text-fg hover:bg-fg/10',
         variant === 'ghost' && 'text-fg hover:bg-fg/[0.06]',
         variant === 'outline' && 'border bg-card text-fg hover:bg-fg/[0.04]',
@@ -189,7 +189,7 @@ export function Ring({ value, max, size = 150, stroke = 12, children }: { value:
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(var(--fg) / 0.07)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(var(--primary) / 0.18)" strokeWidth={stroke} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={over ? 'rgb(var(--danger))' : 'rgb(var(--accent))'} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${c * pct} ${c}`} className="transition-all duration-700" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</div>

@@ -80,8 +80,8 @@ export function Onboarding() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 py-6">
       <div className="mb-6">
-        <div className="text-2xl font-bold tracking-tight">
-          Fit<span className="text-accent">Core</span>
+        <div className="font-brand text-2xl font-bold tracking-tight">
+          Fit<span className="text-gold">Core</span>
         </div>
         <p className="text-sm text-muted">Ernährung, Training und Körper in einem System. Alle Daten bleiben auf diesem Gerät.</p>
       </div>
