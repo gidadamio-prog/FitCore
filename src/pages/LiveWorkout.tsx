@@ -10,7 +10,9 @@ import { formatDuration, uid } from '@/domain/dates';
 import { confirmDialog, toast } from '@/stores/ui';
 import { firstError } from '@/domain/schemas';
 import { ExercisePicker } from './PlanEditor';
-import { newRecordsIn, suggestProgression } from '@/domain/training';
+import { newRecordsIn, suggestProgression, completedSets, workoutVolume } from '@/domain/training';
+import { celebrate } from '@/stores/celebrate';
+import { XP_RULES } from '@/domain/gamification';
 
 function useNow(ms = 1000) {
   const [now, setNow] = useState(Date.now());
@@ -93,8 +95,16 @@ export function LiveWorkout() {
     if (!(await confirmDialog({ title: 'Training abschließen?', text: `${doneSets} abgeschlossene Sätze werden gespeichert. Nicht abgeschlossene Sätze werden verworfen.`, confirmLabel: 'Abschließen' }))) return;
     try {
       const saved = await finishWorkout();
-      const prs = newRecordsIn(saved, history);
-      toast(prs.length ? `Gespeichert – ${prs.length} neue Bestleistung(en)! 🏆` : 'Training gespeichert', 'success');
+      const prs = newRecordsIn(saved, history).filter((p) => p.kind === 'weight' || p.kind === 'e1rm');
+      const byExercise = new Map([...prs].sort((a) => (a.kind === 'weight' ? 1 : -1)).map((p) => [p.exerciseId, p])); // Gewichts-PR bevorzugt anzeigen
+      if (byExercise.size) {
+        celebrate({
+          kind: 'pr',
+          title: byExercise.size === 1 ? [...byExercise.values()][0]!.name : `${byExercise.size} Bestleistungen`,
+          subtitle: `+${XP_RULES.workout.xp + Math.min(5, byExercise.size) * XP_RULES.pr.xp} EP für dieses Training`,
+          lines: [...byExercise.values()].map((p) => `${p.name}: ${p.detail}`),
+        });
+      } else toast(`Training gespeichert · ${completedSets(saved)} Sätze, ${Math.round(workoutVolume(saved)).toLocaleString('de-DE')} kg · +${XP_RULES.workout.xp} EP`, 'success');
       nav('/training/history/' + saved.id);
     } catch (e) {
       toast(firstError(e), 'error');

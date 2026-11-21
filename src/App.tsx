@@ -15,6 +15,8 @@ import { Body } from './pages/Body';
 import { Stats } from './pages/Stats';
 import { Coach } from './pages/Coach';
 import { SettingsPage } from './pages/Settings';
+import { Achievements } from './pages/Achievements';
+import { CelebrationHost, GameWatcher } from './components/Celebration';
 
 function useTheme() {
   const { theme } = useSettings();
@@ -60,6 +62,8 @@ export function App() {
     <HashRouter>
       <Toasts />
       <ConfirmHost />
+      <CelebrationHost />
+      <GameWatcher />
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Today />} />
@@ -73,6 +77,7 @@ export function App() {
           <Route path="stats" element={<Stats />} />
           <Route path="coach" element={<Coach />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="erfolge" element={<Achievements />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

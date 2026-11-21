@@ -101,3 +101,24 @@ h1,
 .dark .border {
   border-color: rgb(var(--border));
 }
+
+/* Feier-Animationen */
+@keyframes celebrate-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes celebrate-spin-in {
+  0% { transform: rotate(-120deg) scale(0.3); opacity: 0; }
+  100% { transform: rotate(0) scale(1); opacity: 1; }
+}
+@keyframes celebrate-rays {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+.celebrate-pop { animation: celebrate-pop 450ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.celebrate-spin-in { animation: celebrate-spin-in 700ms 120ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+.celebrate-rays {
+  background: radial-gradient(circle at 50% 30%, rgb(var(--gold) / 0.35), transparent 60%);
+  animation: celebrate-rays 2.4s ease-in-out infinite;
+}

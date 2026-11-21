@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, BarChart3, Dumbbell, Home, Settings, Utensils, Timer, WifiOff } from 'lucide-react';
+import { Activity, BarChart3, Dumbbell, Home, Settings, Utensils, Timer, WifiOff, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn, Button, Sheet } from './ui';
 import { useActiveWorkout } from '@/hooks/data';
@@ -45,6 +45,9 @@ export function Layout() {
           </NavLink>
         ))}
         <div className="flex-1" />
+        <NavLink to="/erfolge" className={({ isActive }) => cn('flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-fg/5')}>
+          <Trophy className="h-5 w-5 text-gold" /> Ruhmeshalle
+        </NavLink>
         <NavLink to="/settings" className={({ isActive }) => cn('flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-fg/5')}>
           <Settings className="h-5 w-5" /> Einstellungen
         </NavLink>
@@ -54,9 +57,14 @@ export function Layout() {
           <span className="font-brand text-lg font-bold tracking-tight">
             Fit<span className="text-gold">Core</span>
           </span>
-          <Button variant="ghost" size="icon" aria-label="Einstellungen und Profil" onClick={() => nav('/settings')}>
-            <Settings className="h-5 w-5" />
-          </Button>
+          <div className="flex">
+            <Button variant="ghost" size="icon" aria-label="Ruhmeshalle (Erfolge)" onClick={() => nav('/erfolge')}>
+              <Trophy className="h-5 w-5 text-gold" />
+            </Button>
+            <Button variant="ghost" size="icon" aria-label="Einstellungen und Profil" onClick={() => nav('/settings')}>
+              <Settings className="h-5 w-5" />
+            </Button>
+          </div>
         </header>
         {!online && (
           <div className="flex items-center gap-2 bg-warn/15 px-4 py-2 text-xs text-warn" role="status">

@@ -2,6 +2,8 @@
 import type { CardioActivity, CardioSession, Workout, WorkoutExercise, WorkoutSet } from './types';
 import { ValidationError } from './energy';
 
+const kgDe = (v: number) => v.toLocaleString('de-DE', { maximumFractionDigits: 2 });
+
 export const isCompletedSet = (s: WorkoutSet) => s.done && s.reps != null && s.reps > 0;
 
 /** Volumen = Σ Gewicht × Wiederholungen über abgeschlossene Sätze (Körpergewichtssätze ohne Gewicht zählen 0). */
@@ -104,13 +106,13 @@ export function personalRecords(workouts: Workout[]): PersonalRecord[] {
       for (const s of e.sets.filter(isCompletedSet)) {
         const base = { exerciseId: e.exerciseId, name: e.name, date: w.date, workoutId: w.id };
         if (s.weightKg != null && s.weightKg > 0) {
-          consider({ ...base, kind: 'weight', value: s.weightKg, detail: `${s.weightKg} kg × ${s.reps}` });
-          if (s.reps! <= 12) consider({ ...base, kind: 'e1rm', value: epley1RM(s.weightKg, s.reps!), detail: `aus ${s.weightKg} kg × ${s.reps}` });
+          consider({ ...base, kind: 'weight', value: s.weightKg, detail: `${kgDe(s.weightKg)} kg × ${s.reps}` });
+          if (s.reps! <= 12) consider({ ...base, kind: 'e1rm', value: epley1RM(s.weightKg, s.reps!), detail: `aus ${kgDe(s.weightKg)} kg × ${s.reps}` });
         }
-        consider({ ...base, kind: 'reps', value: s.reps!, detail: s.weightKg ? `${s.reps} Wdh. mit ${s.weightKg} kg` : `${s.reps} Wdh.` });
+        consider({ ...base, kind: 'reps', value: s.reps!, detail: s.weightKg ? `${s.reps} Wdh. mit ${kgDe(s.weightKg)} kg` : `${s.reps} Wdh.` });
         sessionVol += setVolume(s);
       }
-      if (sessionVol > 0) consider({ exerciseId: e.exerciseId, name: e.name, date: w.date, workoutId: w.id, kind: 'volume', value: sessionVol, detail: `${sessionVol} kg Volumen` });
+      if (sessionVol > 0) consider({ exerciseId: e.exerciseId, name: e.name, date: w.date, workoutId: w.id, kind: 'volume', value: sessionVol, detail: `${kgDe(sessionVol)} kg Volumen` });
     }
   return [...best.values()];
 }

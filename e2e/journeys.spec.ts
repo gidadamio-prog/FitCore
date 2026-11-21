@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createAndActivatePlan, createCustomFood, mockOff, nav, onboard } from './helpers';
+import { createAndActivatePlan, createCustomFood, dismissCelebrations, mockOff, nav, onboard } from './helpers';
 
 test('E2E-01 Profil anlegen → Kalorienziel berechnen → Dashboard prüfen', async ({ page }) => {
   await onboard(page);
@@ -101,6 +101,7 @@ test('E2E-04 Rezept erstellen → Portion berechnen → ins Tagebuch', async ({ 
   await expect(dlg.getByTestId('recipe-nutrition')).toContainText('564 kcal');
   await expect(dlg.getByTestId('recipe-nutrition')).toContainText('282 kcal');
   await dlg.getByRole('button', { name: 'Rezept speichern' }).click();
+  await dismissCelebrations(page); // Abzeichen „Koch des Kaisers“
   await expect(page.getByTestId('recipe-card')).toContainText('282 kcal');
   await page.getByRole('button', { name: 'Ins Tagebuch' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Buchen' }).click();
@@ -153,6 +154,7 @@ test('E2E-06/07 Plan erstellen → aktivieren → Workout → Historie', async (
   await expect(page.getByTestId('rest-remaining')).toHaveText('1:30'); // zurückgesetzt auf die Pause der Übung (90 s)
   await page.getByRole('button', { name: 'Training abschließen' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Abschließen' }).click();
+  await dismissCelebrations(page);
   await expect(page.getByTestId('detail-volume')).toHaveText('1.800');
   await nav(page, 'Training');
   await page.getByRole('tab', { name: 'Historie' }).click();
@@ -177,6 +179,7 @@ test('E2E-08 Workout → Trainingsenergie anrechnen → Tagesbudget', async ({ p
   await ex.getByRole('button', { name: 'Satz 1 abschließen' }).click();
   await page.getByRole('button', { name: 'Training abschließen' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Abschließen' }).click();
+  await dismissCelebrations(page);
   await page.getByLabel('Eigener Wert (kcal)').fill('300');
   await page.getByRole('button', { name: 'Übernehmen' }).click();
   await page.goto('/#/settings');
@@ -223,6 +226,7 @@ test('E2E-09 Daten ändern → Statistiken aktualisieren sich', async ({ page })
   await ex.getByRole('button', { name: 'Satz 1 abschließen' }).click();
   await page.getByRole('button', { name: 'Training abschließen' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Abschließen' }).click();
+  await dismissCelebrations(page);
   await nav(page, 'Statistiken');
   await page.getByRole('tab', { name: 'Training' }).click();
   await expect(page.getByTestId('total-volume')).toHaveText('500');
@@ -294,8 +298,9 @@ test('Barcode mit OFF-Produkt ohne Nährwerte → von der Packung ergänzen → 
   await dlg.getByLabel('Kohlenhydrate (g)').fill('74');
   await dlg.getByLabel('Fett (g)').fill('0.8');
   await dlg.getByRole('button', { name: 'Speichern und auswählen' }).click();
+  await expect(dlg.getByTestId('nut-kcal')).toHaveText('349 kcal'); // Mengenansicht mit eigenen Werten
   await expect(page.getByTestId('incomplete-hint')).toHaveCount(0);
-  await dlg.getByLabel('Menge').fill('30');
+  await dlg.getByRole('spinbutton', { name: 'Menge' }).fill('30');
   await dlg.getByRole('button', { name: 'Hinzufügen' }).click();
   await expect(page.getByTestId('day-kcal')).toHaveText('105');
   // nächster Scan: eigene Werte, kein Hinweis

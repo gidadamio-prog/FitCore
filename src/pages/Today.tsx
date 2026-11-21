@@ -16,6 +16,8 @@ import { calorieGoalRate, dailyNutrition } from '@/domain/stats';
 import { coachInsights, classifyDay, dayRecommendations, DAY_TYPE_LABELS } from '@/domain/coach';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { useGame } from '@/hooks/game';
+import { QuestList, RankHeader, StreakChips } from './Achievements';
 import { db } from '@/data/db';
 import type { RecoveryLog } from '@/domain/types';
 
@@ -33,6 +35,7 @@ export function Today() {
   const settings = useSettings();
   const active = useActiveWorkout();
   const [weightOpen, setWeightOpen] = useState(false);
+  const game = useGame();
   const plan = plans.find((p) => p.status === 'active');
   const todaysDays = plan?.days.filter((d) => d.weekdays.includes(isoWeekday(date))) ?? [];
   const lastWorkout = workouts[workouts.length - 1];
@@ -79,6 +82,24 @@ export function Today() {
     <div className="space-y-4">
       <PageHeader title={`Hallo ${profile.name}`} subtitle={formatLongDate(date)} />
       <InstallPrompt />
+      {game && (
+        <Card className="border-gold/25" data-testid="game-card">
+          <button className="block w-full text-left" onClick={() => nav('/erfolge')} aria-label="Zur Ruhmeshalle">
+            <RankHeader game={game} compact />
+          </button>
+          <div className="mt-3">
+            <StreakChips game={game} />
+          </div>
+          <details className="mt-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Feldzüge dieser Woche · {game.quests.filter((q) => q.done).length}/{game.quests.length}
+            </summary>
+            <div className="mt-2">
+              <QuestList quests={game.quests} />
+            </div>
+          </details>
+        </Card>
+      )}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           {g ? (
