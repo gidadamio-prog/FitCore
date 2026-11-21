@@ -1,0 +1,91 @@
+ID,Bereich,Beschreibung,Priorität,Status,Testtyp,Testdatei,Anmerkung
+AK-001,A Architektur,Start ohne Laufzeitfehler nach Installation,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,Alle E2E-Läufe gegen Produktions-Build ohne pageerror
+AK-002,A Architektur,Produktions-Build fehlerfrei,P0,BESTANDEN,Build,,npm run build
+AK-003,A Architektur,TypeScript Strict Mode fehlerfrei,P0,BESTANDEN,Typecheck,,"npm run typecheck (strict, noUncheckedIndexedAccess)"
+AK-004,A Architektur,Kein horizontales Scrollen mobil/desktop,P0,BESTANDEN,E2E,e2e/responsive.spec.ts,"11 Routen, Pixel 7 (412px) + 1280px"
+AK-005,A Architektur,"Tagebuch, Pläne, Körperdaten offline",P0,BESTANDEN,E2E,e2e/offline-backup.spec.ts,E2E-11 mit Service Worker + context.setOffline
+AK-006,A Architektur,Daten bleiben nach Neustart erhalten,P0,BESTANDEN,Integration+E2E,tests/integration/persistence.test.ts;e2e/journeys.spec.ts,DB schließen/neu öffnen + Seiten-Reload; echter Browser-Neustart nur manuell geprüft
+AK-007,A Architektur,Versionierte Migration ohne Datenverlust,P0,BESTANDEN,Integration,tests/integration/persistence.test.ts,v1→v2 inkl. Feldumbenennung
+AK-008,A Architektur,Backup Export/Restore in frischer Instanz,P0,BESTANDEN,Integration+E2E,tests/integration/persistence.test.ts;e2e/offline-backup.spec.ts,E2E-12 in getrenntem Browserkontext
+AK-009,B Profil,Profil per Onboarding anlegen,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,E2E-01
+AK-010,B Profil,Profildaten änderbar und persistent,P0,BESTANDEN,Integration,tests/integration/persistence.test.ts,
+AK-011,B Profil,Ziele Abnehmen/Halten/Aufbau/Rekomposition wählbar,P0,BESTANDEN,Unit,tests/domain/energy.test.ts,alle 8 Ziele
+AK-012,B Profil,BMR-Referenz 80/180/30 +5 = 1780,P0,BESTANDEN,Unit,tests/domain/energy.test.ts,
+AK-013,B Profil,TDEE nachvollziehbar aus Methode + Aktivität,P0,BESTANDEN,Unit+E2E,tests/domain/energy.test.ts;e2e/journeys.spec.ts,Aufschlüsselung in Einstellungen > Ziele
+AK-014,B Profil,Kalorien-/Makroziele manuell überschreibbar,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,inkl. Konsistenzanzeige Makro-kcal
+AK-015,B Profil,Zieländerungen historisiert,P0,BESTANDEN,Unit+Integration,tests/domain/balance.test.ts;tests/integration/persistence.test.ts,effectiveFrom-Versionierung
+AK-016,B Profil,Ungültige Eingaben mit verständlichen Fehlern abgelehnt,P0,BESTANDEN,Unit+Integration+E2E,tests/domain/energy.test.ts;tests/integration/persistence.test.ts;e2e/journeys.spec.ts,
+AK-017,C Lebensmittel,Echte OFF-Suche liefert echte Datensätze,P0,BLOCKIERT,Live-Integration,tests/live/off.live.test.ts,Test vorhanden (npm run test:off-live); Sandbox-Netzwerk blockiert openfoodfacts.org (HTTP 403 am Proxy). Beim ersten Start mit Internet ausführen.
+AK-018,C Lebensmittel,Produktsuche per Barcode,P0,BESTANDEN,Integration+E2E,tests/integration/providers.test.ts;e2e/journeys.spec.ts,"gegen simulierte, dokumentierte OFF-v2-Antwort; Live-Abruf siehe AK-017"
+AK-019,C Lebensmittel,Kamerascanner erkennt gültigen Barcode,P0,BESTANDEN,E2E,e2e/scanner.spec.ts,"Chrome mit simulierter Kamera (Y4M), ZXing-Fallback; native BarcodeDetector-Variante und echtes Smartphone nur manuell zu prüfen"
+AK-020,C Lebensmittel,Manuelle Barcodeeingabe ohne Kamera,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,
+AK-021,C Lebensmittel,Kalorien/Makros in korrekten Einheiten,P0,BESTANDEN,Unit+Integration,tests/domain/nutrition.test.ts;tests/integration/providers.test.ts,"kJ→kcal, Natrium→Salz, ml-Erkennung"
+AK-022,C Lebensmittel,Fehlende Nährwerte als unbekannt,P0,BESTANDEN,Unit+Integration,tests/domain/nutrition.test.ts;tests/integration/providers.test.ts,"null ≠ 0 in Speicherung, Summen und UI"
+AK-023,C Lebensmittel,Portionsmengen proportional (200 g × 150 kcal/100 g = 300),P0,BESTANDEN,Unit,tests/domain/nutrition.test.ts,
+AK-024,C Lebensmittel,Eigene Lebensmittel erstellen/finden,P0,BESTANDEN,Integration+E2E,tests/integration/nutrition.test.ts;e2e/journeys.spec.ts,
+AK-025,C Lebensmittel,Datenquelle je Datensatz nachvollziehbar,P0,BESTANDEN,Integration,tests/integration/providers.test.ts,"source, sourceId, sourceUrl, license"
+AK-026,C Lebensmittel,API-Fehler/Timeout/fehlende Produkte ohne Absturz,P0,BESTANDEN,Integration,tests/integration/providers.test.ts,"network, timeout, http, rate_limit, parse"
+AK-027,C Lebensmittel,Cache für identische Anfragen,P0,BESTANDEN,Integration,tests/integration/providers.test.ts,"24 h Suche, 7 Tage Produkt, Offline-Fallback"
+AK-028,C Lebensmittel,"Anbieterinformationen (Lizenz, Pflichtangaben)",P0,EINGESCHRÄNKT,Integration+Manuell,tests/integration/providers.test.ts,ODbL-/CC-BY-SA-/CC0-Hinweise umgesetzt. OFF verlangt einen eigenen User-Agent – Browser verbieten diesen Header; ersatzweise app_name/app_version-Parameter. Für vollständige Konformität Server-Proxy nötig.
+AK-029,D Tagebuch,Zuordnung Frühstück/Mittag/Abend/Snacks/eigene Mahlzeiten,P0,BESTANDEN,Integration+E2E,tests/integration/nutrition.test.ts;e2e/journeys.spec.ts,
+AK-030,D Tagebuch,Hinzufügen/Löschen aktualisiert Summen sofort,P0,BESTANDEN,Integration+E2E,tests/integration/nutrition.test.ts;e2e/journeys.spec.ts,reaktive Dexie-liveQuery
+AK-031,D Tagebuch,Mengenänderung korrigiert Tagessummen,P0,BESTANDEN,Integration+E2E,tests/integration/nutrition.test.ts;e2e/journeys.spec.ts,
+AK-032,D Tagebuch,Mahlzeiten kopieren ohne Originale zu ändern,P0,BESTANDEN,Integration,tests/integration/nutrition.test.ts,"Mahlzeit, Tag, Einzeleintrag"
+AK-033,D Tagebuch,Favoriten & erneut buchen,P0,BESTANDEN,Integration,tests/integration/nutrition.test.ts,
+AK-034,D Rezepte,Rezept aus ≥ 2 Zutaten,P0,BESTANDEN,Integration+E2E,tests/integration/nutrition.test.ts;e2e/journeys.spec.ts,
+AK-035,D Rezepte,Rezeptnährwerte aus Zutaten korrekt,P0,BESTANDEN,Unit+E2E,tests/domain/nutrition.test.ts;e2e/journeys.spec.ts,
+AK-036,D Rezepte,Portionsanzahl ändert nur pro Portion,P0,BESTANDEN,Unit,tests/domain/nutrition.test.ts,
+AK-037,D Rezepte,Historische Buchungen bei Rezeptänderung stabil,P0,BESTANDEN,Integration,tests/integration/nutrition.test.ts,Snapshot je Eintrag
+AK-038,D Tagebuch,Tageswerte = Summe der Einträge,P0,BESTANDEN,Unit+Integration,tests/domain/nutrition.test.ts;tests/integration/nutrition.test.ts,
+AK-039,E Körper,Gewicht/Umfänge mit Datum speichern,P0,BESTANDEN,Integration+E2E,tests/integration/persistence.test.ts;e2e/offline-backup.spec.ts,
+AK-040,E Körper,Messungen bearbeiten und löschen,P0,BESTANDEN,Integration,tests/integration/persistence.test.ts,UI: Messungen-Tab > Eintrag
+AK-041,E Körper,Navy: korrekte Formeln + Validierung,P0,BESTANDEN,Unit+E2E,tests/domain/body.test.ts;e2e/journeys.spec.ts,
+AK-042,E Körper,Navy: ≥ 5 unabhängige Referenztests + ungültige Werte,P0,BESTANDEN,Unit,tests/domain/body.test.ts,6 Referenzfälle (Python) + Zoll-Fall + SI-Gegenprüfung; 5 Fehlerfälle
+AK-043,E Körper,Fett-/fettfreie Masse korrekt,P0,BESTANDEN,Unit,tests/domain/body.test.ts,
+AK-044,E Körper,Gemessene vs. geschätzte KF-Werte unterscheidbar,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,Badge + getrennte Diagrammserien
+AK-045,E Körper,"Gewichtstrend aus echten Messungen, dokumentierte Glättung",P0,BESTANDEN,Unit,tests/domain/body.test.ts,"zeitgewichteter EMA α=0,1"
+AK-046,E Körper,Diagramme chronologisch korrekt,P0,BESTANDEN,Unit+E2E,tests/domain/body.test.ts;e2e/journeys.spec.ts,inkl. mehrerer Messungen am selben Tag
+AK-047,E Körper,Keine erfundenen Messwerte,P0,BESTANDEN,Unit+Integration,tests/domain/body.test.ts;tests/integration/persistence.test.ts,Lücken bleiben Lücken
+AK-048,E Körper,Vergleich zweier Zeitpunkte,P0,BESTANDEN,Unit,tests/domain/body.test.ts,UI: Körper > Vergleich
+AK-049,F Training,Plan mit Name + ≥ 1 Trainingstag,P0,BESTANDEN,Integration+E2E,tests/integration/training.test.ts;e2e/journeys.spec.ts,
+AK-050,F Training,Mehrere Übungen je Trainingstag,P0,BESTANDEN,Integration+E2E,tests/integration/training.test.ts;e2e/journeys.spec.ts,
+AK-051,F Training,Sätze/Wdh./Zielgewicht je Übung,P0,BESTANDEN,Integration+E2E,tests/integration/training.test.ts;e2e/journeys.spec.ts,
+AK-052,F Training,Übungen umsortieren,P0,BESTANDEN,Integration,tests/integration/training.test.ts,UI: Pfeiltasten im Plan-Editor
+AK-053,F Training,Pläne speichern/bearbeiten/duplizieren/archivieren,P0,BESTANDEN,Integration,tests/integration/training.test.ts,
+AK-054,F Training,Aktivierter Plan im Dashboard,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,
+AK-055,F Training,Übung per Suche finden,P0,BESTANDEN,Integration+E2E,tests/integration/training.test.ts;e2e/journeys.spec.ts,60 mitgelieferte Übungen
+AK-056,F Training,Eigene Übungen dauerhaft speichern,P0,BESTANDEN,Integration,tests/integration/training.test.ts,
+AK-057,F Training,Planänderung ändert abgeschlossene Workouts nicht,P0,BESTANDEN,Integration,tests/integration/training.test.ts,
+AK-058,G Workout,Workout aus aktivem Plan starten,P0,BESTANDEN,Integration+E2E,tests/integration/training.test.ts;e2e/journeys.spec.ts,
+AK-059,G Workout,Gewicht/Wdh. je Satz,P0,BESTANDEN,Integration+E2E,tests/integration/training.test.ts;e2e/journeys.spec.ts,
+AK-060,G Workout,Satz mit einer Touch-Aktion abschließen,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,
+AK-061,G Workout,Pausentimer starten/anhalten/zurücksetzen,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,
+AK-062,G Workout,Laufendes Workout nach Neuladen wiederhergestellt,P0,BESTANDEN,Integration+E2E,tests/integration/training.test.ts;e2e/journeys.spec.ts,
+AK-063,G Workout,Workout abschließen und speichern,P0,BESTANDEN,Integration+E2E,tests/integration/training.test.ts;e2e/journeys.spec.ts,
+AK-064,G Workout,Historie abgeschlossener Workouts,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,
+AK-065,G Workout,Volumen 3×10×60 = 1800 kg,P0,BESTANDEN,Unit+E2E,tests/domain/training.test.ts;e2e/journeys.spec.ts,
+AK-066,G Workout,Bestleistungen aus echten Werten,P0,BESTANDEN,Unit,tests/domain/training.test.ts,
+AK-067,G Workout,Übungsverlauf grafisch vergleichbar,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,
+AK-068,G Workout,Ausdauer mit Sportart/Dauer/optionaler Distanz,P0,BESTANDEN,Integration,tests/integration/training.test.ts,
+AK-069,H Verknüpfung,Workout erzeugt geschätzten Energieverbrauch,P0,BESTANDEN,Unit+Integration,tests/domain/training.test.ts;tests/integration/training.test.ts,Netto-MET
+AK-070,H Verknüpfung,Anrechnungsquote einstellbar,P0,BESTANDEN,Unit+E2E,tests/domain/balance.test.ts;e2e/journeys.spec.ts,0/25/50/75/100 % + frei
+AK-071,H Verknüpfung,2000 + 300 − 1500 = 800,P0,BESTANDEN,Unit+E2E,tests/domain/balance.test.ts;e2e/journeys.spec.ts,
+AK-072,H Verknüpfung,Quote 0 % ändert Budget nicht,P0,BESTANDEN,Unit+Integration+E2E,tests/domain/balance.test.ts;tests/integration/training.test.ts;e2e/journeys.spec.ts,
+AK-073,H Verknüpfung,Nachträgliche Änderung der Trainingsenergie,P0,BESTANDEN,Unit+Integration,tests/domain/balance.test.ts;tests/integration/training.test.ts,
+AK-074,H Verknüpfung,Keine Doppelanrechnung mit Aktivitätsfaktor,P0,BESTANDEN,Unit+Integration,tests/domain/balance.test.ts;tests/integration/training.test.ts,
+AK-075,H Verknüpfung,Kein doppelt erfasstes/angerechnetes Training,P0,BESTANDEN,Unit+Integration,tests/domain/balance.test.ts;tests/domain/training.test.ts;tests/integration/training.test.ts,idempotenter Abschluss + Ausdauer-Duplikatprüfung
+AK-076,H Verknüpfung,Trainingskalorien als Schätzung gekennzeichnet,P0,BESTANDEN,E2E,e2e/journeys.spec.ts,"„geschätzt“ in Dashboard, Tagebuch, Historie"
+AK-077,H Verknüpfung,Lebensmitteländerung aktualisiert gemeinsame Bilanz,P0,BESTANDEN,Integration,tests/integration/training.test.ts,
+AK-078,H Verknüpfung,Empfehlungen ändern Ziele nur nach Bestätigung,P0,BESTANDEN,Unit+Manuell,tests/domain/stats.test.ts,Coach-Vorschläge nur über Bestätigungsdialog
+AK-079,I Statistik,Kalorien/Makros für 7/30/90 Tage grafisch,P0,BESTANDEN,Unit+E2E,tests/domain/stats.test.ts;e2e/journeys.spec.ts,
+AK-080,I Statistik,Trainingshäufigkeit/-volumen korrekt aggregiert,P0,BESTANDEN,Unit+E2E,tests/domain/stats.test.ts;e2e/journeys.spec.ts,
+AK-081,I Statistik,Gewichtstrend gemeinsam mit Kalorienaufnahme,P0,BESTANDEN,Manuell,,Statistiken > Kombiniert (Screenshot-Prüfung); bewusst ohne Doppelachse
+AK-082,I Statistik,Trainings- und Körperfortschritt im gleichen Zeitraum,P0,BESTANDEN,Manuell,,Kraft- und Gewichtsindex auf gemeinsamer Achse (Screenshot-Prüfung)
+AK-083,I Statistik,Zielerreichung auf auswertbaren Tagen + Lückenausweis,P0,BESTANDEN,Unit,tests/domain/stats.test.ts,
+AK-084,I Statistik,Wochenbericht mit echten Ø und Veränderung,P0,BESTANDEN,Unit,tests/domain/stats.test.ts,
+AK-085,I Statistik,"Coach-Trend ab 14 Tagen, sonst Einschränkung",P0,BESTANDEN,Unit,tests/domain/stats.test.ts,
+AK-086,I Statistik,"Empfehlungen mit Datengrundlage, nicht automatisch",P0,BESTANDEN,Unit,tests/domain/stats.test.ts,
+AK-087,J Qualität,Essen/Training/Gewicht in ≤ 3 Interaktionen,P0,BESTANDEN,E2E,e2e/responsive.spec.ts,jeweils 1 Interaktion
+AK-088,J Qualität,Hauptbereiche auf Smartphone & Desktop bedienbar,P0,BESTANDEN,E2E,e2e/responsive.spec.ts,"Touch-Ziele ≥ 40 px, Dialog-Buttons im Viewport"
+AK-089,J Qualität,"Echte Daten, keine funktionslosen Bedienelemente",P0,BESTANDEN,E2E+Manuell,e2e/journeys.spec.ts,Code-Review aller Buttons; keine Demo-/Mock-Daten im Produktcode
+AK-090,J Qualität,"P0-Tests, TypeScript, Linting, Build erfolgreich",P0,BESTANDEN,CI-Befehle,,"118 Unit/Integration, 17 E2E grün; Live-Test AK-017 als Blocker ausgewiesen"
