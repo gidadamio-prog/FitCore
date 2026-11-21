@@ -40,5 +40,5 @@ test('AK-087 Essen, Training, Gewicht mit ≤ 3 Interaktionen vom Dashboard', as
   await page.getByRole('button', { name: 'Gewicht' }).click(); // 1
   await page.getByLabel('Gewicht heute (kg)').fill('79.8');
   await page.getByRole('dialog').getByRole('button', { name: 'Speichern' }).click();
-  await expect(page.getByText('79,8')).toBeVisible();
+  await expect(page.getByText('79,8').first()).toBeVisible();
 });

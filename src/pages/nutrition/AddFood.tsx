@@ -7,7 +7,7 @@ import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { db } from '@/data/db';
 import type { FoodItem, MealId, Nutrients, Recipe } from '@/domain/types';
 import { addEntry, createCustomFood, logRecipe, logSavedMeal, quickAdd, searchLocalFoods, toggleFavorite, upsertFood, type CustomFoodInput } from '@/data/nutritionRepo';
-import { lookupBarcode, openFoodFacts, usdaFoodData, ProviderError, dedupe } from '@/data/foodProviders';
+import { lookupBarcode, openFoodFacts, usdaFoodData, ProviderError, dedupe, offEditUrl } from '@/data/foodProviders';
 import { checkKcal, completeness, recipeNutrition, scaleNutrients, NUTRIENT_LABELS, type NutrientKey } from '@/domain/nutrition';
 import { firstError, fieldErrors } from '@/domain/schemas';
 import { z } from 'zod';
@@ -63,7 +63,7 @@ export function AddFoodSheet({ open, onClose, date, meal: initialMeal }: { open:
   return (
     <Sheet open={open} onClose={onClose} title={title} wide>
       {selected ? (
-        <FoodAmount food={selected} date={date} meal={meal} setMeal={setMeal} onBack={() => setSelected(null)} onDone={onClose} />
+        <FoodAmount key={selected.id} food={selected} date={date} meal={meal} setMeal={setMeal} onBack={() => setSelected(null)} onDone={onClose} onReplace={setSelected} />
       ) : scan ? (
         <BarcodeScanner onCode={onBarcode} />
       ) : (
@@ -229,8 +229,10 @@ export function NutrientTable({ n, title }: { n: Nutrients; title?: string }) {
   );
 }
 
-function FoodAmount({ food, date, meal, setMeal, onBack, onDone }: { food: FoodItem; date: string; meal: MealId; setMeal: (m: MealId) => void; onBack: () => void; onDone: () => void }) {
+function FoodAmount({ food, date, meal, setMeal, onBack, onDone, onReplace }: { food: FoodItem; date: string; meal: MealId; setMeal: (m: MealId) => void; onBack: () => void; onDone: () => void; onReplace: (f: FoodItem) => void }) {
   const meals = useMeals();
+  const [completing, setCompleting] = useState(false);
+  const incomplete = completeness(food.per100) !== 'complete';
   const fresh = useLiveQuery(() => db.foods.get(food.id), [food.id]) ?? food;
   const [unit, setUnit] = useState<string>(food.servings[0] ? 'serving:0' : food.unitBase);
   const [amount, setAmount] = useState<number | undefined>(food.servings[0] ? 1 : 100);
@@ -253,8 +255,38 @@ function FoodAmount({ food, date, meal, setMeal, onBack, onDone }: { food: FoodI
       setErr(firstError(e));
     }
   };
+  if (completing)
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted">Trag die Werte von der Packung ein (pro 100 g bzw. 100 ml). Das Produkt wird als eigenes Lebensmittel mit diesem Barcode gespeichert und beim nächsten Scan direkt gefunden – auch offline.</p>
+        <CustomFoodForm prefill={food} onSaved={(f) => onReplace(f)} />
+        <Button variant="secondary" onClick={() => setCompleting(false)}>
+          Abbrechen
+        </Button>
+      </div>
+    );
   return (
     <div className="space-y-4">
+      {incomplete && (
+        <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm" data-testid="incomplete-hint">
+          <div className="flex items-center gap-2 font-medium text-warn">
+            <AlertTriangle className="h-4 w-4" /> {food.per100.kcal == null ? 'Keine Nährwerte hinterlegt' : 'Nährwerte unvollständig'}
+          </div>
+          <p className="mt-1 text-muted">
+            {food.source === 'custom' ? 'Bei diesem eigenen Lebensmittel fehlen Angaben.' : `${food.source === 'off' ? 'Open Food Facts' : 'Die Datenquelle'} kennt das Produkt, aber nicht alle Nährwerte.`} Fehlende Werte werden nicht geschätzt.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => setCompleting(true)}>
+              Nährwerte von der Packung ergänzen
+            </Button>
+            {food.source === 'off' && food.barcode && (
+              <a href={offEditUrl(food.barcode)} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1 px-2 text-xs text-accent underline">
+                Auch bei Open Food Facts ergänzen <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex items-start gap-3">
         {food.imageUrl && <img src={food.imageUrl} alt="" className="h-16 w-16 rounded-xl object-cover" />}
         <div className="min-w-0 flex-1">
@@ -393,10 +425,11 @@ function SavedPick({ date, meal, onDone }: { date: string; meal: MealId; onDone:
   );
 }
 
-export function CustomFoodForm({ barcode, onSaved, initial }: { barcode?: string; onSaved: (f: FoodItem) => void; initial?: FoodItem }) {
+export function CustomFoodForm({ barcode, onSaved, initial, prefill }: { barcode?: string; onSaved: (f: FoodItem) => void; initial?: FoodItem; prefill?: FoodItem }) {
+  const src = initial ?? prefill;
   const [f, setF] = useState<Partial<CustomFoodInput>>(
-    initial
-      ? { name: initial.name, brand: initial.brand, barcode: initial.barcode, unitBase: initial.unitBase, kcal: initial.per100.kcal, protein: initial.per100.protein, carbs: initial.per100.carbs, fat: initial.per100.fat, fiber: initial.per100.fiber ?? null, sugar: initial.per100.sugar ?? null, salt: initial.per100.salt ?? null, servingLabel: initial.servings[0]?.label, servingGrams: initial.servings[0]?.grams }
+    src
+      ? { name: src.name, brand: src.brand, barcode: src.barcode, unitBase: src.unitBase, kcal: src.per100.kcal, protein: src.per100.protein, carbs: src.per100.carbs, fat: src.per100.fat, fiber: src.per100.fiber ?? null, sugar: src.per100.sugar ?? null, salt: src.per100.salt ?? null, servingLabel: src.servings[0]?.label, servingGrams: src.servings[0]?.grams }
       : { unitBase: 'g', barcode, kcal: null, protein: null, carbs: null, fat: null },
   );
   const [errs, setErrs] = useState<Record<string, string>>({});
@@ -417,7 +450,7 @@ export function CustomFoodForm({ barcode, onSaved, initial }: { barcode?: string
   };
   return (
     <div className="space-y-3">
-      {barcode && !initial && <p className="rounded-xl bg-warn/10 p-3 text-sm text-warn">Produkt mit Barcode {barcode} wurde nicht gefunden. Lege es hier selbst an – die Werte findest du auf der Verpackung.</p>}
+      {barcode && !src && <p className="rounded-xl bg-warn/10 p-3 text-sm text-warn">Produkt mit Barcode {barcode} wurde nicht gefunden. Lege es hier selbst an – die Werte findest du auf der Verpackung.</p>}
       <Field label="Name" error={errs.name}>{(id) => <Input id={id} value={f.name ?? ''} onChange={(e) => setF((s) => ({ ...s, name: e.target.value }))} />}</Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Marke (optional)">{(id) => <Input id={id} value={f.brand ?? ''} onChange={(e) => setF((s) => ({ ...s, brand: e.target.value }))} />}</Field>

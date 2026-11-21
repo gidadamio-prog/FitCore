@@ -2,7 +2,7 @@
 // Es werden ausschließlich Suchbegriffe bzw. Barcodes übertragen – niemals Körper- oder Gesundheitsdaten.
 import { db } from './db';
 import type { FoodItem, Nutrients } from '@/domain/types';
-import { kcalFromMacros, parseServingSize, saltFromSodium, toKcal } from '@/domain/nutrition';
+import { completeness, kcalFromMacros, parseServingSize, saltFromSodium, toKcal } from '@/domain/nutrition';
 import { nowISO } from '@/domain/dates';
 
 export class ProviderError extends Error {
@@ -101,7 +101,7 @@ export class RateLimiter {
 // ---------- Open Food Facts ----------
 
 const OFF_BASE = 'https://world.openfoodfacts.org';
-const OFF_FIELDS = 'code,product_name,product_name_de,generic_name,brands,nutriments,serving_size,serving_quantity,quantity,product_quantity_unit,image_front_small_url,image_url,nutrition_data_per';
+const OFF_FIELDS = 'code,product_name,product_name_de,generic_name,brands,nutriments,serving_size,serving_quantity,quantity,product_quantity_unit,image_front_small_url,image_url,nutrition_data_per,countries_tags';
 const APP_PARAMS = `app_name=FitCore&app_version=1.0`;
 const offSearchLimiter = new RateLimiter(8, 60000); // OFF: max. 10 Suchanfragen/min
 const offProductLimiter = new RateLimiter(12, 60000); // OFF: max. 15 Produktabrufe/min
@@ -120,6 +120,7 @@ interface OffProduct {
   product_quantity_unit?: string;
   image_front_small_url?: string;
   image_url?: string;
+  countries_tags?: string[];
 }
 
 const numOrNull = (v: unknown): number | null => {
@@ -181,6 +182,20 @@ export function normalizeOff(p: OffProduct): FoodItem | null {
   };
 }
 
+/** Deutscher Markt zuerst: in Deutschland verkaufte Produkte mit vollständigen Nährwerten oben. Nichts wird entfernt. */
+export function sortGermanFirst(products: OffProduct[]): OffProduct[] {
+  const score = (p: OffProduct) => {
+    const de = p.countries_tags?.some((t) => t === 'en:germany' || t === 'en:austria' || t === 'en:switzerland') ? 0 : 2;
+    const n = p.nutriments ?? {};
+    const complete = ['energy-kcal_100g', 'proteins_100g', 'carbohydrates_100g', 'fat_100g'].every((k) => n[k] != null) ? 0 : 1;
+    return de + complete;
+  };
+  return products.map((p, i) => ({ p, i, s: score(p) })).sort((a, b) => a.s - b.s || a.i - b.i).map((x) => x.p);
+}
+
+/** Link zum Ergänzen eines Produkts bei Open Food Facts (Community-Datenbank). */
+export const offEditUrl = (code: string) => `${OFF_BASE}/cgi/product.pl?type=edit&code=${encodeURIComponent(code)}`;
+
 export const openFoodFacts: FoodProvider = {
   id: 'off',
   label: 'Open Food Facts',
@@ -194,7 +209,9 @@ export const openFoodFacts: FoodProvider = {
       if (!offSearchLimiter.tryAcquire()) throw new ProviderError('Suchlimit von Open Food Facts erreicht (10/min). Bitte kurz warten.', 'rate_limit');
       const url = `${OFF_BASE}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=24&fields=${OFF_FIELDS}&lc=de&${APP_PARAMS}`;
       const json = (await fetchJson(url, signal)) as { products?: OffProduct[] } | null;
-      return (json?.products ?? []).map(normalizeOff).filter((x): x is FoodItem => x != null);
+      return sortGermanFirst(json?.products ?? [])
+        .map(normalizeOff)
+        .filter((x): x is FoodItem => x != null);
     });
     return dedupe(data);
   },
@@ -318,7 +335,10 @@ export function dedupe(list: FoodItem[]): FoodItem[] {
 /** Barcode-Suche: zuerst lokal (offline), dann Open Food Facts. */
 export async function lookupBarcode(code: string, signal?: AbortSignal): Promise<{ food: FoodItem | null; origin: 'local' | 'off' | 'none' }> {
   const c = code.replace(/\D/g, '');
-  const local = await db.foods.where('barcode').equals(c).first();
+  // Lokal zuerst; eigene (selbst ergänzte) Einträge haben Vorrang vor importierten, vollständige vor unvollständigen.
+  const locals = await db.foods.where('barcode').equals(c).toArray();
+  const rank = (f: FoodItem) => (f.source === 'custom' ? 0 : 2) + (completeness(f.per100) === 'complete' ? 0 : 1);
+  const local = locals.sort((a, b) => rank(a) - rank(b))[0];
   if (local) return { food: local, origin: 'local' };
   const remote = await openFoodFacts.byBarcode!(c, signal);
   return remote ? { food: remote, origin: 'off' } : { food: null, origin: 'none' };

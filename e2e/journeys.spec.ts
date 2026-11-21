@@ -273,3 +273,36 @@ test('E2E-10 Neuladen → Daten und laufendes Workout bleiben', async ({ page })
   await expect(page.getByText('Hallo Giuliano')).toBeVisible();
   await expect(page.getByText(/Laufendes Workout: Freies Training/)).toBeVisible();
 });
+
+test('Barcode mit OFF-Produkt ohne Nährwerte → von der Packung ergänzen → nächster Scan findet eigene Werte', async ({ page }) => {
+  await page.route('https://world.openfoodfacts.org/**', (r) =>
+    r.fulfill({ json: { status: 1, product: { code: '4067796185676', product_name: 'Apfelchips', brands: 'dmBio', quantity: '63g', nutriments: {} } } }),
+  );
+  await onboard(page);
+  await nav(page, 'Ernährung');
+  await page.getByRole('button', { name: 'Snacks: Lebensmittel hinzufügen' }).click();
+  await page.getByRole('button', { name: 'Barcode scannen' }).click();
+  await page.getByLabel('Barcode manuell eingeben').fill('4067796185676');
+  await page.getByRole('button', { name: 'Suchen' }).click();
+  await expect(page.getByTestId('incomplete-hint')).toContainText('Keine Nährwerte hinterlegt');
+  await page.getByRole('button', { name: 'Nährwerte von der Packung ergänzen' }).click();
+  const dlg = page.getByRole('dialog');
+  await expect(dlg.getByLabel('Name', { exact: true })).toHaveValue('Apfelchips');
+  await expect(dlg.getByLabel('Barcode (optional)')).toHaveValue('4067796185676');
+  await dlg.getByLabel('Kalorien (kcal)').fill('349');
+  await dlg.getByLabel('Protein (g)').fill('2.7');
+  await dlg.getByLabel('Kohlenhydrate (g)').fill('74');
+  await dlg.getByLabel('Fett (g)').fill('0.8');
+  await dlg.getByRole('button', { name: 'Speichern und auswählen' }).click();
+  await expect(page.getByTestId('incomplete-hint')).toHaveCount(0);
+  await dlg.getByLabel('Menge').fill('30');
+  await dlg.getByRole('button', { name: 'Hinzufügen' }).click();
+  await expect(page.getByTestId('day-kcal')).toHaveText('105');
+  // nächster Scan: eigene Werte, kein Hinweis
+  await page.getByRole('button', { name: 'Snacks: Lebensmittel hinzufügen' }).click();
+  await page.getByRole('button', { name: 'Barcode scannen' }).click();
+  await page.getByLabel('Barcode manuell eingeben').fill('4067796185676');
+  await page.getByRole('button', { name: 'Suchen' }).click();
+  await expect(page.getByRole('dialog').getByTestId('nut-kcal')).toBeVisible();
+  await expect(page.getByTestId('incomplete-hint')).toHaveCount(0);
+});

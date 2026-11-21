@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { freshDb } from './helpers';
-import { cached, fetchJson, lookupBarcode, normalizeOff, normalizeUsda, openFoodFacts, ProviderError, RateLimiter, setFetch, setUsdaKeyProvider, usdaFoodData, dedupe } from '@/data/foodProviders';
+import { cached, fetchJson, lookupBarcode, normalizeOff, normalizeUsda, openFoodFacts, ProviderError, RateLimiter, setFetch, setUsdaKeyProvider, usdaFoodData, dedupe, sortGermanFirst } from '@/data/foodProviders';
 import { db } from '@/data/db';
 import { createCustomFood } from '@/data/nutritionRepo';
 
@@ -113,5 +113,26 @@ describe('USDA-Adapter', () => {
   it('dedupe über Barcode', () => {
     const a = normalizeOff(nutella)!;
     expect(dedupe([a, { ...a, id: 'usda:1' }])).toHaveLength(1);
+  });
+});
+
+describe('Deutscher Markt & unvollständige Produkte', () => {
+  it('sortiert in DE verkaufte, vollständige Produkte nach oben, ohne etwas zu entfernen', () => {
+    const fr = { code: '1', product_name: 'FR', countries_tags: ['en:france'], nutriments: nutella.nutriments };
+    const deEmpty = { code: '2', product_name: 'DE leer', countries_tags: ['en:germany'], nutriments: {} };
+    const deFull = { code: '3', product_name: 'DE voll', countries_tags: ['en:germany'], nutriments: nutella.nutriments };
+    expect(sortGermanFirst([fr, deEmpty, deFull]).map((p) => p.code)).toEqual(['3', '2', '1']);
+  });
+  it('Barcode: selbst ergänzter Eintrag hat Vorrang vor unvollständigem OFF-Import', async () => {
+    const { upsertFood, createCustomFood } = await import('@/data/nutritionRepo');
+    const offEmpty = normalizeOff({ code: '4067796185676', product_name: 'Apfelchips', brands: 'dmBio', nutriments: {} })!;
+    expect(offEmpty.per100.kcal).toBeNull();
+    await upsertFood(offEmpty);
+    setFetch(async () => { throw new TypeError('offline'); });
+    expect((await lookupBarcode('4067796185676')).food!.source).toBe('off');
+    await createCustomFood({ name: 'Apfelchips', brand: 'dmBio', barcode: '4067796185676', unitBase: 'g', kcal: 349, protein: 2.7, carbs: 74, fat: 0.8 });
+    const r = await lookupBarcode('4067796185676');
+    expect(r.food!.source).toBe('custom');
+    expect(r.food!.per100.kcal).toBe(349);
   });
 });
