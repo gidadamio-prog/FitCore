@@ -17,6 +17,7 @@ import { GoalEditor, GoalHistory } from './goalShared';
 import { EQUIPMENT, GYMS } from '@/data/exerciseLibrary';
 import { openFoodFacts, usdaFoodData } from '@/data/foodProviders';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { APP_VERSION, forceAppUpdate } from '@/components/Boot';
 
 type Tab = 'profile' | 'goals' | 'energy' | 'app' | 'data';
 
@@ -324,6 +325,13 @@ function DataSettings() {
         </div>
       </Card>
       <Card className="space-y-3">
+        <CardTitle>App-Update erzwingen</CardTitle>
+        <p className="text-sm text-muted">Lädt die neueste App-Version aus dem Internet. Deine Daten bleiben erhalten.</p>
+        <Button variant="outline" onClick={() => forceAppUpdate()}>
+          App neu laden
+        </Button>
+      </Card>
+      <Card className="space-y-3">
         <CardTitle>Alle Daten löschen</CardTitle>
         <Button
           variant="danger"
@@ -338,7 +346,7 @@ function DataSettings() {
         </Button>
       </Card>
       <p className="flex items-center gap-1 text-xs text-muted">
-        <Sparkles className="h-3 w-3" /> FitCore 1.0 · Datenbankschema v{db.verno}
+        <Sparkles className="h-3 w-3" /> FitCore {APP_VERSION} · Datenbankschema v{db.verno}
       </p>
     </div>
   );

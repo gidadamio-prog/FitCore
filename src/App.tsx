@@ -1,5 +1,5 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ConfirmHost, Layout, Toasts } from './components/Layout';
 import { useProfile, useSettings } from './hooks/data';
 import { ensureSeed } from './data/profileRepo';
@@ -17,6 +17,7 @@ import { Coach } from './pages/Coach';
 import { SettingsPage } from './pages/Settings';
 import { Achievements } from './pages/Achievements';
 import { CelebrationHost, GameWatcher } from './components/Celebration';
+import { BootScreen } from './components/Boot';
 
 function useTheme() {
   const { theme } = useSettings();
@@ -40,16 +41,16 @@ function useTheme() {
 export function App() {
   const profile = useProfile();
   const settings = useSettings();
-  const [seeded, setSeeded] = useState(false);
   useTheme();
   useEffect(() => {
-    ensureSeed().finally(() => setSeeded(true));
+    // Übungsbibliothek im Hintergrund aktualisieren – blockiert den Start nicht.
+    ensureSeed().catch((e) => console.error('Seed fehlgeschlagen', e));
   }, []);
   useEffect(() => {
     setUsdaKeyProvider(() => settings.usdaApiKey || ((import.meta.env.VITE_USDA_API_KEY as string | undefined) ?? ''));
   }, [settings.usdaApiKey]);
 
-  if (profile === undefined || !seeded) return <div className="flex min-h-dvh items-center justify-center text-muted">Lade FitCore …</div>;
+  if (profile === undefined) return <BootScreen />;
   if (profile === null)
     return (
       <>

@@ -43,6 +43,7 @@ test('Gamification: EP aus echten Daten, Abzeichen- und PR-Feier, Ruhmeshalle, A
   await page.getByTestId('history-list').getByRole('button').first().click();
   await page.getByRole('button', { name: 'Workout löschen' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Löschen' }).click();
-  await page.goto('/#/erfolge');
+  await expect(page.getByTestId('history-list').getByRole('button')).toHaveCount(1); // Löschen abgeschlossen
+  await page.getByRole('button', { name: 'Ruhmeshalle (Erfolge)' }).click();
   await expect(page.getByTestId('xp-total').first()).toHaveText('55');
 });
