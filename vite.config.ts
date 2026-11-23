@@ -35,6 +35,15 @@ export default defineConfig({
       workbox: {
         navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,webp,jpg,woff2}'],
+        // Boss-Bilder nicht vorab laden (nur der aktuelle Boss wird gebraucht) – beim ersten Anzeigen offline gespeichert
+        globIgnores: ['**/boss_*'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/assets\/boss_[^/]+\.(webp|png|jpe?g)$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'fitcore-bosse', expiration: { maxEntries: 30 } },
+          },
+        ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         skipWaiting: true,
         clientsClaim: true,
