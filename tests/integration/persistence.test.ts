@@ -111,3 +111,15 @@ describe('Messungen bearbeiten/löschen (AK-039/040/047)', () => {
     expect(await d.measurements.count()).toBe(0);
   });
 });
+
+describe('Backup-Erinnerung', async () => {
+  const { backupDue } = await import('@/data/backup');
+  const now = new Date('2026-11-24T10:00:00Z');
+  it('erinnert nach 3 Tagen Nutzung ohne Backup und 7 Tage nach dem letzten', () => {
+    expect(backupDue(null, null, '2026-11-23T10:00:00Z', now)).toBe(false);
+    expect(backupDue(null, null, '2026-11-20T10:00:00Z', now)).toBe(true);
+    expect(backupDue('2026-11-20T10:00:00Z', null, '2026-01-01T00:00:00Z', now)).toBe(false);
+    expect(backupDue('2026-11-16T10:00:00Z', null, '2026-01-01T00:00:00Z', now)).toBe(true);
+    expect(backupDue('2026-11-16T10:00:00Z', '2026-11-25', '2026-01-01T00:00:00Z', now)).toBe(false); // „Später“
+  });
+});

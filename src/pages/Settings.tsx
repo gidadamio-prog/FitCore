@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Download, Upload, Trash2, Plus, ShieldCheck, Sparkles } from 'lucide-react';
+import { Download, Upload, Trash2, Plus, ShieldCheck, Sparkles, CloudUpload } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Field, Input, NumberInput, Select, Switch, Tabs, fmt } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { useGoals, useMeals, useMeasurements, useProfile, useSettings } from '@/hooks/data';
 import { DEFAULT_MEAL_SPLIT, effectiveSplit, splitKcal } from '@/domain/nutrition';
 import { setSetting, updateProfile } from '@/data/profileRepo';
-import { download, diaryCSV, exportBackup, measurementsCSV, restoreBackup, wipeAllData, workoutsCSV } from '@/data/backup';
+import { download, diaryCSV, exportBackup, markBackupDone, measurementsCSV, restoreBackup, saveBackupToCloud, wipeAllData, workoutsCSV } from '@/data/backup';
 import { db } from '@/data/db';
 import { goalForDate } from '@/domain/balance';
 import { today, uid } from '@/domain/dates';
@@ -330,9 +330,16 @@ function DataSettings() {
   useEffect(() => {
     navigator.storage?.estimate?.().then((e) => setUsage(`${fmt((e.usage ?? 0) / 1024 / 1024, 1)} MB belegt`)).catch(() => undefined);
   }, []);
+  const settings = useSettings();
   const exportJson = async () => {
     const b = await exportBackup();
     download(`fitcore-backup-${today()}.json`, JSON.stringify(b, null, 2));
+    await markBackupDone();
+  };
+  const toCloud = async () => {
+    const r = await saveBackupToCloud();
+    if (r === 'shared') toast('Backup übergeben – in OneDrive „Hochladen“ wählen', 'success');
+    if (r === 'downloaded') toast('Backup heruntergeladen', 'success');
   };
   const importJson = async (file?: File) => {
     if (!file) return;
@@ -357,16 +364,23 @@ function DataSettings() {
     <div className="space-y-4">
       <Card className="space-y-3">
         <CardTitle>Backup</CardTitle>
-        <p className="text-sm text-muted">Vollständiges JSON-Backup aller lokalen Daten. Regelmäßig sichern – beim Löschen der Browserdaten gehen lokale Daten verloren. {usage}</p>
+        <p className="text-sm text-muted">Vollständiges Backup aller lokalen Daten. Regelmäßig sichern – beim Löschen der Browserdaten oder Verlust des Handys sind lokale Daten sonst weg. {usage}</p>
+        <p className="text-sm" data-testid="last-backup">
+          Letztes Backup: <b>{settings.lastBackupAt ? new Date(settings.lastBackupAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : 'noch nie'}</b>
+        </p>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={exportJson}>
-            <Download className="h-4 w-4" /> Backup exportieren
+          <Button onClick={() => void toCloud()}>
+            <CloudUpload className="h-4 w-4" /> In OneDrive sichern
+          </Button>
+          <Button variant="secondary" onClick={exportJson}>
+            <Download className="h-4 w-4" /> Als Datei herunterladen
           </Button>
           <Button variant="outline" onClick={() => fileRef.current?.click()}>
             <Upload className="h-4 w-4" /> Backup wiederherstellen
           </Button>
-          <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" data-testid="backup-file" onChange={(e) => importJson(e.target.files?.[0])} />
+          <input ref={fileRef} type="file" accept="application/json,.json,text/plain,.txt" className="hidden" data-testid="backup-file" onChange={(e) => importJson(e.target.files?.[0])} />
         </div>
+        <p className="text-[11px] text-muted">„In OneDrive sichern“ öffnet das Teilen-Menü – dort OneDrive (Hochladen) wählen. Die Datei endet auf .txt, enthält aber das vollständige Backup und lässt sich hier wiederherstellen. Nach 7 Tagen erinnert dich die App.</p>
       </Card>
       <Card className="space-y-3">
         <CardTitle>CSV-Export</CardTitle>

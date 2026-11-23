@@ -2,7 +2,7 @@
 
 Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.
 
-**Pflicht: 64 Bilder** (20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung) **+ 13 Bosse für die Kampfszene.** **Optional: 12 Gladiatoren-Porträts.**
+**Als Nächstes dran: 19 Merkmale + 8 Helme auf der Figur (Abschnitt 0).** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**
 
 ## Regeln für alle Bilder
 
@@ -62,6 +62,80 @@ Der Held besteht aus Ebenen, die exakt übereinanderliegen: **Grundkörper → M
 - [x] `koerper_bodybuilder.webp` – Bodybuilder
 - [x] `koerper_strongman.webp` – Strongman
 - [x] `koerper_koloss.webp` – Koloss
+
+### Merkmale (Ebene über dem Körper)
+
+Jedes Merkmal ist **eine eigene Datei, die nur das Merkmal zeigt** – alles andere transparent. Haare und Bärte bitte **in neutralem hellem Grau** malen (mit normaler Schattierung): Ich färbe sie im Code ein, dadurch gibt es jede Frisur in allen Haarfarben, ohne dass du sie mehrfach erzeugen musst. Glatze = keine Frisur gewählt, dafür braucht es kein Bild.
+
+**So bekommst du saubere Ebenen:**
+
+1. `koerper_athletisch.webp` als Referenz anhängen.
+2. Prompt unten nutzen: erst den Kopf **mit** Merkmal auf dem Körper erzeugen lassen.
+3. Dann im selben Chat: „Now remove everything except the [MERKMAL] – keep its exact position and size, transparent background.“
+4. Kurzer Check: Bild über den Grundkörper legen – sitzt es auf Stirn/Kinn/Auge, passt es auf alle 12 Körper (die Köpfe liegen pixelgenau übereinander).
+
+```text
+Same character, same canvas (1024x1536), same pose and exact head position as the reference.
+Add only: [MERKMAL]. Nothing else changes.
+Then output ONLY the [MERKMAL] as an isolated layer on a fully transparent background,
+exact same position and scale as on the character, [HINWEIS]. No body, no face, no text.
+```
+
+**Frisur** – nur die Haare, in neutralem hellem Grau mit Schattierung (Farbe kommt aus dem Code)
+
+- [ ] `frisur_kurz.png` – Legionärsschnitt: kurzes, dichtes Haar, an den Seiten kürzer, kleine Stirnfransen
+- [ ] `frisur_locken.png` – Locken: mittellange dichte Locken, bis knapp über die Ohren
+- [ ] `frisur_zopf.png` – Kriegerzopf: Haar straff nach hinten, Seiten kurz, Zopf im Nacken (von vorne knapp sichtbar)
+- [ ] `frisur_maehne.png` – Mähne: lange offene Mähne bis auf die Schultern, leicht wild
+- [ ] `frisur_irokese.png` – Kammfrisur: Seiten rasiert, breiter Haarkamm in der Mitte nach hinten
+- [ ] `frisur_knoten.png` – Suebenknoten: Haar seitlich zu einem Knoten über dem rechten Ohr gebunden
+
+**Bart** – nur der Bart, in neutralem hellem Grau mit Schattierung (Farbe kommt aus dem Code)
+
+- [ ] `bart_stoppeln.png` – Dreitagebart: kurze Stoppeln an Kinn, Wangen und Oberlippe
+- [ ] `bart_kinnbart.png` – Kinnbart: schmaler Kinnbart mit Schnurrbart, Wangen frei
+- [ ] `bart_vollbart.png` – Vollbart: gepflegter kurzer Vollbart, klare Kontur
+- [ ] `bart_barbar.png` – Barbarenbart: langer, dichter Vollbart bis auf die Brust
+- [ ] `bart_schnauzer.png` – Schnauzer: kräftiger, nach unten hängender Schnurrbart
+
+**Narbe** – nur die Narbe auf transparentem Grund, Hautton leicht heller/rötlicher als die Haut
+
+- [ ] `narbe_auge.png` – Narbe über dem Auge: senkrechte Narbe über das linke Auge (Braue bis Wange), Auge intakt
+- [ ] `narbe_wange.png` – Wangenschnitt: schräger Schnitt über die rechte Wange
+- [ ] `narbe_nase.png` – Nasenrücken: kurze quer verlaufende Narbe über den Nasenrücken
+
+**Kriegsbemalung** – nur die Farbe auf dem Gesicht, mattes Pigment, Ränder leicht ausgefranst
+
+- [ ] `bemalung_waid.png` – Waid-Streifen: drei blaue Streifen quer über beide Wangen (britannisch)
+- [ ] `bemalung_blut.png` – Blutbalken: roter waagrechter Balken über die Augenpartie
+- [ ] `bemalung_gold.png` – Goldlinien: feine goldene Linien von der Stirn über die Wangen
+
+**Augen** – nur das Accessoire mit Band/Bügel, so wie es auf dem Kopf sitzt
+
+- [ ] `augen_augenklappe.png` – Augenklappe: schwarze Leder-Augenklappe über dem linken Auge mit Band um den Kopf
+- [ ] `augen_brille.png` – Brille: kleine runde Brille mit dünnem Metallrahmen
+
+### Helme auf der Figur (Ebene über den Merkmalen)
+
+Zusätzlich zum kleinen Item-Icon (Abschnitt 3/4) braucht jeder Helm eine **Figur-Ebene** im selben Raster: nur der Helm, so wie er auf dem Kopf sitzt, frontal, alles andere transparent. Wangenklappen und Nackenschutz dürfen über Gesicht/Hals liegen. Bei echten Helmen blende ich die Frisur aus (Bart bleibt), bei Kränzen und Diademen bleibt die Frisur sichtbar.
+
+```text
+Same character, same canvas (1024x1536), same pose and exact head position as the reference.
+Put [HELM] on the head, front view, sitting naturally on the skull. Nothing else changes.
+Then output ONLY the [HELM] as an isolated layer on a fully transparent background,
+exact same position and scale. No head, no hair, no face, no text, no glow.
+```
+
+- [ ] `helm_galea_figur.png` – Galea: Legionärshelm mit Wangenklappen
+- [ ] `helm_murmillo_figur.png` – Murmillo-Helm: Murmillo-Helm mit Gitter und Kamm
+- [ ] `helm_petasos_figur.png` – Petasos: breitkrempiger Reisehut
+- [ ] `helm_offiziershelm_figur.png` – Offiziershelm: Helm mit querstehendem rotem Busch
+- [ ] `helm_galea-feldherr_figur.png` – Galea des Feldherrn: Prunkhelm mit hohem rotem Busch
+- [ ] `helm_lorbeerkranz-triumphator_figur.png` – Lorbeerkranz des Triumphators: goldener Lorbeerkranz _(Frisur bleibt sichtbar)_
+- [ ] `helm_traubenkrone_figur.png` – Traubenkrone: Krone aus Weinlaub und Trauben _(Frisur bleibt sichtbar)_
+- [ ] `helm_diadem-zirkel_figur.png` – Diadem des Zirkels: schlichtes Stirnband mit kleinen Edelsteinen _(Frisur bleibt sichtbar)_
+
+Tipp: Der Kopf ist bei allen Körpern gleich groß, aber Nacken und Schultern sind unterschiedlich breit. Helme deshalb **nicht unter das Kinn bzw. auf die Schultern** ziehen.
 
 ## 1. Testlauf zuerst (2 Bilder)
 

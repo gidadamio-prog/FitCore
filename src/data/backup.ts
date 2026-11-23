@@ -105,3 +105,47 @@ export function download(filename: string, content: string, mime = 'application/
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export type CloudBackupResult = 'shared' | 'downloaded' | 'cancelled';
+
+/**
+ * Backup über das Teilen-Menü des Handys sichern (z. B. „In OneDrive hochladen“).
+ * Android-Chrome teilt keine .json-Dateien – deshalb als .txt (Inhalt bleibt das vollständige JSON-Backup).
+ * Ohne Teilen-Funktion (Desktop) wird die Datei heruntergeladen.
+ */
+export async function saveBackupToCloud(): Promise<CloudBackupResult> {
+  const b = await exportBackup();
+  const json = JSON.stringify(b);
+  const date = b.exportedAt.slice(0, 10);
+  const file = new File([json], `fitcore-backup-${date}.txt`, { type: 'text/plain' });
+  let result: CloudBackupResult;
+  if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'FitCore-Backup', text: `FitCore-Backup vom ${date}` });
+      result = 'shared';
+    } catch (e) {
+      if ((e as DOMException)?.name === 'AbortError') return 'cancelled';
+      download(`fitcore-backup-${date}.json`, json);
+      result = 'downloaded';
+    }
+  } else {
+    download(`fitcore-backup-${date}.json`, json);
+    result = 'downloaded';
+  }
+  await markBackupDone();
+  return result;
+}
+
+export async function markBackupDone() {
+  await db.settings.put({ key: 'lastBackupAt', value: new Date().toISOString() });
+  await db.settings.put({ key: 'backupSnoozeUntil', value: null });
+}
+
+/** Erinnern: nie gesichert und App seit ≥ 3 Tagen in Nutzung, oder letztes Backup ≥ 7 Tage alt. */
+export function backupDue(lastBackupAt: string | null, snoozeUntil: string | null, profileCreatedAt: string | undefined, now = new Date()): boolean {
+  const today = now.toISOString().slice(0, 10);
+  if (snoozeUntil && snoozeUntil >= today) return false;
+  const days = (iso: string) => (now.getTime() - new Date(iso).getTime()) / 86400000;
+  if (lastBackupAt) return days(lastBackupAt) >= 7;
+  return !!profileCreatedAt && days(profileCreatedAt) >= 3;
+}
