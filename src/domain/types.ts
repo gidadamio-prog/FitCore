@@ -187,12 +187,27 @@ export interface Exercise {
 
 export type SplitType = 'fullbody' | 'upper_lower' | 'ppl' | 'custom' | 'strength' | 'endurance' | 'mobility' | 'bodyweight';
 
+/** Einheit im Plan (z. B. Zirkel): mehrere Übungen nacheinander, als Ganzes mehrfach durchlaufen. */
+export interface PlanGroup {
+  id: string;
+  name: string;
+  /** Durchgänge der ganzen Einheit */
+  rounds: number;
+  /** Pause nach jedem Durchgang */
+  restSec: number;
+}
+
 export interface PlanExercise {
   id: string;
   exerciseId: string;
+  /** Sätze; in einer Einheit = Anzahl Durchgänge */
   sets: number;
-  repMin: number;
-  repMax: number;
+  /** optional: unteres Ende eines Wiederholungsbereichs */
+  repMin?: number;
+  /** Wiederholungsziel (oberes Ende) */
+  repMax?: number;
+  /** gehört zur Einheit mit dieser ID (Übungen einer Einheit stehen im Plan direkt hintereinander) */
+  groupId?: string;
   targetWeightKg?: number;
   restSec: number;
   rpe?: number;
@@ -205,6 +220,7 @@ export interface PlanDay {
   name: string;
   weekdays: number[]; // 1=Mo … 7=So
   exercises: PlanExercise[];
+  groups?: PlanGroup[];
 }
 
 export interface Plan {
@@ -238,6 +254,8 @@ export interface WorkoutExercise {
   repMax?: number;
   sets: WorkoutSet[];
   notes?: string;
+  /** Einheit aus dem Plan (Zirkel): Satz i = Durchgang i */
+  group?: PlanGroup;
 }
 
 export interface Workout {

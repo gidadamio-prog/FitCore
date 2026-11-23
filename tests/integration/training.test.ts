@@ -68,6 +68,50 @@ describe('Pläne & Übungen (AK-049–057)', () => {
   });
 });
 
+describe('Einheiten (Zirkel) und optionale Wiederholungen', () => {
+  const circuitPlan = (): Omit<Plan, 'id' | 'createdAt' | 'updatedAt'> => ({
+    name: 'Zirkeltag', goal: '', split: 'fullbody', status: 'draft', notes: '',
+    days: [{ id: 'd1', name: 'Zirkel', weekdays: [1], groups: [{ id: 'g1', name: 'EGYM-Zirkel', rounds: 2, restSec: 90 }, { id: 'leer', name: 'Leer', rounds: 1, restSec: 0 }], exercises: [
+      { id: 'w1', exerciseId: 'cat-cow', sets: 1, repMax: 10, restSec: 0 },
+      { id: 'c1', exerciseId: 'egym-chest-press', sets: 1, restSec: 0, groupId: 'g1' },
+      { id: 'i1', exerciseId: 'lateral-raise', sets: 3, repMax: 15, restSec: 60 },
+      { id: 'c2', exerciseId: 'egym-seated-row', sets: 1, repMax: 12, restSec: 0, groupId: 'g1' },
+      { id: 'c3', exerciseId: 'egym-leg-press', sets: 5, restSec: 0, groupId: 'g1' },
+    ] }],
+  });
+  it('speichert ohne Wiederholungsangabe, Einheit zusammenhängend, Sätze = Durchgänge', async () => {
+    await freshDb();
+    const p = await savePlan(circuitPlan());
+    const d = p.days[0]!;
+    expect(d.exercises.map((e) => e.id)).toEqual(['w1', 'c1', 'c2', 'c3', 'i1']);
+    expect(d.exercises.filter((e) => e.groupId === 'g1').every((e) => e.sets === 2)).toBe(true);
+    expect(d.groups!.map((g) => g.id)).toEqual(['g1']); // leere Einheit fällt weg
+    expect(d.exercises.find((e) => e.id === 'c1')!.repMax).toBeUndefined();
+  });
+  it('Validierung der Einheit und des Wiederholungsbereichs', async () => {
+    await freshDb();
+    const bad = circuitPlan();
+    bad.days[0]!.groups![0]!.rounds = 0;
+    await expect(savePlan(bad)).rejects.toThrow(/Durchgänge/);
+    const bad2 = circuitPlan();
+    bad2.days[0]!.exercises[0]!.repMin = 12; // ab 12, Ziel 10
+    await expect(savePlan(bad2)).rejects.toThrow(/Wiederholungsbereich/);
+  });
+  it('Training aus Plan: Stationen tragen die Einheit, ein Satz je Durchgang', async () => {
+    await freshDb();
+    await onboard();
+    const p = await savePlan(circuitPlan());
+    const a = await startWorkout(p, p.days[0]);
+    const g = a.exercises.filter((e) => e.group);
+    expect(g.map((e) => e.exerciseId)).toEqual(['egym-chest-press', 'egym-seated-row', 'egym-leg-press']);
+    expect(g.every((e) => e.sets.length === 2 && e.group!.restSec === 90)).toBe(true);
+    expect(a.exercises.at(-1)!.group).toBeUndefined();
+    const copy = await duplicatePlan(p.id);
+    expect(copy.days[0]!.groups![0]!.id).not.toBe('g1');
+    expect(copy.days[0]!.exercises.filter((e) => e.groupId === copy.days[0]!.groups![0]!.id)).toHaveLength(3);
+  });
+});
+
 describe('Live-Workout (AK-058–064)', () => {
   it('Start aus Plan, Satzwerte, Wiederherstellung, Abschluss, Historie', async () => {
     await freshDb();
