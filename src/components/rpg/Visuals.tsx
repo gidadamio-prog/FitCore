@@ -6,6 +6,7 @@ import { useReducedMotion } from '@/hooks/motion';
 import { RARITY_COLOR, appearanceStage, itemFile, portraitFile, type EffectId, type ItemDef, type Rarity, type SlotId } from '@/domain/equipment';
 import type { HeroClassId } from '@/domain/rpg';
 import { bodyFile, bodyTypeLabel, type BodyTypeId } from '@/domain/bodyType';
+import { bossFile, type Boss } from '@/domain/rpg';
 import { useBodyType } from '@/hooks/game';
 
 // Alle Bilder, die im Ordner src/assets/rpg liegen – fehlende fallen still auf Platzhalter zurück.
@@ -238,6 +239,42 @@ export function HeroFigure({ bodyType, aura, width = 140, className, children }:
       <div className="portrait-breathe relative h-full w-full">
         {url && <img src={url} alt="" className="absolute inset-0 h-full w-full object-contain" draggable={false} />}
         {children}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Boss: Bild (transparent, Blick nach links, unten bündig) oder gezeichnete Silhouette
+// ---------------------------------------------------------------------------
+
+export function BossFigure({ boss, idle = false, className }: { boss: Pick<Boss, 'id' | 'name'>; idle?: boolean; className?: string }) {
+  const url = rpgAsset(bossFile(boss));
+  return (
+    <div className={cn('relative aspect-[2/3] w-full', className)} data-testid="boss-figure" data-boss={boss.id}>
+      <div className={cn('absolute inset-0', idle && 'boss-idle')}>
+        {url ? (
+          <img src={url} alt="" className="boss-fade absolute inset-0 h-full w-full object-contain object-bottom" draggable={false} />
+        ) : (
+          <svg viewBox="0 0 200 300" className="absolute inset-0 h-full w-full" aria-hidden>
+            <defs>
+              <radialGradient id="boss-glow" cx="50%" cy="35%" r="60%">
+                <stop offset="0%" stopColor="#9e1b32" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#9e1b32" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <ellipse cx="100" cy="120" rx="100" ry="130" fill="url(#boss-glow)" />
+            <g fill="#140b0e" stroke="#3a1a22" strokeWidth="2">
+              <path d="M58 70 L70 40 L84 62 L100 30 L116 62 L130 40 L142 70 Z" />
+              <ellipse cx="100" cy="88" rx="30" ry="34" />
+              <path d="M40 300 L46 170 C48 140 66 122 100 120 C134 122 152 140 154 170 L160 300 Z" />
+              <path d="M46 160 L18 240 L32 246 L62 184 Z M154 160 L182 240 L168 246 L138 184 Z" />
+              <path d="M172 140 L180 140 L180 290 L172 290 Z" />
+            </g>
+            <circle cx="89" cy="86" r="3.5" fill="#ff4d4d" />
+            <circle cx="111" cy="86" r="3.5" fill="#ff4d4d" />
+          </svg>
+        )}
       </div>
     </div>
   );

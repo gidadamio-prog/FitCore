@@ -254,6 +254,13 @@ h1,
 .battle-banner { animation: battle-banner 1.7s ease-out both; }
 .battle-result { animation: battle-result 450ms cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 
+/* Boss in Bewegung (Dashboard und Kampf) */
+@keyframes boss-idle { 0%, 100% { transform: translateY(0) rotate(0deg) scale(1); } 30% { transform: translateY(-1.2%) rotate(-0.8deg) scale(1.012); } 65% { transform: translateY(0.4%) rotate(0.6deg) scale(1.004); } }
+.boss-idle { animation: boss-idle 5.5s ease-in-out infinite; transform-origin: 55% 100%; }
+.boss-fade { -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 100%); mask-image: linear-gradient(to bottom, #000 86%, transparent 100%); }
+@keyframes boss-aura { 0%, 100% { opacity: 0.45; transform: scale(0.96); } 50% { opacity: 0.8; transform: scale(1.05); } }
+.boss-aura { background: radial-gradient(closest-side, rgb(196 42 42 / 0.55), rgb(158 27 50 / 0.18) 60%, transparent); filter: blur(10px); animation: boss-aura 4.2s ease-in-out infinite; }
+
 /* Animationen reduzieren (Einstellung oder System) */
 html[data-reduce-motion] *, html[data-reduce-motion] *::before, html[data-reduce-motion] *::after { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) {
