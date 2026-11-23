@@ -1,11 +1,53 @@
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Flame, Shield, Swords, Trophy, Info } from 'lucide-react';
-import { Card, CardTitle, Progress, Badge, fmt, cn } from '@/components/ui';
+import { Card, CardTitle, Progress, Badge, Tabs, fmt, cn } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { Laurel } from '@/components/Laurel';
 import { useGame } from '@/hooks/game';
 import { RANKS, TIER_LABEL, XP_RULES, type BadgeStatus, type GameState, type Quest, type Tier } from '@/domain/gamification';
 import { formatDate } from '@/domain/dates';
+import { HeroTab } from './game/HeroTab';
+import { CampaignTab } from './game/CampaignTab';
+import { ArenaTab } from './game/ArenaTab';
+import { MarketTab } from './game/MarketTab';
+
+type GameTab = 'held' | 'feldzug' | 'arena' | 'ruhm' | 'markt';
+const GAME_TABS: { value: GameTab; label: string }[] = [
+  { value: 'held', label: 'Held' },
+  { value: 'feldzug', label: 'Feldzug' },
+  { value: 'arena', label: 'Arena' },
+  { value: 'ruhm', label: 'Ruhm' },
+  { value: 'markt', label: 'Markt' },
+];
+
+export function Achievements() {
+  const game = useGame();
+  const [params, setParams] = useSearchParams();
+  const initial = (params.get('tab') as GameTab) || 'held';
+  const [tab, setTab] = useState<GameTab>(GAME_TABS.some((t) => t.value === initial) ? initial : 'held');
+  if (!game) return null;
+  return (
+    <div className="space-y-4">
+      <PageHeader title="Ruhmeshalle" subtitle="Dein Held, Feldzug, Arena und Abzeichen – berechnet aus deinen echten Einträgen." />
+      <Tabs
+        value={tab}
+        onChange={(t) => {
+          setTab(t);
+          const next = new URLSearchParams(params);
+          next.set('tab', t);
+          setParams(next, { replace: true });
+        }}
+        items={GAME_TABS}
+      />
+      {tab === 'held' && <HeroTab game={game} />}
+      {tab === 'feldzug' && <CampaignTab game={game} />}
+      {tab === 'arena' && <ArenaTab game={game} />}
+      {tab === 'ruhm' && <FameTab game={game} />}
+      {tab === 'markt' && <MarketTab game={game} />}
+    </div>
+  );
+}
 
 export const TIER_COLOR: Record<Tier, string> = { bronze: '#b0743a', silver: '#aab3bd', gold: 'rgb(var(--gold))' };
 
@@ -90,15 +132,12 @@ function BadgeTile({ b }: { b: BadgeStatus }) {
   );
 }
 
-export function Achievements() {
-  const game = useGame();
+function FameTab({ game }: { game: GameState }) {
   const nav = useNavigate();
-  if (!game) return null;
   const maxDay = Math.max(1, ...game.xpLast7.map((d) => d.xp));
   return (
     <div className="space-y-4">
-      <PageHeader title="Ruhmeshalle" subtitle="Ränge, Serien, Feldzüge und Abzeichen – berechnet aus deinen echten Einträgen." />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="space-y-4">
           <RankHeader game={game} />
           <StreakChips game={game} />
@@ -196,7 +235,7 @@ export function Achievements() {
           </tbody>
         </table>
         <p className="mt-2 text-[11px] text-muted">
-          Punkte gibt es für Regelmäßigkeit, Training und Zielnähe – bewusst nicht für möglichst wenig Kalorien oder schnelles Abnehmen. Krafttraining und Ausdauer zählen max. 2× pro Tag, Bestleistungen max. 5× pro Workout. Löschst du Einträge, werden die Punkte neu berechnet.
+          Punkte gibt es für Regelmäßigkeit, Training und Zielnähe (Punktlandungen max. 4 pro Tag) – bewusst nicht für möglichst wenig Kalorien oder schnelles Abnehmen. Krafttraining und Ausdauer zählen max. 2× pro Tag, Bestleistungen max. 5× pro Workout. Löschst du Einträge, werden die Punkte neu berechnet.
         </p>
       </Card>
     </div>

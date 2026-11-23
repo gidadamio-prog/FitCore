@@ -219,26 +219,59 @@ export interface MealTarget {
   id: string;
   /** Geplantes Ziel laut Aufteilung */
   planned: number;
-  /** Angepasstes Ziel für noch offene Mahlzeiten (null = keine Anpassung nötig bzw. Mahlzeit schon gegessen) */
+  /** Gültiges Ziel: bei gegessenen Mahlzeiten das Ziel zum Zeitpunkt des ersten Eintrags, bei offenen das aktuelle */
+  target: number;
+  /** target, falls es vom geplanten Ziel abweicht, sonst null */
   adjusted: number | null;
   /** Bereits gegessen (null = noch nichts eingetragen) */
   eaten: number | null;
+  /** Punktlandung: gegessen innerhalb ±10 % (mind. ±20 kcal) des gültigen Ziels */
+  hit: boolean;
+}
+
+/** Toleranz für eine Punktlandung */
+export function mealHitTolerance(target: number) {
+  return Math.max(20, target * 0.1);
 }
 
 /**
- * Ziele je Mahlzeit, die in Summe immer zum Tagesziel passen.
- * Sobald Mahlzeiten Einträge haben, wird das verbleibende Budget auf die noch offenen
- * Mahlzeiten im Verhältnis ihrer Anteile neu verteilt (nie negativ).
+ * Ziele je Mahlzeit, die zum Tagesbudget passen.
+ * `eatenByMeal` in der Reihenfolge, in der die Mahlzeiten begonnen wurden (erster Eintrag).
+ * Jede gegessene Mahlzeit behält das Ziel, das galt, als sie begonnen wurde; danach wird das
+ * verbleibende Budget auf die noch offenen Mahlzeiten im Verhältnis ihrer Anteile neu verteilt (nie negativ).
  */
 export function mealTargets(total: number, shares: MealShare[], eatenByMeal: Map<string, number>): MealTarget[] {
   const planned = splitKcal(total, shares);
-  const open = shares.filter((s) => !eatenByMeal.has(s.id));
-  const closedEaten = shares.reduce((s, x) => s + (eatenByMeal.get(x.id) ?? 0), 0);
-  const anyClosed = open.length < shares.length;
-  const adjusted = anyClosed && open.length ? splitKcal(Math.max(0, total - closedEaten), open.some((o) => o.pct > 0) ? open : open.map((o) => ({ ...o, pct: 1 }))) : new Map<string, number>();
+  const known = new Set(shares.map((s) => s.id));
+  const targetAtStart = new Map<string, number>();
+  const closed = new Set<string>();
+  let eatenSoFar = 0;
+  const distribute = () => {
+    const open = shares.filter((s) => !closed.has(s.id));
+    if (!open.length) return new Map<string, number>();
+    if (!closed.size) return planned;
+    const weighted = open.some((o) => o.pct > 0) ? open : open.map((o) => ({ ...o, pct: 1 }));
+    return splitKcal(Math.max(0, total - eatenSoFar), weighted);
+  };
+  for (const [id, kcal] of eatenByMeal) {
+    if (!known.has(id)) continue;
+    targetAtStart.set(id, distribute().get(id) ?? 0);
+    closed.add(id);
+    eatenSoFar += kcal;
+  }
+  const openTargets = distribute();
   return shares.map((s) => {
     const p = planned.get(s.id) ?? 0;
-    const a = adjusted.get(s.id);
-    return { id: s.id, planned: p, adjusted: a != null && a !== p ? a : null, eaten: eatenByMeal.has(s.id) ? Math.round(eatenByMeal.get(s.id) ?? 0) : null };
+    const isClosed = closed.has(s.id);
+    const target = isClosed ? targetAtStart.get(s.id) ?? 0 : openTargets.get(s.id) ?? 0;
+    const eaten = isClosed ? Math.round(eatenByMeal.get(s.id) ?? 0) : null;
+    return {
+      id: s.id,
+      planned: p,
+      target,
+      adjusted: target !== p ? target : null,
+      eaten,
+      hit: eaten != null && target > 0 && Math.abs(eaten - target) <= mealHitTolerance(target),
+    };
   });
 }

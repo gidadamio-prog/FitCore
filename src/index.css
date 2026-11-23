@@ -43,6 +43,38 @@
   color-scheme: dark;
 }
 
+/* Farbpaletten aus dem Markt (Denare) */
+html[data-palette='byzanz'] {
+  --primary: 98 46 140;
+  --accent: 150 108 22;
+  --gold: 184 137 28;
+}
+html.dark[data-palette='byzanz'] {
+  --primary: 128 72 176;
+  --accent: 214 170 80;
+  --gold: 214 170 80;
+}
+html[data-palette='smaragd'] {
+  --primary: 26 112 78;
+  --accent: 148 104 15;
+  --gold: 184 137 28;
+}
+html.dark[data-palette='smaragd'] {
+  --primary: 40 140 98;
+  --accent: 212 166 74;
+  --gold: 212 166 74;
+}
+html[data-palette='obsidian'] {
+  --primary: 70 78 92;
+  --accent: 96 110 128;
+  --gold: 120 132 148;
+}
+html.dark[data-palette='obsidian'] {
+  --primary: 112 124 142;
+  --accent: 178 190 204;
+  --gold: 190 200 212;
+}
+
 html,
 body,
 #root {

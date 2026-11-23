@@ -41,7 +41,8 @@ Implementierung: `src/domain/*.ts` · Tests: `tests/domain/*.test.ts`. Alle Wert
 - Tagesbudget = Kalorienziel der Zielversion + angerechnete Trainings-kcal (wie Energiebilanz).
 - Aufteilung in % je Mahlzeit (Standard Frühstück 25 / Mittag 35 / Abend 30 / Snacks 10, eigene Mahlzeiten 0). Anteile werden auf ihre Summe normiert (Summe 0 → gleichmäßig).
 - Ganzzahlige Verteilung nach der Methode der größten Reste: Die Mahlzeitziele ergeben immer exakt das Tagesbudget.
-- Anpassung im Tagesverlauf: Mahlzeiten mit Einträgen gelten als gegessen. Rest = Tagesbudget − gegessene kcal dieser Mahlzeiten (nie < 0) wird auf die offenen Mahlzeiten im Verhältnis ihrer Anteile verteilt (alle offenen 0 % → gleichmäßig).
+- Anpassung im Tagesverlauf: Mahlzeiten mit Einträgen gelten als gegessen, in der Reihenfolge ihres ersten Eintrags. Jede gegessene Mahlzeit behält das Ziel, das galt, als sie begonnen wurde. Rest = Tagesbudget − bereits gegessene kcal (nie < 0) wird auf die offenen Mahlzeiten im Verhältnis ihrer Anteile verteilt (alle offenen 0 % → gleichmäßig).
+- Punktlandung: |gegessen − gültiges Ziel| ≤ max(10 % des Ziels, 20 kcal); Ziel 0 zählt nie. Perfekter Tag: ≥ 3 Punktlandungen und keine gegessene Mahlzeit verfehlt.
 
 ## Energiebilanz
 - anrechenbar = max(0, Σ Trainings-kcal − bereits enthaltene kcal (falls „Training im Aktivitätsfaktor“)); angerechnet = anrechenbar × Quote.
@@ -52,3 +53,14 @@ Implementierung: `src/domain/*.ts` · Tests: `tests/domain/*.test.ts`. Alle Wert
 - Fehlende Tage = Lücke (null). Zielerreichung = Tage mit |kcal − Ziel| ≤ 10 % / auswertbare Tage; Lücken werden ausgewiesen. Protein erreicht = ≥ 90 %.
 - Coach: Gewichtsaussagen erst ab ≥ 7 Messungen über ≥ 14 Tage (letzte 28 Tage), sonst Einschränkungshinweis. Vorschläge ±150 kcal (Halten ±100), nie unter die Untergrenze, nur nach Bestätigung; jede Aussage mit Datengrundlage und Begründung; Zusammenhänge als Korrelation formuliert.
 - Erwartete Gewichtsänderung aus Bilanz = Ø Tagesbilanz × 7 / 7700 (nur Wochen mit ≥ 4 Tagen).
+
+## RPG (Held, Bosse, Arena)
+- Alles wird aus den echten Einträgen abgeleitet; gespeichert werden nur Held, Käufe und Rivalen. Jede EP wird dem Tag zugeordnet, an dem sie verdient wurde (Feldzug: Wochenende bzw. heute, Saison: Monatsende bzw. heute).
+- Zusätzliche EP: Punktlandung 5 (max. 4/Tag), perfekter Tag 15, Comeback 50 (≥ 7 trainingsfreie Tage davor, max. alle 14 Tage), Schatten-Duell gewonnen 40 (abgeschlossene Woche), Meisterschaftsstufe 25, Feldzugs-Boss 150, Kolosseum-Sieg 200.
+- Stufe L = ⌊√(EP/40)⌋ + 1 (max. 99). Attribut-Stufe = 1 + ⌊1,5·√Punkte⌋; Punkte: Stärke = Volumen/500 + 5·PR, Ausdauer = Ausdauerminuten/10 + km, Disziplin = 2·Protokolltag + Punktlandung + 2·Proteintag + 5·Feldzug, Vitalität = 2·Trinkziel + 2·Erholung + Messung, Gewandtheit = Mobility-Sätze/2. Klassen-Hauptattribut × 1,1.
+- Tagesschaden: Volumen/40 + 4·Ausdauerminuten + (20 Protokoll + 15 Protein + 15 Kalorienziel + 10·Punktlandung) + (10 Trinkziel + 10 Erholung + 5 Messung) + 8·Mobility-Satz + 40·PR (max. 5). Klassenbonus: Legionär Kraft × 1,25; Gladiator PR × 1,5, Beweglichkeit × 1,25; Cursor Ausdauer × 1,25; Stratege Disziplin und Vitalität × 1,25. Kein Schaden für Defizit.
+- Feldzug: 12 Bosse (1.000 … 30.000 LP), Überschuss geht auf den nächsten über, danach endlos 30.000 LP. Kolosseum: 4.500 LP Schaden je Kalendermonat.
+- Schatten-Duell: Woche vs. Woche 4 Wochen davor (laufende Woche: gleich viele Tage) in Einheiten, Volumen, Protokolltagen, Ausdauerminuten; gewonnen bei mehr Siegen als Niederlagen, nur wenn die Schattenwoche Daten hat.
+- Meisterschaft: Bankdrücken, Kniebeuge, Kreuzheben, Schulterdrücken (LH), Langhantelrudern über e1RM ÷ Körpergewicht (Richtwerte Männer, Frauen × 0,65; Orientierung, keine Norm); andere Übungen über Steigerung des besten e1RM gegenüber der ersten Einheit (+10/25/50/100 %). e1RM nur aus Sätzen ≤ 12 Wdh.
+- Kampfwert = Summe der EP der letzten 28 Tage (startunabhängig vergleichbar); Ø EP/Woche = Gesamt-EP ÷ max(7, Tage seit erstem aktiven Tag) × 7. Denare = ⌊EP/10⌋ − Käufe.
+- Teilen: Code „FC1.<base64url(JSON)>.<FNV-1a-Prüfsumme>“ enthält nur Spielwerte (Name, Klasse, Wappen, Titel, Stufe, EP, Kampfwert, Ø/Woche, Tage seit Start, Bosse, Kolosseum-Siege, Datum). Keine Körper- oder Ernährungsdaten. Prüfsumme erkennt Übertragungsfehler, nicht Manipulation.

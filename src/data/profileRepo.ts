@@ -1,3 +1,4 @@
+import type { Hero, ShareCard } from '@/domain/rpg';
 import { db } from './db';
 import type { GoalType, GoalVersion, MacroStrategy, BmrFormula, Profile, Setting } from '@/domain/types';
 import { ageFromBirthDate, computeTargets, defaultWeeklyRate } from '@/domain/energy';
@@ -153,7 +154,15 @@ export interface AppSettings {
   homeGym: string;
   /** Anteil je Mahlzeit am Tagesziel in %, leer = Standardaufteilung */
   mealSplit: Record<string, number>;
+  /** RPG-Held (null = noch nicht erstellt) */
+  hero: Hero | null;
+  /** Geteilte Werte von Freunden (nur Spielwerte, keine Körperdaten) */
+  rivals: Rival[];
+  /** Gekaufte Markt-Gegenstände (IDs) */
+  purchases: string[];
 }
+
+export type Rival = ShareCard & { importedAt: string };
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
@@ -163,6 +172,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   externalSearchConsent: true,
   homeGym: '',
   mealSplit: {},
+  hero: null,
+  rivals: [],
+  purchases: [],
 };
 
 export async function getSettings(): Promise<AppSettings> {

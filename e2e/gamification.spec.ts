@@ -30,12 +30,13 @@ test('Gamification: EP aus echten Daten, Abzeichen- und PR-Feier, Ruhmeshalle, A
   await expect(page.getByRole('dialog')).toContainText('65 kg × 10');
   await dismissCelebrations(page);
 
-  await page.goto('/#/erfolge');
+  await page.goto('/#/erfolge?tab=ruhm');
   await expect(page.getByTestId('hall-of-fame')).toContainText('65 kg × 10 (vorher 60 kg)');
   await expect(page.getByTestId('badge-workouts')).toContainText('Bronze');
-  // 5 (Wiegen) + 2×50 (Workouts) + 25 (PR) + ggf. Feldzug „Neuer Rekord“ (100) = 130 bzw. 230
+  // 5 (Wiegen) + 2×50 (Workouts) + 25 (PR) + 2×25 (Meisterschaft Bankdrücken: 60×10 → e1RM 80 = 1,0 × 80 kg → Bronze + Silber)
+  // + ggf. Feldzug „Neuer Rekord“ (100) = 180 bzw. 280
   const xp = Number((await page.getByTestId('xp-total').first().textContent())!.replace('.', ''));
-  expect([130, 230]).toContain(xp);
+  expect([180, 280]).toContain(xp);
   await expect(page.getByTestId('xp-table')).toContainText('Neue Bestleistung');
 
   // Löschen entzieht Punkte wieder
@@ -45,5 +46,6 @@ test('Gamification: EP aus echten Daten, Abzeichen- und PR-Feier, Ruhmeshalle, A
   await page.getByRole('dialog').getByRole('button', { name: 'Löschen' }).click();
   await expect(page.getByTestId('history-list').getByRole('button')).toHaveCount(1); // Löschen abgeschlossen
   await page.getByRole('button', { name: 'Ruhmeshalle (Erfolge)' }).click();
-  await expect(page.getByTestId('xp-total').first()).toHaveText('55');
+  await page.getByRole('tab', { name: 'Ruhm' }).click();
+  await expect(page.getByTestId('xp-total').first()).toHaveText('105'); // 5 + 50 + 2×25 Meisterschaft
 });

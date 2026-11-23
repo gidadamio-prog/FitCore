@@ -90,6 +90,29 @@ export function Today() {
           <div className="mt-3">
             <StreakChips game={game} />
           </div>
+          <button className="mt-3 block w-full rounded-xl bg-fg/[0.04] p-3 text-left" onClick={() => nav(settings.hero ? '/erfolge?tab=feldzug' : '/erfolge?tab=held')} data-testid="today-hero">
+            {settings.hero ? (
+              <>
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate font-semibold">
+                    {settings.hero.name} · Stufe {game.level.level}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted">Kampfwert {fmt(game.battle.score)}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted">
+                  <span className="truncate">
+                    Gegner: {game.campaign.current.boss.name} ({game.campaign.current.boss.province})
+                  </span>
+                  <span className="shrink-0 tabular-nums">
+                    {fmt(game.campaign.current.remaining)} LP
+                  </span>
+                </div>
+                <Progress className="mt-1" value={game.campaign.current.remaining} max={game.campaign.current.boss.hp} color="danger" label="Lebenspunkte des Gegners" />
+              </>
+            ) : (
+              <span className="text-sm font-medium text-gold">Erschaffe deinen Helden und zieh gegen die Bosse des Reiches →</span>
+            )}
+          </button>
           <details className="mt-3">
             <summary className="cursor-pointer text-sm font-medium">
               Feldzüge dieser Woche · {game.quests.filter((q) => q.done).length}/{game.quests.length}

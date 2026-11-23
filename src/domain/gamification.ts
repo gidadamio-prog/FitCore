@@ -1,6 +1,8 @@
 // Gamification – vollständig aus echten Daten abgeleitet (nichts wird separat „gutgeschrieben“).
 // Belohnt werden Regelmäßigkeit, Training und Zielnähe – ausdrücklich NICHT möglichst wenig Kalorien oder schnelles Abnehmen.
-import type { CardioSession, DiaryEntry, Exercise, GoalVersion, Measurement, Plan, RecoveryLog, WaterLog, Workout } from './types';
+import type { CardioSession, DiaryEntry, Exercise, GoalVersion, Measurement, Plan, RecoveryLog, Sex, WaterLog, Workout } from './types';
+import type { MealDayHits } from './mealGame';
+import { battleScore, campaign, colosseum, comebackDates, dayDamage, exerciseMastery, heroLevel, attributes, lifeWork, shadowDuel, type CampaignState, type Duel, type HeroClassId, type MasteryEntry } from './rpg';
 import { addDays, rangeDates, startOfWeek } from './dates';
 import { goalForDate } from './balance';
 import { isCompletedSet, setVolume, epley1RM } from './training';
@@ -20,6 +22,13 @@ export const XP_RULES = {
   pr: { xp: 25, label: 'Neue Bestleistung' },
   quest: { xp: 100, label: 'Wochen-Feldzug erfüllt' },
   season: { xp: 250, label: 'Saison-Herausforderung gemeistert' },
+  mealHit: { xp: 5, label: 'Punktlandung bei einer Mahlzeit (± 10 %)' },
+  perfectDay: { xp: 15, label: 'Perfekter Tag (alle Mahlzeiten getroffen)' },
+  comeback: { xp: 50, label: 'Comeback nach mind. 7 Tagen Pause' },
+  duel: { xp: 40, label: 'Schatten-Duell gewonnen (Woche)' },
+  mastery: { xp: 25, label: 'Meisterschaftsstufe einer Übung' },
+  boss: { xp: 150, label: 'Feldzugs-Boss besiegt' },
+  colosseum: { xp: 200, label: 'Kolosseum-Champion des Monats' },
 } as const;
 export type XpKey = keyof typeof XP_RULES;
 
@@ -69,6 +78,10 @@ export interface GameInput {
   trainingDaysPerWeek: number;
   waterGoalMl: number;
   homeGym?: string;
+  /** Punktlandungen je Tag (aus Mahlzeitzielen) */
+  mealHits?: Map<string, MealDayHits>;
+  heroClass?: HeroClassId;
+  sex?: Sex;
 }
 
 export interface DayFacts {
@@ -87,6 +100,10 @@ export interface DayFacts {
   cardioSessions: number; // ≥ 20 min
   volume: number;
   mobilitySets: number;
+  mealHits: number;
+  perfectDay: boolean;
+  /** Bestleistungen an diesem Tag (max. 5 je Workout) */
+  prs: number;
 }
 
 const MOBILITY_EQUIP = new Set(['five', 'Dr. Wolff', 'DAVID', 'Sensopro', 'Arke']);
@@ -96,7 +113,7 @@ export function dayFacts(i: GameInput): Map<string, DayFacts> {
   const get = (date: string) => {
     let f = map.get(date);
     if (!f) {
-      f = { date, logged: false, meals: 0, kcal: 0, protein: 0, proteinHit: false, caloriesHit: false, waterHit: false, weighIn: false, recovery: false, workouts: 0, cardioMin: 0, cardioSessions: 0, volume: 0, mobilitySets: 0 };
+      f = { date, logged: false, meals: 0, kcal: 0, protein: 0, proteinHit: false, caloriesHit: false, waterHit: false, weighIn: false, recovery: false, workouts: 0, cardioMin: 0, cardioSessions: 0, volume: 0, mobilitySets: 0, mealHits: 0, perfectDay: false, prs: 0 };
       map.set(date, f);
     }
     return f;
@@ -112,6 +129,12 @@ export function dayFacts(i: GameInput): Map<string, DayFacts> {
     mealsByDay.set(e.date, s);
   }
   for (const [d, s] of mealsByDay) get(d).meals = s.size;
+  for (const [d, h] of i.mealHits ?? []) {
+    const f = map.get(d);
+    if (!f) continue;
+    f.mealHits = h.hits;
+    f.perfectDay = h.perfect;
+  }
   for (const f of map.values()) {
     if (!f.logged) continue;
     const g = goalForDate(i.goals, f.date);
@@ -347,80 +370,133 @@ export interface GameState {
   seasonsWon: number;
   badges: BadgeStatus[];
   prs: PrEvent[];
+  // RPG
+  level: ReturnType<typeof heroLevel>;
+  attributes: ReturnType<typeof attributes>;
+  campaign: CampaignState;
+  colosseum: ReturnType<typeof colosseum>;
+  colosseumWins: { month: string; name: string; date: string }[];
+  duel: Duel;
+  duelsWon: number;
+  duelWeeksWon: string[];
+  comebacks: string[];
+  mastery: MasteryEntry[];
+  lifework: ReturnType<typeof lifeWork>;
+  battle: ReturnType<typeof battleScore>;
+  mealHitsTotal: number;
+  perfectDays: number;
+  facts: Map<string, DayFacts>;
+  xpByDay: Map<string, number>;
+  damageByDay: Map<string, number>;
 }
 
 export function computeGame(i: GameInput): GameState {
   const facts = dayFacts(i);
   const prs = prEvents(i.workouts);
   const breakdown = Object.fromEntries(Object.keys(XP_RULES).map((k) => [k, { count: 0, xp: 0 }])) as GameState['breakdown'];
-  const add = (k: XpKey, n = 1) => {
-    if (n <= 0) return;
+  const xpByDay = new Map<string, number>();
+  /** EP buchen – immer mit dem Tag, an dem sie verdient wurden (Grundlage des Kampfwerts) */
+  const add = (k: XpKey, n: number, date: string) => {
+    if (n <= 0 || date > i.today) return;
     breakdown[k].count += n;
     breakdown[k].xp += n * XP_RULES[k].xp;
+    xpByDay.set(date, (xpByDay.get(date) ?? 0) + n * XP_RULES[k].xp);
   };
-  const xpByDay = new Map<string, number>();
-  const addDay = (d: string, xp: number) => xpByDay.set(d, (xpByDay.get(d) ?? 0) + xp);
-  for (const f of facts.values()) {
-    if (f.date > i.today) continue;
-    const before = Object.values(breakdown).reduce((a, b) => a + b.xp, 0);
-    if (f.logged) add('logged');
-    if (f.meals >= 3) add('threeMeals');
-    if (f.proteinHit) add('protein');
-    if (f.caloriesHit) add('calories');
-    if (f.waterHit) add('water');
-    if (f.weighIn) add('weighIn');
-    if (f.recovery) add('recovery');
-    add('workout', Math.min(2, f.workouts));
-    add('cardio', Math.min(2, f.cardioSessions));
-    addDay(f.date, Object.values(breakdown).reduce((a, b) => a + b.xp, 0) - before);
-  }
+  // Bestleistungen je Tag (max. 5 pro Workout)
   const prsByWorkout = new Map<string, number>();
   for (const p of prs) {
     if (p.date > i.today) continue;
     const n = prsByWorkout.get(p.workoutId) ?? 0;
     if (n < 5) {
-      add('pr');
-      addDay(p.date, XP_RULES.pr.xp);
+      add('pr', 1, p.date);
+      const f = facts.get(p.date);
+      if (f) f.prs++;
     }
     prsByWorkout.set(p.workoutId, n + 1);
   }
-  // Feldzüge aller Wochen seit Beginn
+  for (const f of facts.values()) {
+    if (f.date > i.today) continue;
+    if (f.logged) add('logged', 1, f.date);
+    if (f.meals >= 3) add('threeMeals', 1, f.date);
+    if (f.proteinHit) add('protein', 1, f.date);
+    if (f.caloriesHit) add('calories', 1, f.date);
+    if (f.waterHit) add('water', 1, f.date);
+    if (f.weighIn) add('weighIn', 1, f.date);
+    if (f.recovery) add('recovery', 1, f.date);
+    add('workout', Math.min(2, f.workouts), f.date);
+    add('cardio', Math.min(2, f.cardioSessions), f.date);
+    add('mealHit', Math.min(4, f.mealHits), f.date);
+    if (f.perfectDay) add('perfectDay', 1, f.date);
+  }
   const allDates = [...facts.keys()].filter((d) => d <= i.today).sort();
+  const minDate = (a: string, b: string) => (a < b ? a : b);
+  // Feldzüge aller Wochen seit Beginn
   let questsCompletedTotal = 0;
+  const duelWeeksWon: string[] = [];
   if (allDates.length) {
     for (let w = startOfWeek(allDates[0]!); w <= i.today; w = addDays(w, 7)) {
       const done = questsForWeek(w, facts, prs, i).filter((q) => q.done).length;
       questsCompletedTotal += done;
-      add('quest', done);
+      add('quest', done, minDate(addDays(w, 6), i.today));
+      const d = shadowDuel(w, facts, i.today);
+      if (d.complete && d.won) {
+        duelWeeksWon.push(w);
+        add('duel', 1, addDays(w, 6));
+      }
     }
   }
   // Saisons aller Monate
   let seasonsWon = 0;
-  if (allDates.length) {
-    const months = new Set(allDates.map((d) => d.slice(0, 7)));
-    for (const m of months) {
-      const c = seasonFor(m, facts, i.today);
-      const done = c.filter((x) => x.done).length;
-      add('season', done);
-      if (done === c.length) seasonsWon++;
+  const months = [...new Set(allDates.map((d) => d.slice(0, 7)))];
+  for (const m of months) {
+    const c = seasonFor(m, facts, i.today);
+    const done = c.filter((x) => x.done).length;
+    const monthEnd = addDays(addDays(m + '-01', 32).slice(0, 7) + '-01', -1);
+    add('season', done, minDate(monthEnd, i.today));
+    if (done === c.length) seasonsWon++;
+  }
+  // Schaden, Feldzug, Kolosseum
+  const damageByDay = new Map<string, number>();
+  for (const f of facts.values()) if (f.date <= i.today) damageByDay.set(f.date, dayDamage(f, i.heroClass).total);
+  const dmgList = [...damageByDay].map(([date, dmg]) => ({ date, dmg }));
+  const camp = campaign(dmgList);
+  for (const d of camp.defeated) add('boss', 1, d.date);
+  const colosseumWins: GameState['colosseumWins'] = [];
+  for (const m of months) {
+    const c = colosseum(m, dmgList, i.today);
+    if (c.defeatedOn) {
+      colosseumWins.push({ month: m, name: c.name, date: c.defeatedOn });
+      add('colosseum', 1, c.defeatedOn);
     }
   }
+  // Comebacks
+  const trainingDates = [...facts.values()].filter((f) => f.workouts + f.cardioSessions > 0).map((f) => f.date);
+  const comebacks = comebackDates(trainingDates).filter((d) => d <= i.today);
+  for (const d of comebacks) add('comeback', 1, d);
+  // Übungs-Meisterschaft
+  const mastery = exerciseMastery(i.workouts.filter((w) => w.date <= i.today), i.measurements, i.sex);
+  for (const m of mastery) for (const r of m.reached) add('mastery', 1, r.date);
+
   const xp = Object.values(breakdown).reduce((a, b) => a + b.xp, 0);
 
   const logStreak = dayStreak(new Set([...facts.values()].filter((f) => f.logged).map((f) => f.date)), i.today);
-  const trainStreak = weekStreak([...facts.values()].filter((f) => f.workouts + f.cardioSessions > 0).map((f) => f.date), i.today);
+  const trainStreak = weekStreak(trainingDates, i.today);
   const month = i.today.slice(0, 7);
   const challenges = seasonFor(month, facts, i.today);
 
-  const totalVolume = [...facts.values()].reduce((a, f) => a + f.volume, 0);
-  const proteinDays = [...facts.values()].filter((f) => f.proteinHit).length;
-  const waterDays = [...facts.values()].filter((f) => f.waterHit).length;
+  const factList = [...facts.values()].filter((f) => f.date <= i.today);
+  const totalVolume = factList.reduce((a, f) => a + f.volume, 0);
+  const proteinDays = factList.filter((f) => f.proteinHit).length;
+  const waterDays = factList.filter((f) => f.waterHit).length;
+  const mealHitsTotal = factList.reduce((a, f) => a + f.mealHits, 0);
+  const perfectDays = factList.filter((f) => f.perfectDay).length;
   const cardioKm = i.cardio.reduce((a, c) => a + (c.distanceKm ?? 0), 0);
   const usedExercises = new Set(i.workouts.flatMap((w) => w.exercises.filter((e) => e.sets.some(isCompletedSet)).map((e) => e.exerciseId)));
   const exById = new Map(i.exercises.map((e) => [e.id, e]));
   const studioUsed = i.homeGym ? [...usedExercises].filter((id) => exById.get(id)?.gyms?.includes(i.homeGym!)).length : 0;
   const milonStations = i.exercises.filter((e) => e.equipment === 'milon' && e.kind === 'strength');
   const milonUsed = milonStations.filter((e) => usedExercises.has(e.id)).length;
+  const masteryTiers = mastery.reduce((a, m) => a + m.tier, 0);
 
   const defs: BadgeDef[] = [
     { id: 'workouts', name: 'Veteran', description: (t) => `${t} Krafteinheiten abgeschlossen`, tiers: [1, 25, 100], value: i.workouts.length },
@@ -435,6 +511,13 @@ export function computeGame(i: GameInput): GameState {
     { id: 'recipes', name: 'Koch des Kaisers', description: (t) => `${t} Rezepte angelegt`, tiers: [1, 5, 20], value: i.recipesCount },
     { id: 'quests', name: 'Feldherr', description: (t) => `${t} Wochen-Feldzüge erfüllt`, tiers: [1, 10, 50], value: questsCompletedTotal },
     { id: 'seasons', name: 'Triumphator', description: (t) => `${t} Saison(s) komplett gewonnen`, tiers: [1, 3, 6], value: seasonsWon },
+    { id: 'mealhits', name: 'Punktlandung', description: (t) => `${t} Mahlzeiten auf ± 10 % getroffen`, tiers: [10, 100, 500], value: mealHitsTotal },
+    { id: 'perfect', name: 'Tafel des Kaisers', description: (t) => `${t} perfekte Tage (alle Mahlzeiten getroffen)`, tiers: [1, 10, 50], value: perfectDays, unit: 'Tage' },
+    { id: 'bosses', name: 'Eroberer', description: (t) => `${t} Feldzugs-Bosse besiegt`, tiers: [1, 5, 12], value: camp.defeated.length },
+    { id: 'colosseum', name: 'Champion der Arena', description: (t) => `${t}× Kolosseum-Champion des Monats`, tiers: [1, 3, 12], value: colosseumWins.length },
+    { id: 'duels', name: 'Schattenbezwinger', description: (t) => `${t} Schatten-Duelle gewonnen`, tiers: [1, 8, 26], value: duelWeeksWon.length },
+    { id: 'mastery', name: 'Meister der Waffen', description: (t) => `${t} Meisterschaftsstufen erreicht`, tiers: [3, 10, 25], value: masteryTiers, unit: 'Stufen' },
+    { id: 'comeback', name: 'Phönix', description: (t) => `${t}× nach einer Pause zurückgekehrt`, tiers: [1, 3, 10], value: comebacks.length },
   ];
   if (i.homeGym) {
     defs.push({ id: 'studio', name: 'Kenner des Studios', description: (t) => `${t} verschiedene Studio-Geräte genutzt`, tiers: [10, 25, 40], value: studioUsed, unit: 'Geräte' });
@@ -456,6 +539,23 @@ export function computeGame(i: GameInput): GameState {
     seasonsWon,
     badges,
     prs,
+    level: heroLevel(xp),
+    attributes: attributes({ facts: factList, prCount: prs.filter((p) => p.date <= i.today).length, questsDone: questsCompletedTotal, cardioKm, classId: i.heroClass }),
+    campaign: camp,
+    colosseum: colosseum(month, dmgList, i.today),
+    colosseumWins,
+    duel: shadowDuel(startOfWeek(i.today), facts, i.today),
+    duelsWon: duelWeeksWon.length,
+    duelWeeksWon,
+    comebacks,
+    mastery,
+    lifework: lifeWork(factList, i.workouts.filter((w) => w.date <= i.today), i.cardio.filter((c) => c.date <= i.today)),
+    battle: battleScore(xpByDay, i.today),
+    mealHitsTotal,
+    perfectDays,
+    facts,
+    xpByDay,
+    damageByDay,
   };
 }
 

@@ -3,11 +3,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/data/db';
 import { computeGame, type GameState } from '@/domain/gamification';
 import { today } from '@/domain/dates';
-import { useSettings } from './data';
+import { useMeals, useSettings } from './data';
+import { mealHitsByDay } from '@/domain/mealGame';
 
 /** Gamification-Zustand, reaktiv aus allen relevanten Tabellen berechnet. */
 export function useGame(): GameState | undefined {
   const settings = useSettings();
+  const mealIds = useMeals().map((m) => m.id).join('|');
   const data = useLiveQuery(async () => {
     const [entries, goals, workouts, cardio, measurements, water, recovery, recipesCount, exercises, plan, profile] = await Promise.all([
       db.diary.toArray(),
@@ -27,6 +29,7 @@ export function useGame(): GameState | undefined {
   const day = today();
   return useMemo(() => {
     if (!data) return undefined;
+    const mealHits = mealHitsByDay({ entries: data.entries, goals: data.goals, workouts: data.workouts, cardio: data.cardio, profile: data.profile, mealIds: mealIds.split('|'), split: settings.mealSplit });
     return computeGame({
       today: day,
       entries: data.entries,
@@ -42,6 +45,9 @@ export function useGame(): GameState | undefined {
       trainingDaysPerWeek: data.profile?.trainingDaysPerWeek ?? 3,
       waterGoalMl: settings.waterGoalMl,
       homeGym: settings.homeGym || undefined,
+      mealHits,
+      heroClass: settings.hero?.classId,
+      sex: data.profile?.sex,
     });
-  }, [data, day, settings.waterGoalMl, settings.homeGym]);
+  }, [data, day, settings.waterGoalMl, settings.homeGym, settings.mealSplit, settings.hero?.classId, mealIds]);
 }

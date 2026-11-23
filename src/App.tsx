@@ -20,7 +20,12 @@ import { CelebrationHost, GameWatcher } from './components/Celebration';
 import { BootScreen } from './components/Boot';
 
 function useTheme() {
-  const { theme } = useSettings();
+  const { theme, hero } = useSettings();
+  const palette = hero?.palette && hero.palette !== 'imperium' ? hero.palette : '';
+  useEffect(() => {
+    if (palette) document.documentElement.dataset.palette = palette;
+    else delete document.documentElement.dataset.palette;
+  }, [palette]);
   useEffect(() => {
     const apply = () => {
       const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);

@@ -12,7 +12,7 @@ test('Kalorienziel je Mahlzeit: Aufteilung passt zum Tagesziel und offene Mahlze
   await expect(page.getByTestId('meal-kcal-snack')).toHaveText('0 / 201 kcal');
   await expect(page.getByTestId('meal-adjust-hint')).toHaveCount(0);
 
-  // 100 g Nutella (539 kcal) zum Frühstück → 37 kcal drüber; Rest 1.469 kcal auf offene Mahlzeiten (35:30:10)
+  // 100 g Nutella (539 kcal) zum Frühstück → 37 kcal drüber, innerhalb ±10 % = Punktlandung; Rest 1.469 kcal auf offene Mahlzeiten (35:30:10)
   await page.getByRole('button', { name: 'Frühstück: Lebensmittel hinzufügen' }).click();
   const dlg = page.getByRole('dialog');
   await dlg.getByLabel('Lebensmittel suchen').fill('nutella');
@@ -21,7 +21,7 @@ test('Kalorienziel je Mahlzeit: Aufteilung passt zum Tagesziel und offene Mahlze
   await dlg.getByLabel('Menge').fill('100');
   await dlg.getByRole('button', { name: 'Hinzufügen' }).click();
   await expect(page.getByTestId('meal-kcal-breakfast')).toHaveText('539 / 502 kcal');
-  await expect(page.getByTestId('meal-target-breakfast')).toContainText('37 drüber');
+  await expect(page.getByTestId('meal-hit-breakfast')).toHaveText('Punktlandung ✓');
   await expect(page.getByTestId('meal-kcal-lunch')).toHaveText('0 / 685 kcal');
   await expect(page.getByTestId('meal-kcal-dinner')).toHaveText('0 / 588 kcal');
   await expect(page.getByTestId('meal-kcal-snack')).toHaveText('0 / 196 kcal');

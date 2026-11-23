@@ -158,7 +158,7 @@ function Diary() {
                 <div className="flex items-center gap-1">
                   <span className="text-sm tabular-nums text-muted" data-testid={`meal-kcal-${m.id}`}>
                     {fmt(ms.kcal)}
-                    {tg && tg.planned > 0 && <> / {fmt(tg.adjusted ?? tg.planned)}</>} kcal
+                    {tg && tg.target > 0 && <> / {fmt(tg.target)}</>} kcal
                   </span>
                   <Button variant="ghost" size="icon" aria-label={`Menü ${m.label}`} onClick={() => setMealMenu(m.id)}>
                     <MoreHorizontal className="h-5 w-5" />
@@ -171,7 +171,7 @@ function Diary() {
             >
               {m.label}
             </CardTitle>
-            {tg && tg.planned > 0 && <MealTargetBar target={tg} eaten={ms.kcal} label={m.label} />}
+            {tg && (tg.planned > 0 || tg.target > 0) && <MealTargetBar target={tg} eaten={ms.kcal} label={m.label} />}
             {list.length ? (
               <ul className="divide-y">
                 {list.map((e) => (
@@ -239,17 +239,24 @@ function Diary() {
 }
 
 function MealTargetBar({ target, eaten, label }: { target: MealTarget; eaten: number; label: string }) {
-  const goal = target.adjusted ?? target.planned;
-  const over = eaten > goal && target.eaten != null;
+  const goal = target.target;
+  const over = target.eaten != null && eaten > goal;
   return (
     <div className="mb-2" data-testid={`meal-target-${target.id}`}>
-      <Progress value={eaten} max={goal || 1} color={over ? 'danger' : 'accent'} label={`Mahlzeitziel ${label}`} />
-      <div className="mt-0.5 flex justify-between text-[11px] text-muted">
+      <Progress value={eaten} max={goal || 1} color={over && !target.hit ? 'danger' : 'accent'} label={`Mahlzeitziel ${label}`} />
+      <div className="mt-0.5 flex justify-between gap-2 text-[11px] text-muted">
         <span>
           Ziel {fmt(goal)} kcal
           {target.adjusted != null && <> · geplant {fmt(target.planned)}</>}
         </span>
-        {target.eaten != null && <span className={over ? 'text-danger' : ''}>{over ? `${fmt(eaten - goal)} drüber` : `${fmt(goal - eaten)} übrig`}</span>}
+        {target.eaten != null &&
+          (target.hit ? (
+            <span className="font-semibold text-gold" data-testid={`meal-hit-${target.id}`}>
+              Punktlandung ✓
+            </span>
+          ) : (
+            <span className={over ? 'text-danger' : ''}>{over ? `${fmt(eaten - goal)} drüber` : `${fmt(goal - eaten)} übrig`}</span>
+          ))}
       </div>
     </div>
   );

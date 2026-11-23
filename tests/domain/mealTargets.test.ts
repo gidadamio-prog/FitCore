@@ -56,4 +56,34 @@ describe('Kalorienziel je Mahlzeit', () => {
     expect(t.find((x) => x.id === 'b')?.adjusted).toBe(200);
     expect(t.find((x) => x.id === 'c')?.adjusted).toBe(200);
   });
+
+  it('gegessene Mahlzeiten behalten das Ziel, das beim Beginn galt (Reihenfolge zählt)', () => {
+    // Frühstück 800 (Ziel 500), danach Mittag 560 (Ziel zu diesem Zeitpunkt 1200 × 35/75 = 560)
+    const t = mealTargets(2000, effectiveSplit(ids, {}), new Map([['breakfast', 800], ['lunch', 560]]));
+    const lunch = t.find((x) => x.id === 'lunch')!;
+    expect(lunch).toMatchObject({ planned: 700, target: 560, adjusted: 560, eaten: 560, hit: true });
+    expect(t.find((x) => x.id === 'breakfast')).toMatchObject({ target: 500, hit: false });
+    // Rest 640 auf Abend:Snack = 30:10
+    expect(t.find((x) => x.id === 'dinner')?.target).toBe(480);
+    expect(t.find((x) => x.id === 'snack')?.target).toBe(160);
+  });
+
+  it('Punktlandung: ±10 %, mindestens ±20 kcal; Ziel 0 ist nie eine Punktlandung', () => {
+    const shares = effectiveSplit(ids, {});
+    const hit = (kcal: number) => mealTargets(2000, shares, new Map([['breakfast', kcal]])).find((x) => x.id === 'breakfast')!.hit;
+    expect(hit(450)).toBe(true);
+    expect(hit(550)).toBe(true);
+    expect(hit(449)).toBe(false);
+    expect(hit(551)).toBe(false);
+    const small = mealTargets(150, shares, new Map([['snack', 34]])).find((x) => x.id === 'snack')!;
+    expect(small.target).toBe(15);
+    expect(small.hit).toBe(true); // |34 − 15| ≤ 20
+    const zero = mealTargets(1000, shares, new Map([['breakfast', 1500], ['lunch', 0]])).find((x) => x.id === 'lunch')!;
+    expect(zero).toMatchObject({ target: 0, hit: false });
+  });
+
+  it('unbekannte Mahlzeiten werden ignoriert', () => {
+    const t = mealTargets(2000, effectiveSplit(ids, {}), new Map([['geloescht', 300]]));
+    expect(t.every((x) => x.eaten == null && x.adjusted == null)).toBe(true);
+  });
 });

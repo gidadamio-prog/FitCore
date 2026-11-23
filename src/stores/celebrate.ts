@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export interface Celebration {
   id: number;
-  kind: 'pr' | 'rank' | 'badge' | 'quest' | 'season';
+  kind: 'pr' | 'rank' | 'badge' | 'quest' | 'season' | 'boss' | 'colosseum' | 'mastery' | 'comeback' | 'duel' | 'level' | 'triumph';
   title: string;
   subtitle?: string;
   lines?: string[];
