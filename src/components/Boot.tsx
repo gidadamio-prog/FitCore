@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { db } from '@/data/db';
 import { exportBackup, download } from '@/data/backup';
 
-export const APP_VERSION = '1.11.0';
+export const APP_VERSION = '1.12.0';
 
 /** Service Worker abmelden und App-Cache leeren – IndexedDB (deine Daten) bleibt unangetastet. */
 export async function forceAppUpdate() {

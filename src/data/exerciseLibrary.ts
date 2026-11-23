@@ -135,6 +135,26 @@ const studioRows: Row[] = [
   ['milon-biceps', 'milon Bizeps', 'Bizeps', [], 'milon', 'strength', 'Zirkelstation: Arme beugen.', ['tg-arm-curl']],
   ['milon-triceps', 'milon Trizeps', 'Trizeps', [], 'milon', 'strength', 'Zirkelstation: Arme strecken.', ['tg-arm-extension']],
   ['milon-rotation', 'milon Rumpfrotation', 'Core', [], 'milon', 'strength', 'Zirkelstation: Oberkörper gegen Widerstand drehen.', ['tg-rotary-torso']],
+  // EGYM Smart Strength (elektronisch gesteuerter Zirkel, EGYM ID)
+  ['egym-chest-press', 'EGYM Brustpresse', 'Brust', ['Trizeps', 'Vordere Schulter'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Griffe nach vorne drücken, Schulterblätter am Polster.', ['milon-chest-press', 'tg-chest-press']],
+  ['egym-seated-row', 'EGYM Ruderzug', 'Oberer Rücken', ['Latissimus', 'Bizeps', 'Hintere Schulter'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Griffe zum Körper ziehen, Brust am Polster, Schulterblätter zusammen.', ['milon-row', 'tg-low-row']],
+  ['egym-lat-pulldown', 'EGYM Latzug', 'Latissimus', ['Bizeps', 'Oberer Rücken'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Griffe zur oberen Brust ziehen, Ellbogen nach unten.', ['milon-lat-pulldown', 'tg-lat-machine']],
+  ['egym-shoulder-press', 'EGYM Schulterpresse', 'Vordere Schulter', ['Seitliche Schulter', 'Trizeps'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Griffe über Kopf drücken, Rumpf stabil.', ['milon-shoulder-press', 'tg-shoulder-press']],
+  ['egym-butterfly', 'EGYM Butterfly', 'Brust', ['Vordere Schulter'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Arme im Bogen vor der Brust schließen.', ['milon-butterfly', 'tg-pectoral']],
+  ['egym-reverse-butterfly', 'EGYM Butterfly Reverse', 'Hintere Schulter', ['Oberer Rücken'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Arme im Bogen nach hinten öffnen, Schulterblätter zusammen.', ['milon-reverse-butterfly', 'tg-rear-delt']],
+  ['egym-leg-press', 'EGYM Beinpresse', 'Quadrizeps', ['Gesäß', 'Rückseite Oberschenkel'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Beine kontrolliert strecken, Knie nicht ganz durchdrücken.', ['milon-leg-press', 'tg-leg-press']],
+  ['egym-leg-extension', 'EGYM Beinstrecker', 'Quadrizeps', [], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Unterschenkel gegen das Polster strecken.', ['milon-leg-extension', 'tg-leg-extension']],
+  ['egym-leg-curl', 'EGYM Beinbeuger', 'Rückseite Oberschenkel', [], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Unterschenkel gegen das Polster beugen.', ['milon-leg-curl', 'tg-leg-curl']],
+  ['egym-abductor', 'EGYM Abduktor', 'Gesäß', [], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Beine gegen die Polster nach außen öffnen.', ['milon-abductor', 'tg-abductor']],
+  ['egym-adductor', 'EGYM Adduktor', 'Adduktoren', [], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Beine gegen die Polster schließen.', ['milon-adductor', 'tg-adductor']],
+  ['egym-glute', 'EGYM Gesäßtrainer', 'Gesäß', ['Rückseite Oberschenkel'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Hüfte gegen den Widerstand strecken.', ['tg-glute', 'hip-thrust']],
+  ['egym-squat', 'EGYM Kniebeuge', 'Quadrizeps', ['Gesäß', 'Adduktoren'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Geführte Kniebeuge, Knie in Zehenrichtung, aufrechter Oberkörper.', ['squat', 'leg-press']],
+  ['egym-abdominal', 'EGYM Bauchtrainer', 'Core', [], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Oberkörper gegen das Polster einrollen.', ['milon-abdominal', 'tg-abdominal']],
+  ['egym-back-extension', 'EGYM Rückenstrecker', 'Unterer Rücken', ['Gesäß'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Oberkörper gegen das Polster aufrichten, ohne ins Hohlkreuz zu gehen.', ['milon-back-extension', 'tg-lower-back']],
+  ['egym-rotation', 'EGYM Rumpfrotation', 'Core', [], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Oberkörper gegen den Widerstand drehen, beide Seiten.', ['milon-rotation', 'tg-rotary-torso']],
+  ['egym-lateral-flexion', 'EGYM Seitlicher Rumpfbeuger', 'Core', [], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Oberkörper seitlich gegen den Widerstand neigen, beide Seiten.', ['side-plank']],
+  ['egym-biceps', 'EGYM Bizepscurl', 'Bizeps', ['Unterarme'], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Arme gegen den Widerstand beugen, Ellbogen auf dem Polster.', ['milon-biceps', 'db-curl']],
+  ['egym-triceps', 'EGYM Trizeps', 'Trizeps', [], 'EGYM', 'strength', 'EGYM-Station: stellt sich per EGYM ID automatisch ein. Gewicht und Wiederholungen vom Display übernehmen. Arme gegen den Widerstand strecken.', ['milon-triceps', 'tg-arm-extension']],
   // Technogym Kinesis Stations (seilzugbasiertes Funktionstraining)
   ['kinesis-chest-press', 'Kinesis Brustdrücken stehend', 'Brust', ['Trizeps', 'Core'], 'Technogym Kinesis', 'strength', 'Schrittstellung, beide Seile von hinten nach vorne drücken, Rumpf stabil.', ['tg-chest-press']],
   ['kinesis-row', 'Kinesis Rudern stehend', 'Oberer Rücken', ['Latissimus', 'Core'], 'Technogym Kinesis', 'strength', 'Seile auf Brusthöhe zum Körper ziehen, aufrechter Stand.', ['tg-low-row']],
@@ -173,10 +193,10 @@ export const MUSCLE_GROUPS = [
   'Bizeps', 'Trizeps', 'Unterarme', 'Quadrizeps', 'Rückseite Oberschenkel', 'Gesäß', 'Adduktoren', 'Waden', 'Core', 'Hüftbeuger', 'Ganzkörper', 'Ausdauer',
 ];
 
-export const EQUIPMENT = ['Langhantel', 'Kurzhantel', 'Kabelzug', 'Maschine', 'Körpergewicht', 'Kettlebell', 'SZ-Stange', 'Trap Bar', 'Rudergerät', 'Faszienrolle', 'Keins', 'Technogym Selection', 'Technogym Kinesis', 'Technogym Cardio', 'milon', 'five', 'Dr. Wolff', 'DAVID', 'Sensopro', 'Arke'];
+export const EQUIPMENT = ['Langhantel', 'Kurzhantel', 'Kabelzug', 'Maschine', 'Körpergewicht', 'Kettlebell', 'SZ-Stange', 'Trap Bar', 'Rudergerät', 'Faszienrolle', 'Keins', 'Technogym Selection', 'Technogym Kinesis', 'Technogym Cardio', 'milon', 'five', 'Dr. Wolff', 'DAVID', 'Sensopro', 'Arke', 'EGYM'];
 
 /** Version der mitgelieferten Bibliothek – bei Änderungen erhöhen, damit bestehende Installationen aktualisiert werden. */
-export const LIBRARY_VERSION = 2;
+export const LIBRARY_VERSION = 3;
 
 const studioIds = new Set(studioRows.map((r) => r[0]));
 export const EXERCISE_LIBRARY: Exercise[] = [...rows, ...studioRows].map(([id, name, primaryMuscle, secondaryMuscles, equipment, kind, description, alternatives]) => ({
