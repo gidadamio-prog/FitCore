@@ -7,6 +7,7 @@ import { CLASS_TRAINING, battleScore, campaign, colosseum, comebackDates, dayDam
 import { addDays, rangeDates, startOfWeek } from './dates';
 import { goalForDate } from './balance';
 import { isCompletedSet, setVolume, epley1RM } from './training';
+import { dailyQuest, pickedQuests, weeklyOffers, type QuestCtx, type QuestOffer } from './quests';
 
 // ---------- Punkte-Regeln ----------
 
@@ -22,6 +23,9 @@ export const XP_RULES = {
   cardio: { xp: 30, label: 'Ausdauer ≥ 20 min' },
   pr: { xp: 25, label: 'Neue Bestleistung' },
   quest: { xp: 100, label: 'Wochen-Feldzug erfüllt' },
+  questAll: { xp: 100, label: 'Alle drei gewählten Feldzüge der Woche erfüllt' },
+  daily: { xp: 40, label: 'Tagesauftrag erfüllt' },
+  steps: { xp: 10, label: 'Schrittziel erreicht' },
   season: { xp: 250, label: 'Saison-Herausforderung gemeistert' },
   mealHit: { xp: 5, label: 'Punktlandung bei einer Mahlzeit (± 10 %)' },
   perfectDay: { xp: 15, label: 'Perfekter Tag (alle Mahlzeiten getroffen)' },
@@ -83,6 +87,12 @@ export interface GameInput {
   mealHits?: Map<string, MealDayHits>;
   heroClass?: HeroClassId;
   sex?: Sex;
+  /** Tägliches Schrittziel (Standard 8.000) */
+  stepGoal?: number;
+  /** Gewählte Wochen-Feldzüge je Woche (Montag → Quest-IDs) */
+  questPicks?: Record<string, string[]>;
+  /** Ab diesem Tag gibt es Tagesaufträge (keine rückwirkenden EP) */
+  questBoardStart?: string;
 }
 
 export interface DayFacts {
@@ -105,7 +115,19 @@ export interface DayFacts {
   perfectDay: boolean;
   /** Bestleistungen an diesem Tag (max. 5 je Workout) */
   prs: number;
+  /** Ziele des Tages (null = kein Ziel hinterlegt) */
+  kcalTarget: number | null;
+  proteinTarget: number | null;
+  steps: number;
+  stepsHit: boolean;
+  sleepHours: number | null;
+  /** Training begonnen vor 9 Uhr */
+  earlyWorkout: boolean;
+  /** Übungen, die an diesem Tag zum ersten Mal überhaupt gemacht wurden */
+  newExercises: number;
 }
+
+export const emptyDayFacts = (date: string): DayFacts => ({ date, logged: false, meals: 0, kcal: 0, protein: 0, proteinHit: false, caloriesHit: false, waterHit: false, weighIn: false, recovery: false, workouts: 0, cardioMin: 0, cardioSessions: 0, volume: 0, mobilitySets: 0, mealHits: 0, perfectDay: false, prs: 0, kcalTarget: null, proteinTarget: null, steps: 0, stepsHit: false, sleepHours: null, earlyWorkout: false, newExercises: 0 });
 
 const MOBILITY_EQUIP = new Set(['five', 'Dr. Wolff', 'DAVID', 'Sensopro', 'Arke']);
 
@@ -114,7 +136,7 @@ export function dayFacts(i: GameInput): Map<string, DayFacts> {
   const get = (date: string) => {
     let f = map.get(date);
     if (!f) {
-      f = { date, logged: false, meals: 0, kcal: 0, protein: 0, proteinHit: false, caloriesHit: false, waterHit: false, weighIn: false, recovery: false, workouts: 0, cardioMin: 0, cardioSessions: 0, volume: 0, mobilitySets: 0, mealHits: 0, perfectDay: false, prs: 0 };
+      f = emptyDayFacts(date);
       map.set(date, f);
     }
     return f;
@@ -140,6 +162,8 @@ export function dayFacts(i: GameInput): Map<string, DayFacts> {
     if (!f.logged) continue;
     const g = goalForDate(i.goals, f.date);
     if (g) {
+      f.kcalTarget = g.calorieTarget;
+      f.proteinTarget = g.proteinG;
       f.proteinHit = f.protein >= g.proteinG * 0.9;
       f.caloriesHit = Math.abs(f.kcal - g.calorieTarget) <= g.calorieTarget * 0.1;
     }
@@ -148,11 +172,26 @@ export function dayFacts(i: GameInput): Map<string, DayFacts> {
   for (const w of i.water) waterByDay.set(w.date, (waterByDay.get(w.date) ?? 0) + w.ml);
   for (const [d, ml] of waterByDay) if (ml >= i.waterGoalMl) get(d).waterHit = true;
   for (const m of i.measurements) if (m.weightKg != null) get(m.date).weighIn = true;
-  for (const r of i.recovery) if (r.sleepHours != null || r.sleepQuality != null || r.energy != null || r.soreness != null) get(r.date).recovery = true;
+  for (const r of i.recovery) {
+    if (r.sleepHours != null || r.sleepQuality != null || r.energy != null || r.soreness != null) get(r.date).recovery = true;
+    if (r.sleepHours != null) get(r.date).sleepHours = r.sleepHours;
+    if (r.steps != null && r.steps > 0) {
+      const f = get(r.date);
+      f.steps = r.steps;
+      f.stepsHit = r.steps >= (i.stepGoal ?? 8000);
+    }
+  }
   const exById = new Map(i.exercises.map((e) => [e.id, e]));
-  for (const w of i.workouts) {
+  const seenExercises = new Set<string>();
+  for (const w of [...i.workouts].sort((a, b) => a.startedAt.localeCompare(b.startedAt))) {
     const f = get(w.date);
     f.workouts++;
+    if (new Date(w.startedAt).getHours() < 9) f.earlyWorkout = true;
+    for (const e of w.exercises) {
+      if (!e.sets.some(isCompletedSet) || seenExercises.has(e.exerciseId)) continue;
+      if (seenExercises.size) f.newExercises++; // das allererste Training zählt nicht als „neu“
+      seenExercises.add(e.exerciseId);
+    }
     for (const e of w.exercises) {
       const done = e.sets.filter(isCompletedSet);
       f.volume += done.reduce((a, s) => a + setVolume(s), 0);
@@ -379,6 +418,14 @@ export interface GameState {
   logStreak: StreakInfo;
   trainStreak: ReturnType<typeof weekStreak>;
   quests: Quest[];
+  /** Montag der laufenden Woche */
+  weekStart: string;
+  /** Angebote der laufenden Woche, solange noch nicht gewählt (sonst leer) */
+  questOffers: QuestOffer[];
+  /** Feldzug der Woche gewählt */
+  questsPicked: boolean;
+  /** Tagesauftrag für heute (null = heute keiner) */
+  dailyQuest: Quest | null;
   questsCompletedTotal: number;
   season: { month: string; name: string; challenges: SeasonChallenge[]; won: boolean };
   seasonsWon: number;
@@ -444,17 +491,28 @@ export function computeGame(i: GameInput): GameState {
     add('cardio', Math.min(2, f.cardioSessions), f.date);
     add('mealHit', Math.min(4, f.mealHits), f.date);
     if (f.perfectDay) add('perfectDay', 1, f.date);
+    if (f.stepsHit) add('steps', 1, f.date);
   }
   const allDates = [...facts.keys()].filter((d) => d <= i.today).sort();
   const minDate = (a: string, b: string) => (a < b ? a : b);
-  // Feldzüge aller Wochen seit Beginn
+  // Feldzüge aller Wochen seit Beginn: gewählte Feldzüge (Quest-Brett), ältere Wochen nach altem Schema
+  const qctx: QuestCtx = { facts, prs, today: i.today, stepGoal: i.stepGoal ?? 8000, heroClass: i.heroClass, planWeekdays: i.activePlan ? [...new Set(i.activePlan.days.flatMap((d) => d.weekdays))] : undefined };
+  const currentWeek = startOfWeek(i.today);
+  const weekQuests = (w: string): Quest[] => {
+    const picks = i.questPicks?.[w];
+    if (picks?.length) return pickedQuests(w, picks, qctx);
+    // Altes Schema für Wochen vor dem Quest-Brett (ohne Quest-Brett: immer)
+    return !i.questBoardStart || w < startOfWeek(i.questBoardStart) ? questsForWeek(w, facts, prs, i) : [];
+  };
   let questsCompletedTotal = 0;
   const duelWeeksWon: string[] = [];
   if (allDates.length) {
     for (let w = startOfWeek(allDates[0]!); w <= i.today; w = addDays(w, 7)) {
-      const done = questsForWeek(w, facts, prs, i).filter((q) => q.done).length;
+      const qs = weekQuests(w);
+      const done = qs.filter((q) => q.done).length;
       questsCompletedTotal += done;
       add('quest', done, minDate(addDays(w, 6), i.today));
+      if (i.questPicks?.[w]?.length && qs.length >= 3 && done === qs.length) add('questAll', 1, minDate(addDays(w, 6), i.today));
       const d = shadowDuel(w, facts, i.today);
       if (d.complete && d.won) {
         duelWeeksWon.push(w);
@@ -462,6 +520,8 @@ export function computeGame(i: GameInput): GameState {
       }
     }
   }
+  // Tagesaufträge (erst ab Start des Quest-Bretts, keine rückwirkenden EP)
+  if (i.questBoardStart) for (const d of rangeDates(i.questBoardStart, i.today)) if (dailyQuest(d, qctx)?.done) add('daily', 1, d);
   // Saisons aller Monate
   let seasonsWon = 0;
   const months = [...new Set(allDates.map((d) => d.slice(0, 7)))];
@@ -552,7 +612,11 @@ export function computeGame(i: GameInput): GameState {
     rank: rankFor(xp),
     logStreak,
     trainStreak,
-    quests: questsForWeek(startOfWeek(i.today), facts, prs, i),
+    quests: weekQuests(currentWeek),
+    weekStart: currentWeek,
+    questOffers: i.questBoardStart && !i.questPicks?.[currentWeek]?.length ? weeklyOffers(currentWeek, qctx) : [],
+    questsPicked: !!i.questPicks?.[currentWeek]?.length,
+    dailyQuest: i.questBoardStart && i.today >= i.questBoardStart ? dailyQuest(i.today, qctx) : null,
     questsCompletedTotal,
     season: { month, name: MONTH_NAMES[Number(month.slice(5, 7)) - 1]!, challenges, won: challenges.every((c) => c.done) },
     seasonsWon,

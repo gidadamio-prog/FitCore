@@ -316,6 +316,8 @@ export interface RecoveryLog {
   date: string;
   sleepHours?: number;
   sleepQuality?: number; // 1–5
+  /** Schritte des Tages (manuell eingetragen) */
+  steps?: number;
   soreness?: number; // 1–5
   energy?: number; // 1–5
 }

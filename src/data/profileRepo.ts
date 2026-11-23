@@ -162,6 +162,10 @@ export interface AppSettings {
   purchases: string[];
   /** Animationen reduzieren */
   reduceMotion: boolean;
+  /** Tägliches Schrittziel */
+  stepGoal: number;
+  /** Gewählte Wochen-Feldzüge je Woche (Montag → Quest-IDs) */
+  questPicks: Record<string, string[]>;
 }
 
 export type Rival = ShareCard & { importedAt: string };
@@ -178,6 +182,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   rivals: [],
   purchases: [],
   reduceMotion: false,
+  stepGoal: 8000,
+  questPicks: {},
 };
 
 export async function getSettings(): Promise<AppSettings> {

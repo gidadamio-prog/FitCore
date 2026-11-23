@@ -6,6 +6,7 @@ import { today } from '@/domain/dates';
 import { useMeals, useMeasurements, useProfile, useSettings } from './data';
 import { mealHitsByDay } from '@/domain/mealGame';
 import { bodyTypeFromHistory, type BodyTypeResult } from '@/domain/bodyType';
+import { QUEST_BOARD_START } from '@/domain/quests';
 
 /** Gamification-Zustand, reaktiv aus allen relevanten Tabellen berechnet. */
 export function useGame(): GameState | undefined {
@@ -49,8 +50,11 @@ export function useGame(): GameState | undefined {
       mealHits,
       heroClass: settings.hero?.classId,
       sex: data.profile?.sex,
+      stepGoal: settings.stepGoal,
+      questPicks: settings.questPicks,
+      questBoardStart: QUEST_BOARD_START,
     });
-  }, [data, day, settings.waterGoalMl, settings.homeGym, settings.mealSplit, settings.hero?.classId, mealIds]);
+  }, [data, day, settings.waterGoalMl, settings.homeGym, settings.mealSplit, settings.hero?.classId, settings.stepGoal, settings.questPicks, mealIds]);
 }
 
 /** Grundkörper des Helden aus Messungen und Profil (null, solange kein Gewicht erfasst ist). */

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ITEMS, SLOTS, appearanceStage, defaultLoadout, equipItem, inventory, itemById, itemFile, normalizeLoadout, portraitFile, setAura, starterPurchaseId } from '@/domain/equipment';
 import { secretAchievements } from '@/domain/achievements';
 import { computeGame, questsForWeek, type BadgeStatus, type DayFacts, type GameInput } from '@/domain/gamification';
+import { emptyDayFacts } from '@/domain/gamification';
 import { CLASS_TRAINING, PATHS, denare, pathForGoal } from '@/domain/rpg';
 import { PLAN_TEMPLATES } from '@/data/planTemplates';
 import { EXERCISE_LIBRARY } from '@/data/exerciseLibrary';
@@ -101,7 +102,7 @@ describe('Klasse, Lebensweg, Denare', () => {
   });
   it('Klassen-Feldzug zählt passend zur Klasse', () => {
     const facts = new Map<string, DayFacts>();
-    const f = (date: string, o: Partial<DayFacts>): DayFacts => ({ date, logged: false, meals: 0, kcal: 0, protein: 0, proteinHit: false, caloriesHit: false, waterHit: false, weighIn: false, recovery: false, workouts: 0, cardioMin: 0, cardioSessions: 0, volume: 0, mobilitySets: 0, mealHits: 0, perfectDay: false, prs: 0, ...o });
+    const f = (date: string, o: Partial<DayFacts>): DayFacts => ({ ...emptyDayFacts(date), ...o });
     facts.set('2026-03-02', f('2026-03-02', { workouts: 1, cardioMin: 60, cardioSessions: 1, proteinHit: true, waterHit: true }));
     facts.set('2026-03-03', f('2026-03-03', { workouts: 1, cardioMin: 70, cardioSessions: 1 }));
     const base = { activePlan: undefined, trainingDaysPerWeek: 3, homeGym: undefined, today: '2026-03-08' };
