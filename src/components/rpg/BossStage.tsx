@@ -11,7 +11,7 @@ export function BossStage({ game, onOpen, cta }: { game: GameState; onOpen: () =
     <button onClick={onOpen} className="boss-stage relative block h-[300px] w-full overflow-hidden rounded-3xl text-left text-white shadow-xl shadow-black/30 ring-1 ring-gold/30" data-testid="boss-stage" aria-label={`Aktueller Gegner ${c.boss.name}, ${fmt(c.remaining)} von ${fmt(c.boss.hp)} Lebenspunkten`}>
       <div className="battle-bg absolute inset-0" aria-hidden />
       <div className="boss-aura absolute right-[-10%] top-[8%] h-[85%] w-[75%] rounded-full" aria-hidden />
-      <div className="absolute bottom-0 right-[-6%] h-[118%] w-[70%]">
+      <div className="absolute right-[-6%] top-[22%] h-full w-[68%]">
         <BossFigure boss={c.boss} idle className="!aspect-auto h-full" />
       </div>
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-transparent" aria-hidden />
