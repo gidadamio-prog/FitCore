@@ -10,7 +10,7 @@ Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett m
 | --- | --- | --- | --- |
 | Format | PNG mit Transparenz | PNG mit Transparenz | PNG mit Transparenz |
 | Größe | 512 × 512 px | 1024 × 1280 px (4:5) | 1024 × 1536 px (2:3) |
-| Motiv | ein Gegenstand, mittig, ca. 8 % Rand | Brustbild bis Hüfte, leicht nach rechts gedreht | Ganzkörper von Kopf bis Fuß, Blick nach links (zum Helden) |
+| Motiv | ein Gegenstand, mittig, ca. 8 % Rand | Brustbild bis Hüfte, leicht nach rechts gedreht | mind. ab Hüfte aufwärts, Blickrichtung egal (wird gespiegelt) |
 | Hintergrund | keiner | keiner | keiner |
 | Nicht enthalten | Rahmen, Text, Funken, Glow, Bodenschatten | Waffe, Schild, Helm, Handschuhe (kommen aus den Slots) | Text, Lebensbalken, Effekte, Bodenschatten |
 
@@ -181,18 +181,18 @@ Wird über Abzeichen freigeschaltet. Bronze/Silber/Gold verwenden dasselbe Bild;
 
 ## 5. Bosse für die Kampfszene (13 Bilder)
 
-Nach jedem Training und jeder abgeschlossenen Mahlzeit kämpft der Held gegen den aktuellen Feldzug-Boss. Der Held steht links, der Boss rechts – deshalb **Ganzkörper, Blick nach links**. Ohne Bild erscheint eine gezeichnete Silhouette.
+Der aktuelle Boss steht groß auf dem Dashboard und kämpft nach jedem Training und jeder abgeschlossenen Mahlzeit gegen den Held. **Mindestens ab der Hüfte aufwärts** (unten abgeschnitten ist ok, wird weich ausgeblendet), **Blickrichtung egal** – ich spiegle so, dass der Boss nach links zum Helden schaut. Ohne Bild erscheint eine gezeichnete Silhouette.
 
 Tipp: einen Grundkörper (z. B. `koerper_athletisch`) als Referenz mitgeben, dann passen Stil, Licht und Größe zum Helden. Bosse dürfen ruhig größer und wuchtiger wirken.
 
 ```text
-Full-body character art of [BOSS], standing in a ready-to-fight pose, facing left in 3/4 view,
+Character art of [BOSS], at least from the hips up, ready-to-fight pose, 3/4 view,
 dark fantasy anime / manhwa style matching the reference, light from top left,
-whole figure from head to feet with a small margin, 1024x1536 portrait canvas,
+portrait canvas (e.g. 1024x1536), head with a small margin to the top edge,
 transparent background, no text, no ground shadow, no particles or glow
 ```
 
-- [ ] `boss_vercingetorix.png` – **Vercingetorix**, Fürst der Arverner (Gallia): gallischer Stammesfürst, wilde rotblonde Mähne, langer Schnurrbart, goldener Torques, karierter Umhang, Langschwert
+- [x] `boss_vercingetorix.png` – **Vercingetorix**, Fürst der Arverner (Gallia): gallischer Stammesfürst, wilde rotblonde Mähne, langer Schnurrbart, goldener Torques, karierter Umhang, Langschwert
 - [ ] `boss_arminius.png` – **Arminius**, Schatten des Teutoburger Waldes (Germania): germanischer Cherusker-Fürst, Haar im Suebenknoten, Wolfsfell über den Schultern, Rundschild und Speer, kalter Blick
 - [ ] `boss_boudicca.png` – **Boudicca**, Königin der Icener (Britannia): Kriegerkönigin der Icener, lange rote Haare, blaue Kriegsbemalung, goldener Torques, Speer, wehender Mantel
 - [ ] `boss_viriathus.png` – **Viriathus**, Hirte und Rebell (Hispania): lusitanischer Hirte und Rebell, wettergegerbt, kurzer Bart, Ziegenfellumhang, Falcata-Schwert, kleiner Rundschild

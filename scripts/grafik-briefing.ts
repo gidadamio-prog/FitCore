@@ -1,5 +1,5 @@
 // Erzeugt GRAFIK_BRIEFING.md direkt aus dem Katalog – Dateinamen stimmen dadurch immer mit dem Code überein.
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { APPEARANCE_STAGES, ITEMS, itemFile, portraitFile, CLASS_FILE } from '../src/domain/equipment';
 import { CAMPAIGN, HERO_CLASSES, bossAt, bossFile, colosseumBossName } from '../src/domain/rpg';
 
@@ -41,7 +41,7 @@ p('| | Item-Icons | Heldenporträts | Bosse (Kampfszene) |');
 p('| --- | --- | --- | --- |');
 p('| Format | PNG mit Transparenz | PNG mit Transparenz | PNG mit Transparenz |');
 p('| Größe | 512 × 512 px | 1024 × 1280 px (4:5) | 1024 × 1536 px (2:3) |');
-p('| Motiv | ein Gegenstand, mittig, ca. 8 % Rand | Brustbild bis Hüfte, leicht nach rechts gedreht | Ganzkörper von Kopf bis Fuß, Blick nach links (zum Helden) |');
+p('| Motiv | ein Gegenstand, mittig, ca. 8 % Rand | Brustbild bis Hüfte, leicht nach rechts gedreht | mind. ab Hüfte aufwärts, Blickrichtung egal (wird gespiegelt) |');
 p('| Hintergrund | keiner | keiner | keiner |');
 p('| Nicht enthalten | Rahmen, Text, Funken, Glow, Bodenschatten | Waffe, Schild, Helm, Handschuhe (kommen aus den Slots) | Text, Lebensbalken, Effekte, Bodenschatten |');
 p();
@@ -131,19 +131,20 @@ for (const i of ITEMS.filter((x) => x.source.kind === 'badge')) {
 p();
 p('## 5. Bosse für die Kampfszene (13 Bilder)');
 p();
-p('Nach jedem Training und jeder abgeschlossenen Mahlzeit kämpft der Held gegen den aktuellen Feldzug-Boss. Der Held steht links, der Boss rechts – deshalb **Ganzkörper, Blick nach links**. Ohne Bild erscheint eine gezeichnete Silhouette.');
+p('Der aktuelle Boss steht groß auf dem Dashboard und kämpft nach jedem Training und jeder abgeschlossenen Mahlzeit gegen den Held. **Mindestens ab der Hüfte aufwärts** (unten abgeschnitten ist ok, wird weich ausgeblendet), **Blickrichtung egal** – ich spiegle so, dass der Boss nach links zum Helden schaut. Ohne Bild erscheint eine gezeichnete Silhouette.');
 p();
 p('Tipp: einen Grundkörper (z. B. `koerper_athletisch`) als Referenz mitgeben, dann passen Stil, Licht und Größe zum Helden. Bosse dürfen ruhig größer und wuchtiger wirken.');
 p();
 p('```text');
-p('Full-body character art of [BOSS], standing in a ready-to-fight pose, facing left in 3/4 view,');
+p('Character art of [BOSS], at least from the hips up, ready-to-fight pose, 3/4 view,');
 p('dark fantasy anime / manhwa style matching the reference, light from top left,');
-p('whole figure from head to feet with a small margin, 1024x1536 portrait canvas,');
+p('portrait canvas (e.g. 1024x1536), head with a small margin to the top edge,');
 p('transparent background, no text, no ground shadow, no particles or glow');
 p('```');
 p();
 for (const b of [...CAMPAIGN, bossAt(CAMPAIGN.length)]) {
-  p(`- [ ] \`${bossFile(b)}.png\` – **${b.id.startsWith('limes') ? 'Barbarenheer am Limes' : b.name}**, ${b.id.startsWith('limes') ? 'endloser Feldzug' : `${b.epithet} (${b.province})`}: ${BOSS_LOOK[b.id.startsWith('limes') ? 'limes' : b.id]}`);
+  const have = ['webp', 'png'].some((x) => existsSync(`src/assets/rpg/${bossFile(b)}.${x}`));
+  p(`- [${have ? 'x' : ' '}] \`${bossFile(b)}.png\` – **${b.id.startsWith('limes') ? 'Barbarenheer am Limes' : b.name}**, ${b.id.startsWith('limes') ? 'endloser Feldzug' : `${b.epithet} (${b.province})`}: ${BOSS_LOOK[b.id.startsWith('limes') ? 'limes' : b.id]}`);
 }
 p();
 p('## 6. Optional: Gladiatoren (12 Bilder)');

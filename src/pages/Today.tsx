@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Field, NumberInput, Progress, Ring, Sheet, Stat, fmt } from '@/components/ui';
 import { HeroPortrait } from '@/components/rpg/Visuals';
+import { BossStage } from '@/components/rpg/BossStage';
 import { PageHeader } from '@/components/Layout';
 import { useActiveWorkout, useCardio, useDaySummary, useGoals, useMeasurements, usePlans, useProfile, useSettings, useWorkouts, useAllEntries } from '@/hooks/data';
 import { addDays, formatLongDate, isoWeekday, startOfWeek, today } from '@/domain/dates';
@@ -83,6 +84,7 @@ export function Today() {
     <div className="space-y-4">
       <PageHeader title={`Hallo ${profile.name}`} subtitle={formatLongDate(date)} />
       <InstallPrompt />
+      {game && <BossStage game={game} onOpen={() => nav(settings.hero ? '/erfolge?tab=feldzug' : '/erfolge?tab=held')} cta={settings.hero ? undefined : 'Helden erschaffen und angreifen'} />}
       {game && (
         <Card className="border-gold/25" data-testid="game-card">
           <button className="block w-full text-left" onClick={() => nav('/erfolge')} aria-label="Zur Ruhmeshalle">
@@ -91,7 +93,7 @@ export function Today() {
           <div className="mt-3">
             <StreakChips game={game} />
           </div>
-          <button className="mt-3 block w-full rounded-xl bg-fg/[0.04] p-3 text-left" onClick={() => nav(settings.hero ? '/erfolge?tab=feldzug' : '/erfolge?tab=held')} data-testid="today-hero">
+          <button className="mt-3 block w-full rounded-xl bg-fg/[0.04] p-3 text-left" onClick={() => nav('/erfolge?tab=held')} data-testid="today-hero">
             {settings.hero ? (
               <div className="flex items-center gap-3">
                 <HeroPortrait classId={settings.hero.classId} rankLevel={game.rank.rank.level} crest={settings.hero.color} size={44} />
@@ -102,15 +104,7 @@ export function Today() {
                   </span>
                   <span className="shrink-0 text-xs text-muted">Kampfwert {fmt(game.battle.score)}</span>
                 </div>
-                <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted">
-                  <span className="truncate">
-                    Gegner: {game.campaign.current.boss.name} ({game.campaign.current.boss.province})
-                  </span>
-                  <span className="shrink-0 tabular-nums">
-                    {fmt(game.campaign.current.remaining)} LP
-                  </span>
-                </div>
-                <Progress className="mt-1" value={game.campaign.current.remaining} max={game.campaign.current.boss.hp} color="danger" label="Lebenspunkte des Gegners" />
+                <div className="mt-1 text-xs text-muted">Charakterbogen und Ausrüstung →</div>
                 </div>
               </div>
             ) : (
