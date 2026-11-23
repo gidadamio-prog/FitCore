@@ -119,3 +119,11 @@ Ab 23.11.2026 (`QUEST_BOARD_START`, `src/domain/quests.ts`); ältere Wochen beha
 
 Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziele: 70 % als Kohlenhydrate, 15 % Protein, 15 % Fett (`trainingDayMacros`). Ohne Anrechnung (0 %) bleiben die Ziele gleich – die App weist an Trainingstagen darauf hin.
 
+
+## Backup und Erinnerung
+- „In OneDrive sichern“ übergibt das vollständige Backup ans Teilen-Menü des Handys (Web Share API). Android-Chrome erlaubt dort keine `.json`-Dateien, deshalb heißt die Datei `fitcore-backup-<Datum>.txt` (Inhalt = JSON-Backup). Ohne Teilen-Funktion (Desktop) wird die Datei heruntergeladen. Wiederherstellen akzeptiert `.json` und `.txt`.
+- Jede Sicherung (Teilen oder Herunterladen) setzt `lastBackupAt`. Abbruch im Teilen-Menü zählt nicht.
+- Erinnerung auf „Heute“: noch nie gesichert und Profil ≥ 3 Tage alt, oder letztes Backup ≥ 7 Tage alt. „Später“ blendet sie 2 Tage aus.
+
+## Merkmal- und Helm-Ebenen
+- Raster 1024 × 1536, Ebenenfolge Grundkörper → Narbe → Bemalung → Bart → Frisur → Augen → Helm. Haare und Bärte werden grau geliefert und im Code eingefärbt (`HAIR_COLORS`). Echte Helme blenden die Frisur aus, Kränze/Diademe nicht (`helmetHidesHair`). Katalog: `src/domain/appearance.ts`.

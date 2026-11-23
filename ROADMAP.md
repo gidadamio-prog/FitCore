@@ -11,3 +11,5 @@
 9. Code-Splitting der Seiten (Bundle derzeit ~1,1 MB unkomprimiert / ~350 kB gzip über mehrere Chunks).
 10. Optional: Cloud-Sync (Supabase) mit Ende-zu-Ende-Zustimmung; native Hülle (Capacitor) für Health Connect/HealthKit.
 11. Update-Idee: weibliche Grundkörper (eigene 12 Bilder; Fettgrenzen sind bereits um +9 Punkte verschoben hinterlegt).
+12. Optional: Backup vollautomatisch in OneDrive (Microsoft Graph + MSAL, Scope `Files.ReadWrite.AppFolder`) – braucht eine eigene App-Registrierung in Microsoft Entra (Client-ID, Redirect-URI = GitHub-Pages-URL).
+13. Ganzkörper-Held: Merkmale + Helme einbauen, sobald die Ebenen geliefert sind; danach Waffen/Schilde (Handanker je Körper) und Rüstung (4 Silhouettenklassen) und eine Anpassen-Seite.

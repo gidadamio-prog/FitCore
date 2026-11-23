@@ -53,7 +53,7 @@ test('E2E-12 Backup → getrennte Instanz wiederherstellen → Integrität', asy
   await page.getByRole('dialog').getByRole('button', { name: 'Hinzufügen' }).click();
   await page.goto('/#/settings');
   await page.getByRole('tab', { name: 'Daten' }).click();
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Backup exportieren' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Als Datei herunterladen' }).click()]);
   const path = pathMod.join(fs.mkdtempSync(pathMod.join(os.tmpdir(), 'fc-')), 'backup.json');
   await dl.saveAs(path);
   const json = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -72,7 +72,7 @@ test('E2E-12 Backup → getrennte Instanz wiederherstellen → Integrität', asy
   // Re-Export identisch (bis auf Zeitstempel)
   await p2.goto(page.url().split('#')[0] + '#/settings');
   await p2.getByRole('tab', { name: 'Daten' }).click();
-  const [dl2] = await Promise.all([p2.waitForEvent('download'), p2.getByRole('button', { name: 'Backup exportieren' }).click()]);
+  const [dl2] = await Promise.all([p2.waitForEvent('download'), p2.getByRole('button', { name: 'Als Datei herunterladen' }).click()]);
   const path2 = pathMod.join(pathMod.dirname(path), 'backup2.json');
   await dl2.saveAs(path2);
   const json2 = JSON.parse(fs.readFileSync(path2, 'utf8'));
@@ -81,5 +81,37 @@ test('E2E-12 Backup → getrennte Instanz wiederherstellen → Integrität', asy
   delete json.tables.settings; // Theme-Einstellungen sind gerätespezifisch identisch
   delete json2.tables.settings;
   expect(json2).toEqual(json);
+  await ctx2.close();
+});
+
+test('AK-105 In OneDrive sichern: Teilen-Menü bekommt vollständiges Backup als .txt → wiederherstellbar', async ({ page, browser }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __shared?: { name: string; type: string; text: string } };
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: (d: { files?: File[] }) => !!d.files?.every((f) => f.name.endsWith('.txt')) });
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: async (d: { files: File[] }) => {
+        const f = d.files[0]!;
+        w.__shared = { name: f.name, type: f.type, text: await f.text() };
+      },
+    });
+  });
+  await onboard(page);
+  await page.goto(page.url().split('#')[0] + '#/settings?tab=data');
+  await expect(page.getByTestId('last-backup')).toContainText('noch nie');
+  await page.getByRole('button', { name: 'In OneDrive sichern' }).click();
+  await expect(page.getByTestId('last-backup')).not.toContainText('noch nie');
+  const shared = await page.evaluate(() => (window as unknown as { __shared: { name: string; type: string; text: string } }).__shared);
+  expect(shared.name).toMatch(/^fitcore-backup-\d{4}-\d{2}-\d{2}\.txt$/);
+  expect(shared.type).toBe('text/plain');
+  expect(JSON.parse(shared.text).app).toBe('fitcore');
+
+  const path = pathMod.join(fs.mkdtempSync(pathMod.join(os.tmpdir(), 'fc-')), shared.name);
+  fs.writeFileSync(path, shared.text);
+  const ctx2 = await browser.newContext({ locale: 'de-DE' });
+  const p2 = await ctx2.newPage();
+  await p2.goto(page.url().split('#')[0]!);
+  await p2.getByTestId('onboarding-restore').setInputFiles(path);
+  await expect(p2.getByText('Hallo Giuliano')).toBeVisible();
   await ctx2.close();
 });

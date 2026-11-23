@@ -19,6 +19,8 @@ const BOSS_LOOK: Record<string, string> = {
   limes: 'bulliger Barbarenkrieger, Bärenfell, Hörnerhelm, zweihändige Axt, Narben',
 };
 import { BODY_TYPES, bodyFile } from '../src/domain/bodyType';
+import { HEAD_ITEMS, TRAITS, TRAIT_CATEGORIES, figureFile, helmetHidesHair, traitFile } from '../src/domain/appearance';
+const have = (f: string) => ['webp', 'png'].some((x) => existsSync(`src/assets/rpg/${f}.${x}`));
 
 const LOOK: Record<string, string> = {
   legionar: 'kräftiger Legionär, kurzes dunkles Haar, kantiges Kinn',
@@ -33,7 +35,7 @@ p('# FitCore – Grafik-Briefing');
 p();
 p('Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.');
 p();
-p('**Pflicht: 64 Bilder** (20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung) **+ 13 Bosse für die Kampfszene.** **Optional: 12 Gladiatoren-Porträts.**');
+p(`**Als Nächstes dran: ${TRAITS.length} Merkmale + ${HEAD_ITEMS.length} Helme auf der Figur (Abschnitt 0).** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**`);
 p();
 p('## Regeln für alle Bilder');
 p();
@@ -82,6 +84,45 @@ p();
 p('**Grundkörper – geliefert (12/12):**');
 p();
 for (const b of BODY_TYPES) p(`- [x] \`${bodyFile(b.id)}.webp\` – ${b.label}`);
+p();
+p('### Merkmale (Ebene über dem Körper)');
+p();
+p('Jedes Merkmal ist **eine eigene Datei, die nur das Merkmal zeigt** – alles andere transparent. Haare und Bärte bitte **in neutralem hellem Grau** malen (mit normaler Schattierung): Ich färbe sie im Code ein, dadurch gibt es jede Frisur in allen Haarfarben, ohne dass du sie mehrfach erzeugen musst. Glatze = keine Frisur gewählt, dafür braucht es kein Bild.');
+p();
+p('**So bekommst du saubere Ebenen:**');
+p();
+p('1. `koerper_athletisch.webp` als Referenz anhängen.');
+p('2. Prompt unten nutzen: erst den Kopf **mit** Merkmal auf dem Körper erzeugen lassen.');
+p('3. Dann im selben Chat: „Now remove everything except the [MERKMAL] – keep its exact position and size, transparent background.“');
+p('4. Kurzer Check: Bild über den Grundkörper legen – sitzt es auf Stirn/Kinn/Auge, passt es auf alle 12 Körper (die Köpfe liegen pixelgenau übereinander).');
+p();
+p('```text');
+p('Same character, same canvas (1024x1536), same pose and exact head position as the reference.');
+p('Add only: [MERKMAL]. Nothing else changes.');
+p('Then output ONLY the [MERKMAL] as an isolated layer on a fully transparent background,');
+p('exact same position and scale as on the character, [HINWEIS]. No body, no face, no text.');
+p('```');
+p();
+for (const c of TRAIT_CATEGORIES) {
+  p(`**${c.label}** – ${c.hint}`);
+  p();
+  for (const tr of TRAITS.filter((x) => x.category === c.id)) p(`- [${have(traitFile(tr)) ? 'x' : ' '}] \`${traitFile(tr)}.png\` – ${tr.name}: ${tr.motif}`);
+  p();
+}
+p('### Helme auf der Figur (Ebene über den Merkmalen)');
+p();
+p('Zusätzlich zum kleinen Item-Icon (Abschnitt 3/4) braucht jeder Helm eine **Figur-Ebene** im selben Raster: nur der Helm, so wie er auf dem Kopf sitzt, frontal, alles andere transparent. Wangenklappen und Nackenschutz dürfen über Gesicht/Hals liegen. Bei echten Helmen blende ich die Frisur aus (Bart bleibt), bei Kränzen und Diademen bleibt die Frisur sichtbar.');
+p();
+p('```text');
+p('Same character, same canvas (1024x1536), same pose and exact head position as the reference.');
+p('Put [HELM] on the head, front view, sitting naturally on the skull. Nothing else changes.');
+p('Then output ONLY the [HELM] as an isolated layer on a fully transparent background,');
+p('exact same position and scale. No head, no hair, no face, no text, no glow.');
+p('```');
+p();
+for (const i of HEAD_ITEMS) p(`- [${have(figureFile(i)) ? 'x' : ' '}] \`${figureFile(i)}.png\` – ${i.name}: ${i.motif}${helmetHidesHair(i) ? '' : ' _(Frisur bleibt sichtbar)_'}`);
+p();
+p('Tipp: Der Kopf ist bei allen Körpern gleich groß, aber Nacken und Schultern sind unterschiedlich breit. Helme deshalb **nicht unter das Kinn bzw. auf die Schultern** ziehen.');
 p();
 p('## 1. Testlauf zuerst (2 Bilder)');
 p();

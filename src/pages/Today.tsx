@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, Footprints } from 'lucide-react';
+import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, Footprints, CloudUpload } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Field, NumberInput, Progress, Ring, Sheet, Stat, fmt } from '@/components/ui';
 import { HeroPortrait } from '@/components/rpg/Visuals';
 import { BossStage } from '@/components/rpg/BossStage';
@@ -18,6 +18,8 @@ import { calorieGoalRate, dailyNutrition } from '@/domain/stats';
 import { coachInsights, classifyDay, dayRecommendations, DAY_TYPE_LABELS } from '@/domain/coach';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { backupDue, saveBackupToCloud } from '@/data/backup';
+import { setSetting } from '@/data/profileRepo';
 import { useGame } from '@/hooks/game';
 import { RankHeader, StreakChips } from './Achievements';
 import { DailyQuestBanner, QuestBoard } from '@/components/QuestBoard';
@@ -85,6 +87,29 @@ export function Today() {
     <div className="space-y-4">
       <PageHeader title={`Hallo ${profile.name}`} subtitle={formatLongDate(date)} />
       <InstallPrompt />
+      {backupDue(settings.lastBackupAt, settings.backupSnoozeUntil, profile.createdAt) && (
+        <Card className="flex items-center gap-3 border-warn/40" data-testid="backup-reminder">
+          <CloudUpload className="h-6 w-6 shrink-0 text-warn" />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold">{settings.lastBackupAt ? 'Zeit für ein Backup' : 'Noch kein Backup'}</div>
+            <div className="text-xs text-muted">Deine Daten liegen nur auf diesem Handy. Einmal in OneDrive sichern dauert 10 Sekunden.</div>
+            <div className="mt-2 flex gap-2">
+              <Button
+                size="sm"
+                onClick={async () => {
+                  const r = await saveBackupToCloud();
+                  if (r !== 'cancelled') toast(r === 'shared' ? 'Backup übergeben – in OneDrive „Hochladen“ wählen' : 'Backup heruntergeladen', 'success');
+                }}
+              >
+                Jetzt sichern
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => void setSetting('backupSnoozeUntil', addDays(date, 2))}>
+                Später
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
       {game && <BossStage game={game} onOpen={() => nav(settings.hero ? '/erfolge?tab=feldzug' : '/erfolge?tab=held')} cta={settings.hero ? undefined : 'Helden erschaffen und angreifen'} />}
       {game && (
         <Card className="border-gold/25" data-testid="game-card">

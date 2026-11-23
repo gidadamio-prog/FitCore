@@ -272,7 +272,7 @@ export function Onboarding() {
         Vorhandenes FitCore-Backup wiederherstellen
         <input
           type="file"
-          accept="application/json,.json"
+          accept="application/json,.json,text/plain,.txt"
           className="sr-only"
           data-testid="onboarding-restore"
           onChange={async (e) => {

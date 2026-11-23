@@ -166,6 +166,10 @@ export interface AppSettings {
   stepGoal: number;
   /** Gewählte Wochen-Feldzüge je Woche (Montag → Quest-IDs) */
   questPicks: Record<string, string[]>;
+  /** Zeitpunkt des letzten Backups (ISO) */
+  lastBackupAt: string | null;
+  /** Backup-Erinnerung bis zu diesem Tag ausblenden */
+  backupSnoozeUntil: string | null;
 }
 
 export type Rival = ShareCard & { importedAt: string };
@@ -184,6 +188,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   reduceMotion: false,
   stepGoal: 8000,
   questPicks: {},
+  lastBackupAt: null,
+  backupSnoozeUntil: null,
 };
 
 export async function getSettings(): Promise<AppSettings> {
