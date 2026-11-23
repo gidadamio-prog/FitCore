@@ -193,17 +193,17 @@ transparent background, no text, no ground shadow, no particles or glow
 ```
 
 - [x] `boss_vercingetorix.png` – **Vercingetorix**, Fürst der Arverner (Gallia): gallischer Stammesfürst, wilde rotblonde Mähne, langer Schnurrbart, goldener Torques, karierter Umhang, Langschwert
-- [ ] `boss_arminius.png` – **Arminius**, Schatten des Teutoburger Waldes (Germania): germanischer Cherusker-Fürst, Haar im Suebenknoten, Wolfsfell über den Schultern, Rundschild und Speer, kalter Blick
-- [ ] `boss_boudicca.png` – **Boudicca**, Königin der Icener (Britannia): Kriegerkönigin der Icener, lange rote Haare, blaue Kriegsbemalung, goldener Torques, Speer, wehender Mantel
-- [ ] `boss_viriathus.png` – **Viriathus**, Hirte und Rebell (Hispania): lusitanischer Hirte und Rebell, wettergegerbt, kurzer Bart, Ziegenfellumhang, Falcata-Schwert, kleiner Rundschild
-- [ ] `boss_decebalus.png` – **Decebalus**, König der Daker (Dacia): Dakerkönig, Vollbart, phrygische Mütze, Schuppenpanzer, große Sichelwaffe (Falx), Drachenstandarte
-- [ ] `boss_iugurtha.png` – **Iugurtha**, König von Numidien (Africa): numidischer König, gelockter Bart, goldenes Diadem, weißer Mantel, Bündel Wurfspeere
-- [ ] `boss_sobek.png` – **Der Wächter von Sobek**, Herr des Nils (Aegyptus): Krieger mit Krokodilkopf, ägyptische Rüstung, breiter goldener Halskragen, Sichelschwert (Chepesch)
-- [ ] `boss_tiridates.png` – **Tiridates**, König der Berge (Armenia): armenischer Bergkönig, hohe Tiara, schwerer Schuppenpanzer, Pelzmantel, Kriegsbeil
-- [ ] `boss_surena.png` – **Surena**, Feldherr von Carrhae (Parthia): parthischer Feldherr, langer geölter Bart, Kataphrakt-Schuppenpanzer von Kopf bis Fuß, Reflexbogen
-- [ ] `boss_attila.png` – **Attila**, Geißel Gottes (Pannonia): Hunnenkönig, schmaler Bart, Pelzmütze, Lamellenpanzer, Kompositbogen auf dem Rücken, Säbel
-- [ ] `boss_schapur.png` – **Schapur**, König der Könige (Persis): sasanidischer Großkönig, prunkvolle Zinnenkrone mit Kugel, langer gelockter Bart, Seidengewänder, Langschwert
-- [ ] `boss_maxentius.png` – **Maxentius**, Letzter Gegner Konstantins (Pons Milvius): römischer Usurpator-Kaiser als dunkles Spiegelbild des Helden: Lorbeerkranz, schwarzer Muskelpanzer, Purpurmantel, Gladius
+- [x] `boss_arminius.png` – **Arminius**, Schatten des Teutoburger Waldes (Germania): germanischer Cherusker-Fürst, Haar im Suebenknoten, Wolfsfell über den Schultern, Rundschild und Speer, kalter Blick
+- [x] `boss_boudicca.png` – **Boudicca**, Königin der Icener (Britannia): Kriegerkönigin der Icener, lange rote Haare, blaue Kriegsbemalung, goldener Torques, Speer, wehender Mantel
+- [x] `boss_viriathus.png` – **Viriathus**, Hirte und Rebell (Hispania): lusitanischer Hirte und Rebell, wettergegerbt, kurzer Bart, Ziegenfellumhang, Falcata-Schwert, kleiner Rundschild
+- [x] `boss_decebalus.png` – **Decebalus**, König der Daker (Dacia): Dakerkönig, Vollbart, phrygische Mütze, Schuppenpanzer, große Sichelwaffe (Falx), Drachenstandarte
+- [x] `boss_iugurtha.png` – **Iugurtha**, König von Numidien (Africa): numidischer König, gelockter Bart, goldenes Diadem, weißer Mantel, Bündel Wurfspeere
+- [x] `boss_sobek.png` – **Der Wächter von Sobek**, Herr des Nils (Aegyptus): Krieger mit Krokodilkopf, ägyptische Rüstung, breiter goldener Halskragen, Sichelschwert (Chepesch)
+- [x] `boss_tiridates.png` – **Tiridates**, König der Berge (Armenia): armenischer Bergkönig, hohe Tiara, schwerer Schuppenpanzer, Pelzmantel, Kriegsbeil
+- [x] `boss_surena.png` – **Surena**, Feldherr von Carrhae (Parthia): parthischer Feldherr, langer geölter Bart, Kataphrakt-Schuppenpanzer von Kopf bis Fuß, Reflexbogen
+- [x] `boss_attila.png` – **Attila**, Geißel Gottes (Pannonia): Hunnenkönig, schmaler Bart, Pelzmütze, Lamellenpanzer, Kompositbogen auf dem Rücken, Säbel
+- [x] `boss_schapur.png` – **Schapur**, König der Könige (Persis): sasanidischer Großkönig, prunkvolle Zinnenkrone mit Kugel, langer gelockter Bart, Seidengewänder, Langschwert
+- [x] `boss_maxentius.png` – **Maxentius**, Letzter Gegner Konstantins (Pons Milvius): römischer Usurpator-Kaiser als dunkles Spiegelbild des Helden: Lorbeerkranz, schwarzer Muskelpanzer, Purpurmantel, Gladius
 - [ ] `boss_barbarenheer.png` – **Barbarenheer am Limes**, endloser Feldzug: bulliger Barbarenkrieger, Bärenfell, Hörnerhelm, zweihändige Axt, Narben
 
 ## 6. Optional: Gladiatoren (12 Bilder)
