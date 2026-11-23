@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon } from 'lucide-react';
+import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, Footprints } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Field, NumberInput, Progress, Ring, Sheet, Stat, fmt } from '@/components/ui';
 import { HeroPortrait } from '@/components/rpg/Visuals';
 import { BossStage } from '@/components/rpg/BossStage';
@@ -19,7 +19,8 @@ import { coachInsights, classifyDay, dayRecommendations, DAY_TYPE_LABELS } from 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { useGame } from '@/hooks/game';
-import { QuestList, RankHeader, StreakChips } from './Achievements';
+import { RankHeader, StreakChips } from './Achievements';
+import { DailyQuestBanner, QuestBoard } from '@/components/QuestBoard';
 import { db } from '@/data/db';
 import type { RecoveryLog } from '@/domain/types';
 
@@ -111,12 +112,23 @@ export function Today() {
               <span className="text-sm font-medium text-gold">Erschaffe deinen Helden und zieh gegen die Bosse des Reiches →</span>
             )}
           </button>
-          <details className="mt-3">
+          {game.dailyQuest && (
+            <div className="mt-3">
+              <DailyQuestBanner q={game.dailyQuest} />
+            </div>
+          )}
+          <details className="mt-3" open={!game.questsPicked && game.questOffers.length > 0}>
             <summary className="cursor-pointer text-sm font-medium">
-              Feldzüge dieser Woche · {game.quests.filter((q) => q.done).length}/{game.quests.length}
+              {!game.questsPicked && game.questOffers.length > 0 ? (
+                <span className="text-gold">Feldzug der Woche wählen (3 aus {game.questOffers.length})</span>
+              ) : (
+                <>
+                  Feldzüge dieser Woche · {game.quests.filter((q) => q.done).length}/{game.quests.length}
+                </>
+              )}
             </summary>
             <div className="mt-2">
-              <QuestList quests={game.quests} />
+              <QuestBoard game={game} />
             </div>
           </details>
         </Card>
@@ -135,13 +147,21 @@ export function Today() {
                 <Stat label="Ziel" value={<span data-testid="target-kcal">{fmt(g.calorieTarget)}</span>} unit="kcal" />
                 <Stat label="Gegessen" value={<span data-testid="eaten-kcal">{fmt(t.kcal)}</span>} unit="kcal" />
                 <Stat label="Training" value={<span data-testid="credited-kcal">+{fmt(s.credit.creditedKcal)}</span>} unit="kcal" sub={s.credit.rawKcal ? `geschätzt · ${profile.trainingCreditPct} % von ${fmt(s.credit.creditableKcal)}` : 'kein Training'} />
-                <MacroBar label="Protein" value={t.protein} target={g.proteinG} color="protein" />
-                <MacroBar label="Kohlenhydrate" value={t.carbs} target={g.carbsG} color="carbs" />
-                <MacroBar label="Fett" value={t.fat} target={g.fatG} color="fat" />
+                <MacroBar label="Protein" value={t.protein} target={s.macros?.proteinG ?? g.proteinG} extra={s.macros?.extra.proteinG} color="protein" />
+                <MacroBar label="Kohlenhydrate" value={t.carbs} target={s.macros?.carbsG ?? g.carbsG} extra={s.macros?.extra.carbsG} color="carbs" />
+                <MacroBar label="Fett" value={t.fat} target={s.macros?.fatG ?? g.fatG} extra={s.macros?.extra.fatG} color="fat" />
               </div>
             </div>
           ) : (
             <p className="text-sm text-muted">Für heute ist noch kein Ziel hinterlegt.</p>
+          )}
+          {g && s.credit.rawKcal > 0 && profile.trainingCreditPct === 0 && (
+            <p className="mt-2 text-xs text-muted" data-testid="credit-hint">
+              Du hast heute trainiert, aber Trainingsenergie wird nicht angerechnet – deine Ziele bleiben daher gleich.{' '}
+              <button className="text-accent underline" onClick={() => nav('/settings?tab=energy')}>
+                Anrechnung einstellen
+              </button>
+            </p>
           )}
           {s.sum.unknown.kcal > 0 && <p className="mt-2 text-xs text-warn">{s.sum.unknown.kcal} Einträge ohne Kalorienangabe – Summe unvollständig.</p>}
         </Card>
@@ -289,6 +309,7 @@ export function Today() {
           </ul>
           <p className="mt-2 text-[11px] text-muted">Allgemeine Richtwerte – sie ändern deine Ziele nicht automatisch.</p>
         </Card>
+        <StepsCard date={date} goal={settings.stepGoal} />
         <RecoveryCard date={date} />
       </div>
       <WeightSheet open={weightOpen} onClose={() => setWeightOpen(false)} last={weight.last?.value} />
@@ -296,7 +317,7 @@ export function Today() {
   );
 }
 
-function MacroBar({ label, value, target, color }: { label: string; value: number; target: number; color: 'protein' | 'carbs' | 'fat' }) {
+function MacroBar({ label, value, target, color, extra }: { label: string; value: number; target: number; color: 'protein' | 'carbs' | 'fat'; extra?: number }) {
   return (
     <div className="min-w-0">
       <div className="flex justify-between text-xs">
@@ -307,6 +328,7 @@ function MacroBar({ label, value, target, color }: { label: string; value: numbe
         <span className="text-xs font-normal text-muted">/{target} g</span>
       </div>
       <Progress value={value} max={target} color={color} label={label} />
+      {!!extra && <div className="mt-0.5 text-[10px] text-accent">+{extra} g Training</div>}
     </div>
   );
 }
@@ -367,6 +389,51 @@ function RecoveryCard({ date }: { date: string }) {
         {scale('sleepQuality', 'Schlafqualität (1 = schlecht, 5 = sehr gut)')}
         {scale('soreness', 'Muskelkater (1 = keiner, 5 = stark)')}
         {scale('energy', 'Energielevel (1 = niedrig, 5 = hoch)')}
+      </div>
+    </Card>
+  );
+}
+
+/** Schrittzähler: Schritte des Tages von Hand eintragen (z. B. von der Uhr ablesen). */
+function StepsCard({ date, goal }: { date: string; goal: number }) {
+  const week = useLiveQuery(() => db.recovery.where('date').between(addDays(date, -6), date, true, true).toArray(), [date]);
+  const steps = week?.find((r) => r.date === date)?.steps;
+  const save = async (v: number | undefined) => {
+    if (v != null && !(v >= 0 && v <= 150000)) return;
+    const cur = (await db.recovery.get(date)) ?? { id: date, date };
+    await db.recovery.put({ ...cur, steps: v });
+  };
+  const days = Array.from({ length: 7 }, (_, k) => addDays(date, k - 6));
+  const max = Math.max(goal, ...(week ?? []).map((r) => r.steps ?? 0));
+  return (
+    <Card data-testid="steps-card">
+      <CardTitle action={<span className="text-xs text-muted">Ziel {fmt(goal)}</span>}>
+        <span className="flex items-center gap-1">
+          <Footprints className="h-4 w-4" /> Schritte
+        </span>
+      </CardTitle>
+      <div className="flex items-end gap-3">
+        <Field label="Schritte heute" className="flex-1">
+          {(id) => <NumberInput id={id} inputMode="numeric" value={steps} placeholder="z. B. 8500" onValue={(v) => void save(v)} />}
+        </Field>
+        <Button variant="secondary" onClick={() => void save((steps ?? 0) + 1000)} aria-label="1.000 Schritte hinzufügen">
+          +1.000
+        </Button>
+      </div>
+      <Progress className="mt-3" value={steps ?? 0} max={goal} label="Schrittziel" />
+      <div className="mt-1 text-xs text-muted" data-testid="steps-status">
+        {steps ? (steps >= goal ? `✓ Ziel erreicht – ${fmt(steps)} Schritte` : `Noch ${fmt(goal - steps)} bis zum Ziel`) : 'Noch nichts eingetragen'}
+      </div>
+      <div className="mt-3 flex h-12 items-end gap-1" aria-label="Schritte der letzten 7 Tage">
+        {days.map((d) => {
+          const v = week?.find((r) => r.date === d)?.steps ?? 0;
+          return (
+            <div key={d} className="flex flex-1 flex-col items-center gap-0.5" title={`${d}: ${fmt(v)} Schritte`}>
+              <div className={v >= goal ? 'w-full rounded-t bg-accent' : 'w-full rounded-t bg-fg/20'} style={{ height: `${Math.max(2, (v / max) * 36)}px` }} />
+              <span className="text-[9px] text-muted">{new Date(d + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'narrow' })}</span>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );

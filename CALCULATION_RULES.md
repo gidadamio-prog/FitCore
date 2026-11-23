@@ -104,3 +104,18 @@ Nach „Training abschließen“ und „Mahlzeit abschließen“ kämpft der Hel
 
 Wurde „Training abschließen“ vergessen, lässt sich die Dauer in der Zusammenfassung per Minuten oder Endzeit korrigieren (`updateWorkoutDuration`, 1–600 min). Ende = Start + Dauer; die geschätzte Trainingsenergie wird mit der neuen Dauer neu berechnet (gleiche MET-Formel). Ein manuell gesetzter kcal-Wert bleibt unverändert und hat weiterhin Vorrang.
 
+## Quest-Brett (Feldzug der Woche) und Tagesaufträge
+
+Ab 23.11.2026 (`QUEST_BOARD_START`, `src/domain/quests.ts`); ältere Wochen behalten die bisherigen Wochen-Feldzüge.
+
+- **Angebote:** Jede Woche 5 Aufträge (mind. 2 Training, 2 Ernährung, 1 Alltag), zufällig aus einem Pool von ca. 20 – je Woche anders, innerhalb der Woche stabil. Du wählst 3; die Wahl gilt bis Sonntag.
+- **Ziele:** aus deinem Schnitt der 4 Wochen davor, meist „Schnitt + 1“ bzw. +10–25 % (z. B. Schnitt 2 Einheiten → 3× trainieren; Protein an 3 Tagen → an 4 Tagen). Feste Untergrenzen verhindern zu leichte Ziele.
+- **Ernährungs-Aufträge:** u. a. „Festmahl des Herkules“ (2 Tage ≥ 120 % Protein) und „Fastentag des Asketen“ (1 Tag mit 75–90 % des Kalorienziels, mind. 2 Mahlzeiten erfasst; zählt erst am Folgetag; unter 75 % zählt bewusst nicht).
+- **EP:** je erfülltem Feldzug 100, alle drei +100 Bonus.
+- **Tagesaufträge:** an ca. 60 % der Tage einer aus 11 (z. B. „Trainiere heute“ – an Plantagen häufiger –, „Eilmarsch: Schrittziel + 2.000“, „Proteinration +10 %“); stabil je Datum; 40 EP.
+- **Schritte:** manuell je Tag (`recovery.steps`), Tagesziel in den Einstellungen (Standard 8.000); Ziel erreicht = 10 EP.
+
+## Makroziele am Trainingstag
+
+Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziele: 70 % als Kohlenhydrate, 15 % Protein, 15 % Fett (`trainingDayMacros`). Ohne Anrechnung (0 %) bleiben die Ziele gleich – die App weist an Trainingstagen darauf hin.
+

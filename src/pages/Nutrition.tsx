@@ -79,6 +79,8 @@ function Diary() {
   const unknownMeals = [...byMeal.keys()].filter((k) => !meals.some((m) => m.id === k));
   const allMeals = [...meals, ...unknownMeals.map((id) => ({ id, label: id }))];
   const dayTotal = s?.goal ? s.goal.calorieTarget + s.credit.creditedKcal : null;
+  const macroTarget = (k: 'protein' | 'carbs' | 'fat') => (s?.macros ? { protein: s.macros.proteinG, carbs: s.macros.carbsG, fat: s.macros.fatG }[k] : 0);
+  const macroExtra = (k: 'protein' | 'carbs' | 'fat') => (s?.macros ? { protein: s.macros.extra.proteinG, carbs: s.macros.extra.carbsG, fat: s.macros.extra.fatG }[k] : 0);
   const targets = useMemo(() => {
     if (dayTotal == null) return new Map<string, MealTarget>();
     const eaten = new Map<string, number>();
@@ -130,8 +132,12 @@ function Diary() {
               <div className="text-xl font-bold tabular-nums" data-testid={`day-${k}`}>
                 {fmt(t[k], 1)} <span className="text-xs font-normal text-muted">g</span>
               </div>
-              {g && <Progress value={t[k]} max={{ protein: g.proteinG, carbs: g.carbsG, fat: g.fatG }[k]} color={k} label={k} />}
-              {g && <div className="mt-0.5 text-xs text-muted">von {{ protein: g.proteinG, carbs: g.carbsG, fat: g.fatG }[k]} g</div>}
+              {g && <Progress value={t[k]} max={macroTarget(k)} color={k} label={k} />}
+              {g && (
+                <div className="mt-0.5 text-xs text-muted">
+                  von {macroTarget(k)} g{macroExtra(k) ? <span className="text-accent"> (+{macroExtra(k)} Training)</span> : null}
+                </div>
+              )}
             </div>
           ))}
         </div>

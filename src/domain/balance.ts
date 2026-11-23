@@ -74,6 +74,24 @@ export function dayBudget(target: number, eaten: number, credited: number): DayB
   return { target, eaten: Math.round(eaten), credited, remaining: Math.round(target + credited - eaten) };
 }
 
+export interface MacroTargets {
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  /** zusätzliche Gramm durch Training */
+  extra: { proteinG: number; carbsG: number; fatG: number };
+}
+
+/**
+ * Makroziele eines Trainingstags: die angerechneten Trainings-kcal werden verteilt – 70 % Kohlenhydrate
+ * (Energie fürs Training), 15 % Protein (Regeneration), 15 % Fett.
+ */
+export function trainingDayMacros(goal: Pick<GoalVersion, 'proteinG' | 'carbsG' | 'fatG'>, creditedKcal: number): MacroTargets {
+  const k = Math.max(0, creditedKcal);
+  const extra = { proteinG: Math.round((k * 0.15) / 4), carbsG: Math.round((k * 0.7) / 4), fatG: Math.round((k * 0.15) / 9) };
+  return { proteinG: goal.proteinG + extra.proteinG, carbsG: goal.carbsG + extra.carbsG, fatG: goal.fatG + extra.fatG, extra };
+}
+
 /** Ziel, das an einem Datum galt (letzte Version mit effectiveFrom ≤ Datum). */
 export function goalForDate(goals: GoalVersion[], date: string): GoalVersion | undefined {
   let found: GoalVersion | undefined;

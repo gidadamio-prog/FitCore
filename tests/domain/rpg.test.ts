@@ -21,6 +21,7 @@ import {
   type ShareCard,
 } from '@/domain/rpg';
 import { computeGame, type DayFacts, type GameInput } from '@/domain/gamification';
+import { emptyDayFacts } from '@/domain/gamification';
 import { mealHitsByDay } from '@/domain/mealGame';
 import { addDays } from '@/domain/dates';
 import type { DiaryEntry, GoalVersion, Measurement } from '@/domain/types';
@@ -28,8 +29,7 @@ import { EXERCISE_LIBRARY } from '@/data/exerciseLibrary';
 import { ex, set, workout } from './fixtures';
 
 const fact = (date: string, over: Partial<DayFacts> = {}): DayFacts => ({
-  date, logged: false, meals: 0, kcal: 0, protein: 0, proteinHit: false, caloriesHit: false, waterHit: false, weighIn: false, recovery: false,
-  workouts: 0, cardioMin: 0, cardioSessions: 0, volume: 0, mobilitySets: 0, mealHits: 0, perfectDay: false, prs: 0, ...over,
+  ...emptyDayFacts(date), ...over,
 });
 const goal = { id: 1, effectiveFrom: '2026-01-01', calorieTarget: 2000, proteinG: 150 } as GoalVersion;
 const entry = (date: string, meal: string, kcal: number, createdAt: string): DiaryEntry => ({

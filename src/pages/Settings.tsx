@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Download, Upload, Trash2, Plus, ShieldCheck, Sparkles } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Field, Input, NumberInput, Select, Switch, Tabs, fmt } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
@@ -23,7 +23,8 @@ import { APP_VERSION, forceAppUpdate } from '@/components/Boot';
 type Tab = 'profile' | 'goals' | 'energy' | 'app' | 'data';
 
 export function SettingsPage() {
-  const [tab, setTab] = useState<Tab>('profile');
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<Tab>((['profile', 'goals', 'energy', 'app', 'data'] as const).find((t) => t === params.get('tab')) ?? 'profile');
   const profile = useProfile();
   if (!profile) return null;
   return (
@@ -281,6 +282,7 @@ function AppSettingsView() {
           </Button>
         </div>
         <Field label="Tägliches Trinkziel (ml)">{(id) => <NumberInput id={id} value={s.waterGoalMl} onValue={(v) => v && v >= 500 && v <= 8000 && setSetting('waterGoalMl', v)} />}</Field>
+        <Field label="Tägliches Schrittziel">{(id) => <NumberInput id={id} value={s.stepGoal} onValue={(v) => v && v >= 1000 && v <= 50000 && setSetting('stepGoal', v)} />}</Field>
       </Card>
       <Card className="space-y-3">
         <CardTitle>Datenquellen</CardTitle>

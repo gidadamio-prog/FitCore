@@ -11,6 +11,7 @@ import { ITEMS, RARITY_LABEL } from '@/domain/equipment';
 import { ItemIcon } from '@/components/rpg/Visuals';
 import type { SecretAchievement } from '@/domain/achievements';
 import { HeroTab } from './game/HeroTab';
+import { DailyQuestBanner, QuestBoard } from '@/components/QuestBoard';
 import { CampaignTab } from './game/CampaignTab';
 import { ArenaTab } from './game/ArenaTab';
 import { MarketTab } from './game/MarketTab';
@@ -44,7 +45,20 @@ export function Achievements() {
         items={GAME_TABS}
       />
       {tab === 'held' && <HeroTab game={game} />}
-      {tab === 'feldzug' && <CampaignTab game={game} />}
+      {tab === 'feldzug' && (
+        <div className="space-y-4">
+          <Card data-testid="week-quests">
+            <CardTitle>Feldzug der Woche</CardTitle>
+            {game.dailyQuest && (
+              <div className="mb-3">
+                <DailyQuestBanner q={game.dailyQuest} />
+              </div>
+            )}
+            <QuestBoard game={game} />
+          </Card>
+          <CampaignTab game={game} />
+        </div>
+      )}
       {tab === 'arena' && <ArenaTab game={game} />}
       {tab === 'ruhm' && <FameTab game={game} />}
       {tab === 'markt' && <MarketTab game={game} />}
@@ -182,11 +196,6 @@ function FameTab({ game }: { game: GameState }) {
               ))}
             </div>
           </div>
-        </Card>
-        <Card>
-          <CardTitle>Feldzüge dieser Woche</CardTitle>
-          <QuestList quests={game.quests} />
-          <p className="mt-3 text-[11px] text-muted">Jeder erfüllte Feldzug bringt {XP_RULES.quest.xp} EP. Neue Feldzüge jeden Montag.</p>
         </Card>
         <Card>
           <CardTitle action={game.season.won ? <Badge tone="accent">gewonnen</Badge> : undefined}>Saison {game.season.name}</CardTitle>
