@@ -3,8 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/data/db';
 import { computeGame, type GameState } from '@/domain/gamification';
 import { today } from '@/domain/dates';
-import { useMeals, useSettings } from './data';
+import { useMeals, useMeasurements, useProfile, useSettings } from './data';
 import { mealHitsByDay } from '@/domain/mealGame';
+import { bodyTypeFromHistory, type BodyTypeResult } from '@/domain/bodyType';
 
 /** Gamification-Zustand, reaktiv aus allen relevanten Tabellen berechnet. */
 export function useGame(): GameState | undefined {
@@ -50,4 +51,11 @@ export function useGame(): GameState | undefined {
       sex: data.profile?.sex,
     });
   }, [data, day, settings.waterGoalMl, settings.homeGym, settings.mealSplit, settings.hero?.classId, mealIds]);
+}
+
+/** Grundkörper des Helden aus Messungen und Profil (null, solange kein Gewicht erfasst ist). */
+export function useBodyType(): BodyTypeResult | null {
+  const measurements = useMeasurements();
+  const profile = useProfile();
+  return useMemo(() => bodyTypeFromHistory(measurements, profile), [measurements, profile]);
 }

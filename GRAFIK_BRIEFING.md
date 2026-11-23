@@ -42,6 +42,27 @@ crimson and gold palette, transparent background, no text
 
 Tipp: Erst Stufe 1 erzeugen, dann für Stufe 2–5 dieses Bild als Referenz mitgeben („same person, same pose“), damit es dieselbe Figur bleibt.
 
+## 0. Ganzkörper-Held in Ebenen
+
+Der Held besteht aus Ebenen, die exakt übereinanderliegen: **Grundkörper → Merkmale (Haare, Augen, Narben, Brille …) → Ausrüstung**. Der Körper folgt den Körperwerten, nicht dem Rang.
+
+**Raster für alle Ebenen:** 1024 × 1536 px (2:3), transparenter Hintergrund, Figur frontal und mittig, Kopfoberkante bei ca. y = 90 px, Kopfmitte bei x = 511 px. Am einfachsten einen Grundkörper als Referenz mitgeben („same canvas, same position“) und nur das neue Element malen.
+
+**Grundkörper – geliefert (12/12):**
+
+- [x] `koerper_duenn.webp` – Dünn
+- [x] `koerper_schlank.webp` – Schlank
+- [x] `koerper_durchschnitt.webp` – Durchschnitt
+- [x] `koerper_uebergewichtig.webp` – Übergewichtig
+- [x] `koerper_adipoes.webp` – Adipös
+- [x] `koerper_fit.webp` – Fit
+- [x] `koerper_athletisch.webp` – Athletisch
+- [x] `koerper_kraeftig.webp` – Kräftig
+- [x] `koerper_muskuloes-bauch.webp` – Muskulös mit Bauch
+- [x] `koerper_bodybuilder.webp` – Bodybuilder
+- [x] `koerper_strongman.webp` – Strongman
+- [x] `koerper_koloss.webp` – Koloss
+
 ## 1. Testlauf zuerst (2 Bilder)
 
 Damit legen wir den Stil fest, bevor du den Rest machst.

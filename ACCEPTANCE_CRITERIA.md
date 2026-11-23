@@ -115,3 +115,4 @@ Maschinenlesbar: `acceptance_criteria.csv`.
 | AK-097 | I Gamification | Erscheinungsbild in 5 Stufen nach Rang, Bilder aus src/assets/rpg mit Platzhalter-Fallback | BESTANDEN | Unit+E2E | `tests/domain/equipment.test.ts`, `e2e/rpg.spec.ts` | Version 1.7.0 |
 | AK-098 | I Gamification | Klasse = Trainingsfokus (Vorlagen, Klassen-Feldzug), Lebensweg = Ernährungsziel als neue Zielversion | BESTANDEN | Unit+E2E | `tests/domain/equipment.test.ts`, `e2e/rpg.spec.ts` | Version 1.7.0 |
 | AK-099 | I Gamification | Geheime Erfolge mit Titeln und Denaren; Animationen inkl. Abschaltung | BESTANDEN | Unit+E2E | `tests/domain/equipment.test.ts`, `e2e/rpg.spec.ts`, `Manuell` | Version 1.7.0 |
+| AK-100 | I Gamification | Grundkörper des Helden (12 Körperbauten) aus KFA und fettbereinigtem FFMI, mit Hysterese, KFA-Schätzung als Fallback und Kopf-Ausschnitt als Avatar | BESTANDEN | Unit+E2E | `tests/domain/bodyType.test.ts`, `e2e/rpg.spec.ts` | Version 1.8.0 |

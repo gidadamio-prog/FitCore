@@ -29,7 +29,10 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   const sheet = page.getByTestId('character-sheet');
   await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: Gladius');
   await expect(sheet.getByTestId('slot-off')).toHaveAccessibleName('Nebenhand: Scutum');
-  await expect(sheet.getByTestId('hero-portrait')).toHaveAttribute('data-stage', '1');
+  await expect(sheet.getByTestId('appearance-stage')).toContainText('Erscheinung 1/5');
+  // Grundkörper aus dem Onboarding-Gewicht (80 kg, 180 cm, 30 J., KFA geschätzt ≈ 20 %)
+  await expect(sheet.getByTestId('hero-figure')).toHaveAttribute('data-body', 'durchschnitt');
+  await expect(sheet.getByTestId('body-type')).toContainText('Durchschnitt (geschätzt)');
   await sheet.getByTestId('slot-main').click();
   const inv = page.getByTestId('inventory');
   await expect(inv.getByTestId('inv-gladius')).toContainText('angelegt');

@@ -10,3 +10,4 @@
 8. Übungs-Demonstrationsmedien.
 9. Code-Splitting der Seiten (Bundle derzeit ~1,1 MB unkomprimiert / ~350 kB gzip über mehrere Chunks).
 10. Optional: Cloud-Sync (Supabase) mit Ende-zu-Ende-Zustimmung; native Hülle (Capacitor) für Health Connect/HealthKit.
+11. Update-Idee: weibliche Grundkörper (eigene 12 Bilder; Fettgrenzen sind bereits um +9 Punkte verschoben hinterlegt).
