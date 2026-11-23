@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowDown, ArrowUp, Plus, Trash2, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Trash2, Search, Layers } from 'lucide-react';
 import { Button, Card, Field, Input, NumberInput, Select, Sheet, Textarea, cn } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { db } from '@/data/db';
-import type { Exercise, Plan, PlanDay, PlanExercise } from '@/domain/types';
+import type { Exercise, Plan, PlanDay, PlanExercise, PlanGroup } from '@/domain/types';
 import { savePlan, searchExercises, setPlanStatus } from '@/data/trainingRepo';
 import { WEEKDAY_SHORT, uid } from '@/domain/dates';
 import { useExercises } from '@/hooks/data';
-import { toast } from '@/stores/ui';
+import { confirmDialog, toast } from '@/stores/ui';
 import { firstError } from '@/domain/schemas';
 import { SPLIT_LABELS, ExerciseForm, ExerciseFilterBar, useExerciseFilters } from './Training';
 
@@ -18,7 +18,7 @@ export function PlanEditor() {
   const nav = useNavigate();
   const stored = useLiveQuery(() => db.plans.get(id!), [id]);
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [pickFor, setPickFor] = useState<string | null>(null);
+  const [pickFor, setPickFor] = useState<{ dayId: string; groupId?: string } | null>(null);
   const exercises = useExercises();
   const exMap = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
   useEffect(() => {
@@ -29,14 +29,42 @@ export function PlanEditor() {
 
   const updDay = (dayId: string, f: (d: PlanDay) => PlanDay) => setPlan({ ...plan, days: plan.days.map((d) => (d.id === dayId ? f(d) : d)) });
   const updEx = (dayId: string, exId: string, patch: Partial<PlanExercise>) => updDay(dayId, (d) => ({ ...d, exercises: d.exercises.map((e) => (e.id === exId ? { ...e, ...patch } : e)) }));
-  const move = (dayId: string, idx: number, dir: -1 | 1) =>
+  const updGroup = (dayId: string, gId: string, patch: Partial<PlanGroup>) => updDay(dayId, (d) => ({ ...d, groups: (d.groups ?? []).map((g) => (g.id === gId ? { ...g, ...patch } : g)) }));
+  /** Block (einzelne Übung oder ganze Einheit) im Tag nach oben/unten verschieben */
+  const moveBlock = (dayId: string, blockIdx: number, dir: -1 | 1) =>
+    updDay(dayId, (d) => {
+      const blocks = blocksOf(d).map((b) => (b.kind === 'single' ? [b.ex] : b.members));
+      const j = blockIdx + dir;
+      if (j < 0 || j >= blocks.length) return d;
+      [blocks[blockIdx], blocks[j]] = [blocks[j]!, blocks[blockIdx]!];
+      return { ...d, exercises: blocks.flat() };
+    });
+  /** Übung innerhalb ihrer Einheit verschieben */
+  const moveInGroup = (dayId: string, exId: string, dir: -1 | 1) =>
     updDay(dayId, (d) => {
       const list = [...d.exercises];
-      const j = idx + dir;
-      if (j < 0 || j >= list.length) return d;
-      [list[idx], list[j]] = [list[j]!, list[idx]!];
+      const i = list.findIndex((e) => e.id === exId);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= list.length || list[j]!.groupId !== list[i]!.groupId) return d;
+      [list[i], list[j]] = [list[j]!, list[i]!];
       return { ...d, exercises: list };
     });
+  const removeEx = (dayId: string, exId: string) => updDay(dayId, (x) => ({ ...x, exercises: x.exercises.filter((y) => y.id !== exId) }));
+  const addGroup = (dayId: string) => {
+    const g: PlanGroup = { id: uid(), name: 'Zirkel', rounds: 2, restSec: 90 };
+    updDay(dayId, (d) => ({ ...d, groups: [...(d.groups ?? []), g] }));
+    setPickFor({ dayId, groupId: g.id });
+  };
+  const removeGroup = async (dayId: string, g: PlanGroup, count: number) => {
+    if (count && !(await confirmDialog({ title: 'Einheit entfernen?', text: `„${g.name}“ und ihre ${count} Übung(en) werden aus dem Trainingstag entfernt.`, confirmLabel: 'Entfernen', danger: true }))) return;
+    updDay(dayId, (d) => ({ ...d, groups: (d.groups ?? []).filter((x) => x.id !== g.id), exercises: d.exercises.filter((e) => e.groupId !== g.id) }));
+  };
+  const dissolveGroup = (dayId: string, gId: string) =>
+    updDay(dayId, (d) => ({
+      ...d,
+      groups: (d.groups ?? []).filter((x) => x.id !== gId),
+      exercises: d.exercises.map((e) => (e.groupId === gId ? { ...e, groupId: undefined, sets: e.sets || 1, restSec: e.restSec || 60 } : e)),
+    }));
 
   const save = async (activate = false) => {
     try {
@@ -92,41 +120,95 @@ export function PlanEditor() {
             })}
           </div>
           <ul className="space-y-2">
-            {d.exercises.map((e, idx) => {
-              const ex = exMap.get(e.exerciseId);
-              return (
-                <li key={e.id} className="rounded-xl border p-3" data-testid="plan-exercise">
-                  <div className="mb-2 flex items-center gap-1">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{ex?.name ?? e.exerciseId}</div>
-                      <div className="text-xs text-muted">{ex?.primaryMuscle}</div>
+            {blocksOf(d).map((b, bi, all) => {
+              const blockMove = (
+                <>
+                  <Button variant="ghost" size="icon" aria-label="Nach oben" onClick={() => moveBlock(d.id, bi, -1)} disabled={bi === 0}>
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" aria-label="Nach unten" onClick={() => moveBlock(d.id, bi, 1)} disabled={bi === all.length - 1}>
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                </>
+              );
+              if (b.kind === 'single') {
+                const e = b.ex;
+                return (
+                  <li key={e.id} className="rounded-xl border p-3" data-testid="plan-exercise">
+                    <ExerciseHead name={exMap.get(e.exerciseId)?.name ?? e.exerciseId} muscle={exMap.get(e.exerciseId)?.primaryMuscle}>
+                      {blockMove}
+                      <Button variant="ghost" size="icon" aria-label="Übung entfernen" onClick={() => removeEx(d.id, e.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </ExerciseHead>
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                      <Field label="Sätze">{(i) => <NumberInput id={i} value={e.sets} onValue={(v) => updEx(d.id, e.id, { sets: v as number })} />}</Field>
+                      <RepFields e={e} onPatch={(patch) => updEx(d.id, e.id, patch)} />
+                      <Field label="Zielgew. kg">{(i) => <NumberInput id={i} value={e.targetWeightKg} onValue={(v) => updEx(d.id, e.id, { targetWeightKg: v })} />}</Field>
+                      <Field label="Pause s">{(i) => <NumberInput id={i} value={e.restSec} onValue={(v) => updEx(d.id, e.id, { restSec: v as number })} />}</Field>
+                      <Field label="RIR (opt.)">{(i) => <NumberInput id={i} value={e.rir} onValue={(v) => updEx(d.id, e.id, { rir: v })} />}</Field>
                     </div>
-                    <Button variant="ghost" size="icon" aria-label="Nach oben" onClick={() => move(d.id, idx, -1)} disabled={idx === 0}>
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" aria-label="Nach unten" onClick={() => move(d.id, idx, 1)} disabled={idx === d.exercises.length - 1}>
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" aria-label="Übung entfernen" onClick={() => updDay(d.id, (x) => ({ ...x, exercises: x.exercises.filter((y) => y.id !== e.id) }))}>
+                    <Input aria-label="Notiz zur Übung" className="mt-2 h-9 text-sm" placeholder="Notiz (optional)" value={e.notes ?? ''} onChange={(ev) => updEx(d.id, e.id, { notes: ev.target.value })} />
+                  </li>
+                );
+              }
+              const g = b.group;
+              return (
+                <li key={g.id} className="rounded-2xl border-2 border-gold/40 bg-gold/[0.04] p-3" data-testid="plan-group">
+                  <div className="mb-2 flex items-center gap-1">
+                    <Layers className="h-4 w-4 shrink-0 text-gold" />
+                    <Input aria-label="Name der Einheit" className="h-9 flex-1 font-semibold" value={g.name} onChange={(ev) => updGroup(d.id, g.id, { name: ev.target.value })} />
+                    {blockMove}
+                    <Button variant="ghost" size="icon" aria-label="Einheit entfernen" onClick={() => void removeGroup(d.id, g, b.members.length)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                    <Field label="Sätze">{(i) => <NumberInput id={i} value={e.sets} onValue={(v) => updEx(d.id, e.id, { sets: v ?? 0 })} />}</Field>
-                    <Field label="Wdh. min">{(i) => <NumberInput id={i} value={e.repMin} onValue={(v) => updEx(d.id, e.id, { repMin: v ?? 0 })} />}</Field>
-                    <Field label="Wdh. max">{(i) => <NumberInput id={i} value={e.repMax} onValue={(v) => updEx(d.id, e.id, { repMax: v ?? 0 })} />}</Field>
-                    <Field label="Zielgew. kg">{(i) => <NumberInput id={i} value={e.targetWeightKg} onValue={(v) => updEx(d.id, e.id, { targetWeightKg: v })} />}</Field>
-                    <Field label="Pause s">{(i) => <NumberInput id={i} value={e.restSec} onValue={(v) => updEx(d.id, e.id, { restSec: v ?? 0 })} />}</Field>
-                    <Field label="RIR (opt.)">{(i) => <NumberInput id={i} value={e.rir} onValue={(v) => updEx(d.id, e.id, { rir: v })} />}</Field>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label="Durchgänge">{(i) => <NumberInput id={i} value={g.rounds} onValue={(v) => updGroup(d.id, g.id, { rounds: v as number })} />}</Field>
+                    <Field label="Pause nach Durchgang s">{(i) => <NumberInput id={i} value={g.restSec} onValue={(v) => updGroup(d.id, g.id, { restSec: v as number })} />}</Field>
                   </div>
-                  <Input aria-label="Notiz zur Übung" className="mt-2 h-9 text-sm" placeholder="Notiz (optional)" value={e.notes ?? ''} onChange={(ev) => updEx(d.id, e.id, { notes: ev.target.value })} />
+                  <ul className="mt-2 space-y-2">
+                    {b.members.map((e, mi) => (
+                      <li key={e.id} className="rounded-xl border bg-card p-2.5" data-testid="plan-group-exercise">
+                        <ExerciseHead name={`${mi + 1}. ${exMap.get(e.exerciseId)?.name ?? e.exerciseId}`} muscle={exMap.get(e.exerciseId)?.primaryMuscle}>
+                          <Button variant="ghost" size="icon" aria-label="In der Einheit nach oben" onClick={() => moveInGroup(d.id, e.id, -1)} disabled={mi === 0}>
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" aria-label="In der Einheit nach unten" onClick={() => moveInGroup(d.id, e.id, 1)} disabled={mi === b.members.length - 1}>
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" aria-label="Übung aus der Einheit entfernen" onClick={() => removeEx(d.id, e.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </ExerciseHead>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          <RepFields e={e} onPatch={(patch) => updEx(d.id, e.id, patch)} />
+                          <Field label="Zielgew. kg">{(i) => <NumberInput id={i} value={e.targetWeightKg} onValue={(v) => updEx(d.id, e.id, { targetWeightKg: v })} />}</Field>
+                          <Field label="Wechsel s">{(i) => <NumberInput id={i} value={e.restSec} onValue={(v) => updEx(d.id, e.id, { restSec: v as number })} />}</Field>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => setPickFor({ dayId: d.id, groupId: g.id })}>
+                      <Plus className="h-4 w-4" /> Übung zur Einheit
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => dissolveGroup(d.id, g.id)}>
+                      Einheit auflösen
+                    </Button>
+                  </div>
                 </li>
               );
             })}
           </ul>
-          <Button variant="secondary" onClick={() => setPickFor(d.id)}>
-            <Plus className="h-4 w-4" /> Übung hinzufügen
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setPickFor({ dayId: d.id })}>
+              <Plus className="h-4 w-4" /> Übung hinzufügen
+            </Button>
+            <Button variant="secondary" onClick={() => addGroup(d.id)}>
+              <Layers className="h-4 w-4" /> Einheit hinzufügen
+            </Button>
+          </div>
         </Card>
       ))}
       <Button variant="outline" onClick={() => setPlan({ ...plan, days: [...plan.days, { id: uid(), name: `Tag ${String.fromCharCode(65 + plan.days.length)}`, weekdays: [], exercises: [] }] })}>
@@ -144,14 +226,68 @@ export function PlanEditor() {
       </div>
       {pickFor && (
         <ExercisePicker
-          onClose={() => setPickFor(null)}
+          onClose={() => {
+            // Neue, noch leere Einheit wieder verwerfen
+            if (pickFor.groupId) updDay(pickFor.dayId, (d) => ({ ...d, groups: (d.groups ?? []).filter((g) => g.id !== pickFor.groupId || d.exercises.some((e) => e.groupId === g.id)) }));
+            setPickFor(null);
+          }}
           onPick={(ex) => {
-            updDay(pickFor, (d) => ({ ...d, exercises: [...d.exercises, { id: uid(), exerciseId: ex.id, sets: 3, repMin: 8, repMax: 12, restSec: 90 }] }));
+            const { dayId, groupId } = pickFor;
+            updDay(dayId, (d) => {
+              if (!groupId) return { ...d, exercises: [...d.exercises, { id: uid(), exerciseId: ex.id, sets: 3, repMax: 10, restSec: 90 }] };
+              const g = (d.groups ?? []).find((x) => x.id === groupId);
+              const item: PlanExercise = { id: uid(), exerciseId: ex.id, sets: g?.rounds ?? 1, restSec: 0, groupId };
+              const last = d.exercises.map((e) => e.groupId).lastIndexOf(groupId);
+              const list = [...d.exercises];
+              list.splice(last === -1 ? list.length : last + 1, 0, item);
+              return { ...d, exercises: list };
+            });
             setPickFor(null);
           }}
         />
       )}
     </div>
+  );
+}
+
+type Block = { kind: 'single'; ex: PlanExercise } | { kind: 'group'; group: PlanGroup; members: PlanExercise[] };
+
+/** Trainingstag als Blöcke: einzelne Übungen und Einheiten (Übungen einer Einheit stehen hintereinander). */
+function blocksOf(d: PlanDay): Block[] {
+  const groups = new Map((d.groups ?? []).map((g) => [g.id, g]));
+  const out: Block[] = [];
+  const seen = new Set<string>();
+  for (const e of d.exercises) {
+    const g = e.groupId ? groups.get(e.groupId) : undefined;
+    if (!g) out.push({ kind: 'single', ex: e });
+    else if (!seen.has(g.id)) {
+      seen.add(g.id);
+      out.push({ kind: 'group', group: g, members: d.exercises.filter((x) => x.groupId === g.id) });
+    }
+  }
+  for (const g of groups.values()) if (!seen.has(g.id)) out.push({ kind: 'group', group: g, members: [] });
+  return out;
+}
+
+function ExerciseHead({ name, muscle, children }: { name: string; muscle?: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-2 flex items-center gap-1">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium">{name}</div>
+        <div className="text-xs text-muted">{muscle}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Wiederholungsziel; „ab“ nur, wenn ein Bereich gewünscht ist */
+function RepFields({ e, onPatch }: { e: PlanExercise; onPatch: (p: Partial<PlanExercise>) => void }) {
+  return (
+    <>
+      <Field label="Wdh.">{(i) => <NumberInput id={i} value={e.repMax} placeholder="–" onValue={(v) => onPatch({ repMax: v })} />}</Field>
+      <Field label="Wdh. ab (opt.)">{(i) => <NumberInput id={i} value={e.repMin} placeholder="–" onValue={(v) => onPatch({ repMin: v })} />}</Field>
+    </>
   );
 }
 

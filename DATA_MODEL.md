@@ -11,8 +11,8 @@ Typdefinitionen: `src/domain/types.ts`. Schema & Migrationen: `src/data/db.ts`.
 | recipes | id, name, category | Zutaten (Snapshot per100 + Gramm), Portionen, Zubereitung, Bild |
 | measurements | id, date, bodyFatMethod | Gewicht, Größe, KF% + Methode (manual/device/navy), Muskelmasse, Umfänge, eigene Werte, Notiz |
 | exercises | id, name, primaryMuscle, isCustom | Übungsbibliothek (60 mitgeliefert) + eigene |
-| plans | id, status, updatedAt | Pläne: Split, Status (draft/active/archived), Tage (Wochentage, Übungen mit Sätzen/Wdh./Zielgewicht/Pause/RPE/RIR/Notiz) |
-| workouts | id, date, planId, startedAt | Abgeschlossene Workouts (Snapshot), Dauer, Körpergewicht, geschätzte kcal + optionaler Override |
+| plans | id, status, updatedAt | Pläne: Split, Status (draft/active/archived), Tage (Wochentage, Übungen mit Sätzen/Wdh.-Ziel/optional „ab“/Zielgewicht/Pause/RPE/RIR/Notiz; optional Einheiten `groups` {Name, Durchgänge, Pause nach Durchgang} – Übungen einer Einheit tragen `groupId`, stehen hintereinander, Sätze = Durchgänge) |
+| workouts | id, date, planId, startedAt | Abgeschlossene Workouts (Snapshot), Dauer, Körpergewicht, geschätzte kcal + optionaler Override; Übungen aus Einheiten tragen `group` (Satz i = Durchgang i) |
 | activeWorkout | id (= "current") | Laufendes Workout inkl. Pausentimer-Zustand – übersteht Reload |
 | cardio | id, date, startedAt | Ausdauer: Sportart, Dauer, Distanz, HF, RPE, geschätzte kcal + Override |
 | water | id, date | Trinkeinträge (ml) |

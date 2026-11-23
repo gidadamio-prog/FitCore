@@ -1,5 +1,5 @@
 import { db } from './db';
-import type { ActiveWorkout, CardioSession, Exercise, Plan, PlanDay, Workout, WorkoutExercise } from '@/domain/types';
+import type { ActiveWorkout, CardioSession, Exercise, Plan, PlanDay, PlanExercise, PlanGroup, Workout, WorkoutExercise } from '@/domain/types';
 import { nowISO, toISODate, uid } from '@/domain/dates';
 import { estimateCardioKcal, estimateStrengthKcal, isDuplicateCardio } from '@/domain/training';
 import { latestWeight } from './profileRepo';
@@ -34,20 +34,53 @@ export function validatePlan(p: Pick<Plan, 'name' | 'days'>) {
   if (p.days.length < 1) throw new Error('Ein Plan braucht mindestens einen Trainingstag.');
   for (const d of p.days) {
     if (!d.name.trim()) throw new Error('Jeder Trainingstag braucht einen Namen.');
+    const groups = new Map((d.groups ?? []).map((g) => [g.id, g]));
+    for (const g of groups.values()) {
+      if (!g.name.trim()) throw new Error('Jede Einheit braucht einen Namen.');
+      if (!(g.rounds >= 1 && g.rounds <= 20)) throw new Error(`„${g.name}“: Durchgänge müssen zwischen 1 und 20 liegen.`);
+      if (!(g.restSec >= 0 && g.restSec <= 1200)) throw new Error(`„${g.name}“: Pause muss zwischen 0 und 1200 s liegen.`);
+    }
     for (const e of d.exercises) {
-      if (!(e.sets >= 1 && e.sets <= 20)) throw new Error('Sätze müssen zwischen 1 und 20 liegen.');
-      if (!(e.repMin >= 1 && e.repMax >= e.repMin && e.repMax <= 100)) throw new Error('Wiederholungsbereich ungültig (min ≤ max, 1–100).');
+      const inGroup = !!e.groupId && groups.has(e.groupId);
+      if (!inGroup && !(e.sets >= 1 && e.sets <= 20)) throw new Error('Sätze müssen zwischen 1 und 20 liegen.');
+      if (e.repMax != null && !(e.repMax >= 1 && e.repMax <= 100)) throw new Error('Wiederholungen müssen zwischen 1 und 100 liegen.');
+      if (e.repMin != null && !(e.repMin >= 1 && e.repMin <= (e.repMax ?? 100))) throw new Error('Wiederholungsbereich ungültig: „ab“ darf nicht über dem Ziel liegen.');
       if (e.targetWeightKg != null && !(e.targetWeightKg >= 0 && e.targetWeightKg <= 500)) throw new Error('Zielgewicht muss zwischen 0 und 500 kg liegen.');
-      if (!(e.restSec >= 0 && e.restSec <= 1200)) throw new Error('Pause muss zwischen 0 und 1200 s liegen.');
+      if (e.restSec != null && !(e.restSec >= 0 && e.restSec <= 1200)) throw new Error('Pause muss zwischen 0 und 1200 s liegen.');
     }
   }
 }
 
+/**
+ * Bringt einen Trainingstag in Form: Übungen einer Einheit stehen direkt hintereinander (an der Stelle der
+ * ersten), leere oder verwaiste Einheiten fallen weg, Sätze in Einheiten = Durchgänge, leere Pausen = 0.
+ */
+export function normalizePlanDay(d: PlanDay): PlanDay {
+  const groups = (d.groups ?? []).filter((g) => d.exercises.some((e) => e.groupId === g.id));
+  const byId = new Map(groups.map((g) => [g.id, g]));
+  const out: PlanExercise[] = [];
+  const placed = new Set<string>();
+  for (const e of d.exercises) {
+    const g = e.groupId ? byId.get(e.groupId) : undefined;
+    if (!g) {
+      const rest: PlanExercise = { ...e, restSec: e.restSec ?? 0 };
+      delete rest.groupId;
+      out.push(rest);
+      continue;
+    }
+    if (placed.has(g.id)) continue;
+    placed.add(g.id);
+    for (const m of d.exercises) if (m.groupId === g.id) out.push({ ...m, sets: g.rounds, restSec: m.restSec ?? 0 });
+  }
+  return { ...d, exercises: out, ...(groups.length ? { groups } : { groups: undefined }) };
+}
+
 export async function savePlan(p: Omit<Plan, 'createdAt' | 'updatedAt' | 'id'> & { id?: string }): Promise<Plan> {
-  validatePlan(p);
+  const days = p.days.map(normalizePlanDay);
+  validatePlan({ ...p, days });
   const ts = nowISO();
   const existing = p.id ? await db.plans.get(p.id) : undefined;
-  const plan: Plan = { ...structuredClone(p), id: p.id ?? uid(), createdAt: existing?.createdAt ?? ts, updatedAt: ts };
+  const plan: Plan = { ...structuredClone({ ...p, days }), id: p.id ?? uid(), createdAt: existing?.createdAt ?? ts, updatedAt: ts };
   await db.plans.put(plan);
   return plan;
 }
@@ -60,7 +93,10 @@ export async function duplicatePlan(id: string) {
     id: uid(),
     name: p.name + ' (Kopie)',
     status: 'draft',
-    days: p.days.map((d) => ({ ...d, id: uid(), exercises: d.exercises.map((e) => ({ ...e, id: uid() })) })),
+    days: p.days.map((d) => {
+      const gid = new Map((d.groups ?? []).map((g) => [g.id, uid()]));
+      return { ...d, id: uid(), groups: d.groups?.map((g) => ({ ...g, id: gid.get(g.id)! })), exercises: d.exercises.map((e) => ({ ...e, id: uid(), ...(e.groupId ? { groupId: gid.get(e.groupId) } : {}) })) };
+    }),
     createdAt: nowISO(),
     updatedAt: nowISO(),
   };
@@ -94,7 +130,7 @@ async function previousExerciseSets(exerciseId: string): Promise<WorkoutExercise
   return undefined;
 }
 
-export async function buildWorkoutExercise(exercise: Exercise, sets = 3, restSec = 90, repMin?: number, repMax?: number, targetWeight?: number): Promise<WorkoutExercise> {
+export async function buildWorkoutExercise(exercise: Exercise, sets = 3, restSec = 90, repMin?: number, repMax?: number, targetWeight?: number, group?: PlanGroup): Promise<WorkoutExercise> {
   const prev = await previousExerciseSets(exercise.id);
   return {
     id: uid(),
@@ -105,6 +141,7 @@ export async function buildWorkoutExercise(exercise: Exercise, sets = 3, restSec
     restSec,
     repMin,
     repMax,
+    ...(group ? { group: { ...group } } : {}),
     sets: Array.from({ length: sets }, (_, i) => ({
       id: uid(),
       weightKg: targetWeight ?? prev?.sets[i]?.weightKg ?? prev?.sets[0]?.weightKg ?? null,
@@ -119,10 +156,12 @@ export async function startWorkout(plan?: Plan, day?: PlanDay, name?: string): P
   if (existing) throw new Error('Es läuft bereits ein Workout.');
   const exercises: WorkoutExercise[] = [];
   if (day) {
-    for (const pe of day.exercises) {
+    const groups = new Map((day.groups ?? []).map((g) => [g.id, g]));
+    for (const pe of normalizePlanDay(day).exercises) {
       const ex = await db.exercises.get(pe.exerciseId);
       if (!ex) continue;
-      exercises.push(await buildWorkoutExercise(ex, pe.sets, pe.restSec, pe.repMin, pe.repMax, pe.targetWeightKg));
+      const g = pe.groupId ? groups.get(pe.groupId) : undefined;
+      exercises.push(await buildWorkoutExercise(ex, g ? g.rounds : pe.sets, pe.restSec ?? 0, pe.repMin, pe.repMax, pe.targetWeightKg, g));
     }
   }
   const a: ActiveWorkout = {

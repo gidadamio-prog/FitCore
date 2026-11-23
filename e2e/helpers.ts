@@ -71,8 +71,8 @@ export async function createAndActivatePlan(page: Page) {
   const ex = page.getByTestId('plan-exercise');
   await expect(ex).toHaveCount(2);
   await ex.nth(0).getByLabel('Zielgew. kg').fill('60');
-  await ex.nth(0).getByLabel('Wdh. min').fill('8');
-  await ex.nth(0).getByLabel('Wdh. max').fill('10');
+  await ex.nth(0).getByLabel('Wdh.', { exact: true }).fill('10');
+  await ex.nth(0).getByLabel('Wdh. ab (opt.)').fill('8');
   await page.getByRole('button', { name: 'Speichern & aktivieren' }).click();
   await expect(page.getByTestId('plan-card').first()).toContainText('aktiv');
 }

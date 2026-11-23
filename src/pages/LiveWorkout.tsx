@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Pause, Play, Plus, RotateCcw, Trash2, Repeat, TrendingUp } from 'lucide-react';
+import { Check, Pause, Play, Plus, RotateCcw, Trash2, Repeat, TrendingUp, Layers } from 'lucide-react';
 import { Badge, Button, Card, Empty, NumberInput, Textarea, cn, fmt } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { useActiveWorkout, useWorkouts } from '@/hooks/data';
-import type { ActiveWorkout, Exercise, WorkoutExercise } from '@/domain/types';
+import type { ActiveWorkout, Exercise, WorkoutExercise, WorkoutSet } from '@/domain/types';
 import { buildWorkoutExercise, discardActiveWorkout, finishWorkout, saveActiveWorkout } from '@/data/trainingRepo';
 import { formatDuration, uid } from '@/domain/dates';
 import { confirmDialog, toast } from '@/stores/ui';
@@ -136,9 +136,159 @@ export function LiveWorkout() {
   const onPick = async (ex: Exercise) => {
     const built = await buildWorkoutExercise(ex);
     if (picker?.mode === 'swap') {
-      update((a) => ({ ...a, exercises: a.exercises.map((e) => (e.id === picker.exId ? { ...built, id: e.id, sets: e.sets.map((s) => ({ ...s })), restSec: e.restSec, repMin: e.repMin, repMax: e.repMax } : e)) }));
+      update((a) => ({ ...a, exercises: a.exercises.map((e) => (e.id === picker.exId ? { ...built, id: e.id, sets: e.sets.map((s) => ({ ...s })), restSec: e.restSec, repMin: e.repMin, repMax: e.repMax, group: e.group } : e)) }));
     } else update((a) => ({ ...a, exercises: [...a.exercises, built] }));
     setPicker(null);
+  };
+
+  const setField = (exId: string, setId: string, patch: Partial<WorkoutSet>) =>
+    update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === exId ? { ...x, sets: x.sets.map((y) => (y.id === setId ? { ...y, ...patch } : y)) } : x)) }));
+
+  /** Satz abhaken; in einer Einheit startet nach der letzten Station eines Durchgangs die Pause der Einheit. */
+  const toggleSet = (e: WorkoutExercise, s: WorkoutSet, i: number, fallbackReps: number | null) => {
+    const willBeDone = !s.done;
+    if (willBeDone && (s.reps == null || s.reps <= 0)) {
+      // Ein-Klick-Abschluss: Platzhalterwert (letzte Wdh. bzw. Ziel) übernehmen
+      if (!fallbackReps) return toast('Bitte zuerst Wiederholungen eintragen.', 'error');
+      setField(e.id, s.id, { reps: fallbackReps, done: true });
+    } else setField(e.id, s.id, { done: willBeDone });
+    if (!willBeDone) return;
+    if (e.group) {
+      const members = w.exercises.filter((x) => x.group?.id === e.group!.id);
+      const roundDone = members.every((m) => m.id === e.id || !m.sets[i] || m.sets[i]!.done);
+      const moreRounds = members.some((m) => m.sets.length > i + 1);
+      if (roundDone) {
+        if (moreRounds && e.group.restSec > 0) startRest(e.group.restSec);
+        return;
+      }
+    }
+    if (e.restSec > 0) startRest(e.restSec);
+  };
+
+  const repTarget = (e: WorkoutExercise) => (e.repMin && e.repMax ? `${e.repMin}–${e.repMax}` : e.repMax ? `${e.repMax}` : '');
+
+  const renderSetRow = (e: WorkoutExercise, s: WorkoutSet, i: number, label: string, last: WorkoutExercise | undefined, title?: string) => {
+    const p = last?.sets[i];
+    const name = e.group ? `${e.name} Durchgang ${i + 1}` : `Satz ${i + 1}`;
+    const row = (
+      <div key={s.id} className={cn('mt-1 grid grid-cols-[2rem_1fr_1fr_1fr_3rem] items-center gap-2 rounded-xl', s.done && 'bg-accent/10')} data-testid="set-row">
+        <span className="pl-2 text-sm font-medium">{label}</span>
+        <span className="truncate text-xs text-muted">{p ? `${fmt(p.weightKg, 1)}×${p.reps}` : '–'}</span>
+        <NumberInput aria-label={`${name} Gewicht`} className="h-10 px-2" value={s.weightKg} onValue={(v) => setField(e.id, s.id, { weightKg: v ?? null })} />
+        <NumberInput aria-label={`${name} Wiederholungen`} className="h-10 px-2" value={s.reps} placeholder={p?.reps ? String(p.reps) : e.repMax ? String(e.repMax) : ''} onValue={(v) => setField(e.id, s.id, { reps: v ?? null })} />
+        <Button size="icon" variant={s.done ? 'primary' : 'secondary'} aria-label={`${name} ${s.done ? 'offen markieren' : 'abschließen'}`} aria-pressed={s.done} onClick={() => toggleSet(e, s, i, p?.reps ?? e.repMax ?? null)}>
+          <Check className="h-5 w-5" />
+        </Button>
+      </div>
+    );
+    if (!title) return row;
+    return (
+      <div key={s.id} className="mt-2">
+        <div className="truncate pl-2 text-xs font-medium">{title}</div>
+        {row}
+      </div>
+    );
+  };
+
+  const lastOf = (e: WorkoutExercise) => {
+    const prev = prevByExercise.get(e.exerciseId);
+    return prev?.[prev.length - 1];
+  };
+
+  const renderSingle = (e: WorkoutExercise) => {
+    const prev = prevByExercise.get(e.exerciseId);
+    const last = lastOf(e);
+    const lo = e.repMin ?? e.repMax;
+    const sugg = lo && e.repMax && prev ? suggestProgression(prev, lo, e.repMax) : null;
+    return (
+      <Card key={e.id} data-testid="workout-exercise">
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="font-semibold">{e.name}</div>
+            <div className="text-xs text-muted">
+              {e.primaryMuscle} {repTarget(e) ? `· Ziel ${repTarget(e)} Wdh.` : ''} · Pause {e.restSec}s
+            </div>
+            {sugg && (
+              <div className="mt-1 flex items-center gap-1 text-xs text-accent">
+                <TrendingUp className="h-3.5 w-3.5" /> {sugg.action === 'increase' ? `Vorschlag: ${sugg.nextWeightKg} kg` : sugg.action === 'decrease' ? `Vorschlag: ${sugg.nextWeightKg} kg (Entlastung)` : 'Gewicht halten'} – {sugg.reason}
+              </div>
+            )}
+          </div>
+          <div className="flex">
+            <Button variant="ghost" size="icon" aria-label="Übung wechseln" onClick={() => setPicker({ mode: 'swap', exId: e.id })}>
+              <Repeat className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" aria-label="Übung entfernen" onClick={() => update((a) => ({ ...a, exercises: a.exercises.filter((x) => x.id !== e.id) }))}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <SetHeader first="Satz" />
+        {e.sets.map((s, i) => renderSetRow(e, s, i, String(i + 1), last))}
+        <div className="mt-2 flex gap-2">
+          <Button size="sm" variant="ghost" onClick={() => update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === e.id ? { ...x, sets: [...x.sets, { id: uid(), weightKg: x.sets[x.sets.length - 1]?.weightKg ?? null, reps: null, done: false }] } : x)) }))}>
+            <Plus className="h-4 w-4" /> Satz
+          </Button>
+          {e.sets.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={() => update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === e.id ? { ...x, sets: x.sets.slice(0, -1) } : x)) }))}>
+              Satz entfernen
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
+  const renderGroup = (members: WorkoutExercise[]) => {
+    const g = members[0]!.group!;
+    const rounds = Math.max(...members.map((m) => m.sets.length));
+    const ids = new Set(members.map((m) => m.id));
+    return (
+      <Card key={g.id} className="border-2 border-gold/40" data-testid="workout-group">
+        <div className="mb-1 flex items-center gap-2">
+          <Layers className="h-4 w-4 text-gold" />
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold">{g.name}</div>
+            <div className="text-xs text-muted">
+              {members.length} Übungen · {rounds} {rounds === 1 ? 'Durchgang' : 'Durchgänge'} · Pause {g.restSec}s nach jedem Durchgang
+            </div>
+          </div>
+        </div>
+        <ol className="mb-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+          {members.map((m, k) => (
+            <li key={m.id} className="flex items-center gap-1">
+              <span className="font-semibold text-fg">{k + 1}</span> {m.name}
+              {repTarget(m) && <span>· {repTarget(m)} Wdh.</span>}
+              <button className="text-muted hover:text-fg" aria-label={`${m.name} wechseln`} onClick={() => setPicker({ mode: 'swap', exId: m.id })}>
+                <Repeat className="h-3 w-3" />
+              </button>
+            </li>
+          ))}
+        </ol>
+        {Array.from({ length: rounds }, (_, r) => {
+          const done = members.every((m) => !m.sets[r] || m.sets[r]!.done);
+          return (
+            <div key={r} className="mt-3" data-testid="group-round">
+              <div className={cn('mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider', done ? 'text-accent' : 'text-gold')}>
+                Durchgang {r + 1} {done && <Check className="h-3.5 w-3.5" />}
+              </div>
+              <SetHeader first="Nr." />
+              {members.map((m, k) => (m.sets[r] ? renderSetRow(m, m.sets[r]!, r, String(k + 1), lastOf(m), m.name) : null))}
+            </div>
+          );
+        })}
+        <div className="mt-2 flex gap-2">
+          <Button size="sm" variant="ghost" onClick={() => update((a) => ({ ...a, exercises: a.exercises.map((x) => (ids.has(x.id) ? { ...x, sets: [...x.sets, { id: uid(), weightKg: x.sets[x.sets.length - 1]?.weightKg ?? null, reps: null, done: false }] } : x)) }))}>
+            <Plus className="h-4 w-4" /> Durchgang
+          </Button>
+          {rounds > 1 && (
+            <Button size="sm" variant="ghost" onClick={() => update((a) => ({ ...a, exercises: a.exercises.map((x) => (ids.has(x.id) ? { ...x, sets: x.sets.slice(0, -1) } : x)) }))}>
+              Durchgang entfernen
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
   };
 
   return (
@@ -173,86 +323,7 @@ export function LiveWorkout() {
         </div>
       </Card>
 
-      {w.exercises.map((e) => {
-        const prev = prevByExercise.get(e.exerciseId);
-        const last = prev?.[prev.length - 1];
-        const sugg = e.repMin && e.repMax && prev ? suggestProgression(prev, e.repMin, e.repMax) : null;
-        return (
-          <Card key={e.id} data-testid="workout-exercise">
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="font-semibold">{e.name}</div>
-                <div className="text-xs text-muted">
-                  {e.primaryMuscle} {e.repMin && e.repMax ? `· Ziel ${e.repMin}–${e.repMax} Wdh.` : ''} · Pause {e.restSec}s
-                </div>
-                {sugg && (
-                  <div className="mt-1 flex items-center gap-1 text-xs text-accent">
-                    <TrendingUp className="h-3.5 w-3.5" /> {sugg.action === 'increase' ? `Vorschlag: ${sugg.nextWeightKg} kg` : sugg.action === 'decrease' ? `Vorschlag: ${sugg.nextWeightKg} kg (Entlastung)` : 'Gewicht halten'} – {sugg.reason}
-                  </div>
-                )}
-              </div>
-              <div className="flex">
-                <Button variant="ghost" size="icon" aria-label="Übung wechseln" onClick={() => setPicker({ mode: 'swap', exId: e.id })}>
-                  <Repeat className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" aria-label="Übung entfernen" onClick={() => update((a) => ({ ...a, exercises: a.exercises.filter((x) => x.id !== e.id) }))}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-[2rem_1fr_1fr_1fr_3rem] items-center gap-2 text-xs text-muted">
-              <span>Satz</span>
-              <span>Vorher</span>
-              <span>kg</span>
-              <span>Wdh.</span>
-              <span />
-            </div>
-            {e.sets.map((s, i) => {
-              const p = last?.sets[i];
-              return (
-                <div key={s.id} className={cn('mt-1 grid grid-cols-[2rem_1fr_1fr_1fr_3rem] items-center gap-2 rounded-xl', s.done && 'bg-accent/10')} data-testid="set-row">
-                  <span className="pl-2 text-sm font-medium">{i + 1}</span>
-                  <span className="truncate text-xs text-muted">{p ? `${fmt(p.weightKg, 1)}×${p.reps}` : '–'}</span>
-                  <NumberInput aria-label={`Satz ${i + 1} Gewicht`} className="h-10 px-2" value={s.weightKg} onValue={(v) => update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === e.id ? { ...x, sets: x.sets.map((y) => (y.id === s.id ? { ...y, weightKg: v ?? null } : y)) } : x)) }))} />
-                  <NumberInput aria-label={`Satz ${i + 1} Wiederholungen`} className="h-10 px-2" value={s.reps} placeholder={p?.reps ? String(p.reps) : e.repMax ? String(e.repMax) : ''} onValue={(v) => update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === e.id ? { ...x, sets: x.sets.map((y) => (y.id === s.id ? { ...y, reps: v ?? null } : y)) } : x)) }))} />
-                  <Button
-                    size="icon"
-                    variant={s.done ? 'primary' : 'secondary'}
-                    aria-label={`Satz ${i + 1} ${s.done ? 'offen markieren' : 'abschließen'}`}
-                    aria-pressed={s.done}
-                    onClick={() => {
-                      const willBeDone = !s.done;
-                      if (willBeDone && (s.reps == null || s.reps <= 0)) {
-                        // Ein-Klick-Abschluss: Platzhalterwert (letzte Wdh. bzw. Ziel) übernehmen
-                        const fallback = p?.reps ?? e.repMax ?? null;
-                        if (!fallback) return toast('Bitte zuerst Wiederholungen eintragen.', 'error');
-                        update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === e.id ? { ...x, sets: x.sets.map((y) => (y.id === s.id ? { ...y, reps: fallback, done: true } : y)) } : x)) }));
-                      } else update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === e.id ? { ...x, sets: x.sets.map((y) => (y.id === s.id ? { ...y, done: willBeDone } : y)) } : x)) }));
-                      if (willBeDone && e.restSec > 0) startRest(e.restSec);
-                    }}
-                  >
-                    <Check className="h-5 w-5" />
-                  </Button>
-                </div>
-              );
-            })}
-            <div className="mt-2 flex gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === e.id ? { ...x, sets: [...x.sets, { id: uid(), weightKg: x.sets[x.sets.length - 1]?.weightKg ?? null, reps: null, done: false }] } : x)) }))}
-              >
-                <Plus className="h-4 w-4" /> Satz
-              </Button>
-              {e.sets.length > 0 && (
-                <Button size="sm" variant="ghost" onClick={() => update((a) => ({ ...a, exercises: a.exercises.map((x) => (x.id === e.id ? { ...x, sets: x.sets.slice(0, -1) } : x)) }))}>
-                  Satz entfernen
-                </Button>
-              )}
-            </div>
-          </Card>
-        );
-      })}
+      {segmentsOf(w.exercises).map((seg) => (seg.kind === 'single' ? renderSingle(seg.e) : renderGroup(seg.members)))}
       <Button variant="outline" className="w-full" onClick={() => setPicker({ mode: 'add' })}>
         <Plus className="h-4 w-4" /> Übung hinzufügen
       </Button>
@@ -272,4 +343,29 @@ export function LiveWorkout() {
       {picker && <ExercisePicker onClose={() => setPicker(null)} onPick={onPick} />}
     </div>
   );
+}
+
+function SetHeader({ first }: { first: string }) {
+  return (
+    <div className="grid grid-cols-[2rem_1fr_1fr_1fr_3rem] items-center gap-2 text-xs text-muted">
+      <span>{first}</span>
+      <span>Vorher</span>
+      <span>kg</span>
+      <span>Wdh.</span>
+      <span />
+    </div>
+  );
+}
+
+type Segment = { kind: 'single'; e: WorkoutExercise } | { kind: 'group'; members: WorkoutExercise[] };
+
+/** Übungen einer Einheit (direkt hintereinander) zu einem Block zusammenfassen */
+function segmentsOf(list: WorkoutExercise[]): Segment[] {
+  const out: Segment[] = [];
+  for (const e of list) {
+    const prev = out[out.length - 1];
+    if (e.group && prev?.kind === 'group' && prev.members[0]!.group!.id === e.group.id) prev.members.push(e);
+    else out.push(e.group ? { kind: 'group', members: [e] } : { kind: 'single', e });
+  }
+  return out;
 }

@@ -7,6 +7,8 @@ interface DayTpl {
   name: string;
   weekdays: number[];
   exercises: string[];
+  /** alle Übungen des Tages als eine Einheit (Zirkel) */
+  circuit?: { name: string; rounds: number; restSec: number };
 }
 export interface PlanTemplate {
   id: string;
@@ -41,13 +43,13 @@ export const PLAN_TEMPLATES: PlanTemplate[] = [
     name: 'EGYM-Zirkel Ganzkörper',
     goal: 'Kraft & Gesundheit',
     split: 'fullbody',
-    description: 'Klassischer EGYM-Kraftzirkel mit 9 Stationen, 2 Runden. Die Geräte stellen sich per EGYM ID selbst ein – Gewicht und Wiederholungen vom Display übernehmen. Stationen im Plan an deinen Zirkel anpassen.',
+    description: 'Klassischer EGYM-Kraftzirkel mit 9 Stationen als Einheit, 2 Durchgänge mit 90 s Pause dazwischen. Die Geräte stellen sich per EGYM ID selbst ein – Gewicht und Wiederholungen vom Display übernehmen. Stationen im Plan an deinen Zirkel anpassen.',
     gym: VITOVA_NORDENSTADT,
     sets: 2,
     repMin: 10,
     repMax: 15,
     restSec: 30,
-    days: [{ name: 'Zirkel', weekdays: [1, 3, 5], exercises: ['egym-chest-press', 'egym-seated-row', 'egym-leg-press', 'egym-abdominal', 'egym-back-extension', 'egym-butterfly', 'egym-reverse-butterfly', 'egym-leg-extension', 'egym-leg-curl'] }],
+    days: [{ name: 'Zirkel', weekdays: [1, 3, 5], circuit: { name: 'EGYM-Zirkel', rounds: 2, restSec: 90 }, exercises: ['egym-chest-press', 'egym-seated-row', 'egym-leg-press', 'egym-abdominal', 'egym-back-extension', 'egym-butterfly', 'egym-reverse-butterfly', 'egym-leg-extension', 'egym-leg-curl'] }],
   },
   {
     id: 'vitova-tg-ab',
@@ -144,11 +146,15 @@ export function planFromTemplate(t: PlanTemplate): Omit<Plan, 'id' | 'createdAt'
     split: t.split,
     status: 'draft',
     notes: t.description,
-    days: t.days.map((d) => ({
-      id: uid(),
-      name: d.name,
-      weekdays: [...d.weekdays],
-      exercises: d.exercises.map((exerciseId) => ({ id: uid(), exerciseId, sets: t.sets, repMin: t.repMin, repMax: t.repMax, restSec: t.restSec })),
-    })),
+    days: t.days.map((d) => {
+      const g = d.circuit ? { id: uid(), ...d.circuit } : undefined;
+      return {
+        id: uid(),
+        name: d.name,
+        weekdays: [...d.weekdays],
+        exercises: d.exercises.map((exerciseId) => ({ id: uid(), exerciseId, sets: g ? g.rounds : t.sets, repMin: t.repMin, repMax: t.repMax, restSec: g ? 0 : t.restSec, ...(g ? { groupId: g.id } : {}) })),
+        ...(g ? { groups: [g] } : {}),
+      };
+    }),
   };
 }

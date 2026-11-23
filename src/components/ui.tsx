@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { X } from 'lucide-react';
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export const cn = (...c: ClassValue[]) => twMerge(clsx(c));
@@ -82,15 +82,36 @@ export function Field({ label, error, hint, children, className }: { label: stri
 }
 
 /** Zahlenfeld, das leere Eingaben als undefined liefert (statt 0). */
-export function NumberInput({ value, onValue, step = 'any', ...p }: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & { value: number | undefined | null; onValue: (v: number | undefined) => void }) {
+/**
+ * Zahlenfeld: Während der Eingabe zählt nur, was im Feld steht – ein geleertes Feld bleibt leer
+ * (keine erzwungene „0“). Beim Antippen wird der Inhalt markiert, damit Tippen ihn direkt ersetzt.
+ */
+export function NumberInput({ value, onValue, step = 'any', onFocus, onBlur, ...p }: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & { value: number | undefined | null; onValue: (v: number | undefined) => void }) {
+  const show = (v: number | undefined | null) => (v == null || Number.isNaN(v) ? '' : String(v));
+  const [text, setText] = useState(show(value));
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setText(show(value));
+  }, [value]);
   return (
     <Input
       type="number"
       inputMode="decimal"
       step={step}
-      value={value ?? ''}
+      value={text}
+      onFocus={(e) => {
+        focused.current = true;
+        e.currentTarget.select();
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        focused.current = false;
+        setText(show(value));
+        onBlur?.(e);
+      }}
       onChange={(e) => {
         const raw = e.target.value.replace(',', '.');
+        setText(e.target.value);
         onValue(raw === '' ? undefined : Number(raw));
       }}
       {...p}
