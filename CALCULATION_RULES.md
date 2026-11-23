@@ -72,3 +72,22 @@ Implementierung: `src/domain/*.ts` · Tests: `tests/domain/*.test.ts`. Alle Wert
 - Klasse bestimmt Trainingsfokus, empfohlene Vorlagen und einen zusätzlichen wöchentlichen Klassen-Feldzug (Legionär 3 Krafteinheiten, Gladiator 4 Einheiten, Cursor 120 Ausdauerminuten, Stratege 5 Tage Protein- und Trinkziel).
 - Lebensweg ist eine Oberfläche für das Ernährungsziel: Asket = Fettabbau (high protein), Stoiker = Rekomposition (high protein), Epikureer = Muskelaufbau (ausgewogen); gleiche Berechnung und Sicherheitsgrenzen wie der Zielrechner, Wechsel legt eine neue Zielversion an.
 - Geheime Erfolge: Frühaufsteher (Training vor 7 Uhr), Doppelschicht (2 Einheiten an einem Tag), Säulen des Reiches (8 Wochen in Folge Beintraining), Wiedersehen (PR innerhalb 7 Tagen nach Comeback), Stoische Ruhe (30 Tage in Folge Kalorienziel ± 10 %). Belohnung: Titel und 50–150 Denare.
+
+## Grundkörper des Helden
+
+Der Held zeigt einen von 12 Körperbauten (`src/domain/bodyType.ts`). Er ist unabhängig vom Rang – Rang und Erfolge zeigt die Ausrüstung.
+
+- **Eingaben:** Gewicht als 7-Tage-Durchschnitt, letzter gemessener KFA (sonst Profil-KFA, sonst Schätzung nach Deurenberg: 1,2·BMI + 0,23·Alter − 16,2 bzw. − 5,4 bei Frauen; Anzeige „geschätzt“), letzte Größe.
+- **FFMI** (normalisiert, Kouri 1995): fettfreie Masse / Größe² + 6,1·(1,8 − Größe in m).
+- **Muskel-Score** = FFMI − 0,2·max(0, KFA − 15). Mehr Fett bringt auch ohne Training mehr fettfreie Masse; ohne Korrektur würden schwere Untrainierte als Strongman erscheinen.
+- **Stufen:** KFA < 12 · 12–18 · 18–25 · 25–32 · ≥ 32 % (Frauen + 9 Punkte); Muskel-Score < 19 · 19–21,5 · 21,5–23,5 · 23,5–25,5 · ≥ 25,5.
+- **Hysterese:** Eine Stufe wechselt erst, wenn die Grenze um 0,7 KFA-Punkte bzw. 0,3 Score-Punkte überschritten ist. Die Historie wird Tag für Tag durchlaufen, daher ohne gespeicherten Zustand reproduzierbar.
+
+| Muskel \ KFA | < 12 | 12–18 | 18–25 | 25–32 | ≥ 32 |
+| --- | --- | --- | --- | --- | --- |
+| untrainiert | Dünn | Schlank | Durchschnitt | Übergewichtig | Adipös |
+| leicht trainiert | Fit | Fit | Kräftig | Übergewichtig | Adipös |
+| trainiert | Athletisch | Athletisch | Muskulös mit Bauch | Kräftig | Adipös |
+| sehr muskulös | Bodybuilder | Bodybuilder | Muskulös mit Bauch | Strongman | Strongman |
+| extrem | Bodybuilder | Bodybuilder | Strongman | Koloss | Koloss |
+

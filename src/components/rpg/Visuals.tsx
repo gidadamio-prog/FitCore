@@ -5,6 +5,8 @@ import { cn } from '@/components/ui';
 import { useReducedMotion } from '@/hooks/motion';
 import { RARITY_COLOR, appearanceStage, itemFile, portraitFile, type EffectId, type ItemDef, type Rarity, type SlotId } from '@/domain/equipment';
 import type { HeroClassId } from '@/domain/rpg';
+import { bodyFile, bodyTypeLabel, type BodyTypeId } from '@/domain/bodyType';
+import { useBodyType } from '@/hooks/game';
 
 // Alle Bilder, die im Ordner src/assets/rpg liegen – fehlende fallen still auf Platzhalter zurück.
 const FILES = import.meta.glob('../../assets/rpg/*.{png,webp,jpg,jpeg}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -199,14 +201,43 @@ function PlaceholderPortrait({ stage, crest }: { stage: number; crest: string })
   );
 }
 
+// Ausschnitt Kopf und Schultern aus dem Ganzkörperbild (Kopf liegt in allen Körperbildern an derselben Stelle)
+const HEAD_CROP: CSSProperties = { position: 'absolute', width: '379%', maxWidth: 'none', left: '-139.4%', top: '-18.2%' };
+
 export function HeroPortrait({ classId, rankLevel, crest, aura, size = 160, className, transform = false }: { classId: HeroClassId; rankLevel: number; crest: string; aura?: string | null; size?: number; className?: string; transform?: boolean }) {
   const stage = appearanceStage(rankLevel);
   const url = rpgAsset(portraitFile(classId, stage));
+  const body = useBodyType();
+  const bodyUrl = !url && body ? rpgAsset(bodyFile(body.id)) : undefined;
   return (
     <div className={cn('relative shrink-0', className)} style={{ width: size, height: size * 1.25 }} data-testid="hero-portrait" data-stage={stage}>
       {aura && <div className="aura" style={{ background: aura }} />}
-      <div className={cn('portrait-breathe relative h-full w-full', transform && 'transform-in')}>
-        {url ? <img src={url} alt="" className="h-full w-full object-contain" draggable={false} /> : <PlaceholderPortrait stage={stage} crest={crest} />}
+      <div className={cn('portrait-breathe relative h-full w-full', transform && 'transform-in', bodyUrl && 'overflow-hidden rounded-[22%]')}>
+        {url ? (
+          <img src={url} alt="" className="h-full w-full object-contain" draggable={false} />
+        ) : bodyUrl ? (
+          <img src={bodyUrl} alt="" style={HEAD_CROP} draggable={false} data-testid="portrait-body-crop" />
+        ) : (
+          <PlaceholderPortrait stage={stage} crest={crest} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Ganzkörper-Held in Ebenen: Grundkörper → Merkmale → Ausrüstung
+// Alle Ebenen liegen auf demselben Raster (2:3, Kopf oben mittig), daher einfach übereinander.
+// ---------------------------------------------------------------------------
+
+export function HeroFigure({ bodyType, aura, width = 140, className, children }: { bodyType: BodyTypeId; aura?: string | null; width?: number; className?: string; children?: ReactNode }) {
+  const url = rpgAsset(bodyFile(bodyType));
+  return (
+    <div className={cn('relative shrink-0', className)} style={{ width, height: width * 1.5 }} data-testid="hero-figure" data-body={bodyType} role="img" aria-label={`Held, Körperbau: ${bodyTypeLabel(bodyType)}`}>
+      {aura && <div className="aura" style={{ background: aura }} />}
+      <div className="portrait-breathe relative h-full w-full">
+        {url && <img src={url} alt="" className="absolute inset-0 h-full w-full object-contain" draggable={false} />}
+        {children}
       </div>
     </div>
   );

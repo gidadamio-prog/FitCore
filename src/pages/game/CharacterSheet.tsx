@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Dumbbell, Salad, Check } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Sheet, fmt, cn } from '@/components/ui';
-import { HeroPortrait, ItemIcon } from '@/components/rpg/Visuals';
+import { HeroFigure, HeroPortrait, ItemIcon } from '@/components/rpg/Visuals';
+import { useBodyType } from '@/hooks/game';
+import { bodyTypeLabel } from '@/domain/bodyType';
 import { useCurrentGoalVersion } from './useGoal';
 import { useSettings } from '@/hooks/data';
 import { applyPath, equipToHero, previewPath, unequipFromHero } from '@/data/arena';
@@ -49,6 +51,8 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
   const path = pathById(pathForGoal(goal?.primaryGoal) ?? undefined);
   const stage = appearanceStage(game.rank.rank.level);
   const twoHand = !!(loadout.main && itemById(loadout.main)?.twoHanded);
+  const body = useBodyType();
+  const heroAura = aura ? CATEGORY_AURA[aura] : path?.aura;
   const col = (slots: SlotId[]) => (
     <div className="flex flex-col justify-around gap-2">
       {slots.map((s) => (
@@ -61,10 +65,22 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
       <div className="flex items-stretch justify-between gap-1">
         {col(['main', 'head', 'hands'])}
         <div className="flex flex-col items-center">
-          <HeroPortrait classId={hero.classId} rankLevel={game.rank.rank.level} crest={hero.color} aura={aura ? CATEGORY_AURA[aura] : path?.aura} size={140} />
+          {body ? (
+            <HeroFigure bodyType={body.id} aura={heroAura} width={128} />
+          ) : (
+            <HeroPortrait classId={hero.classId} rankLevel={game.rank.rank.level} crest={hero.color} aura={heroAura} size={140} />
+          )}
           <div className="mt-1 text-center text-[11px] text-muted" data-testid="appearance-stage">
             Erscheinung {stage}/5 · {APPEARANCE_STAGES[stage - 1]!.name}
           </div>
+          {body ? (
+            <div className="text-center text-[11px] text-muted" data-testid="body-type" title={`KFA ${fmt(body.bodyFatPct, 1)} % · Muskel-Score ${fmt(body.muscleScore, 1)}`}>
+              Körperbau: {bodyTypeLabel(body.id)}
+              {body.estimated && ' (geschätzt)'}
+            </div>
+          ) : (
+            <div className="max-w-[140px] text-center text-[10px] text-muted">Gewicht eintragen, damit dein Held deinen Körperbau bekommt.</div>
+          )}
           {aura && (
             <Badge tone="accent" className="mt-1" data-testid="set-aura">
               Aura: {CATEGORY_LABEL[aura]}

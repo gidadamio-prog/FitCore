@@ -2,6 +2,7 @@
 import { writeFileSync } from 'node:fs';
 import { APPEARANCE_STAGES, ITEMS, itemFile, portraitFile, CLASS_FILE } from '../src/domain/equipment';
 import { CAMPAIGN, HERO_CLASSES, colosseumBossName } from '../src/domain/rpg';
+import { BODY_TYPES, bodyFile } from '../src/domain/bodyType';
 
 const LOOK: Record<string, string> = {
   legionar: 'kräftiger Legionär, kurzes dunkles Haar, kantiges Kinn',
@@ -55,6 +56,16 @@ p('crimson and gold palette, transparent background, no text');
 p('```');
 p();
 p('Tipp: Erst Stufe 1 erzeugen, dann für Stufe 2–5 dieses Bild als Referenz mitgeben („same person, same pose“), damit es dieselbe Figur bleibt.');
+p();
+p('## 0. Ganzkörper-Held in Ebenen');
+p();
+p('Der Held besteht aus Ebenen, die exakt übereinanderliegen: **Grundkörper → Merkmale (Haare, Augen, Narben, Brille …) → Ausrüstung**. Der Körper folgt den Körperwerten, nicht dem Rang.');
+p();
+p('**Raster für alle Ebenen:** 1024 × 1536 px (2:3), transparenter Hintergrund, Figur frontal und mittig, Kopfoberkante bei ca. y = 90 px, Kopfmitte bei x = 511 px. Am einfachsten einen Grundkörper als Referenz mitgeben („same canvas, same position“) und nur das neue Element malen.');
+p();
+p('**Grundkörper – geliefert (12/12):**');
+p();
+for (const b of BODY_TYPES) p(`- [x] \`${bodyFile(b.id)}.webp\` – ${b.label}`);
 p();
 p('## 1. Testlauf zuerst (2 Bilder)');
 p();
