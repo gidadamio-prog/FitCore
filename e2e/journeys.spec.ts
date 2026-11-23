@@ -180,8 +180,9 @@ test('E2E-08 Workout → Trainingsenergie anrechnen → Tagesbudget', async ({ p
   await page.getByRole('button', { name: 'Training abschließen' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Abschließen' }).click();
   await dismissCelebrations(page);
+  await page.getByText('Eigener kcal-Wert (z. B. von einer Pulsuhr)').click();
   await page.getByLabel('Eigener Wert (kcal)').fill('300');
-  await page.getByRole('button', { name: 'Übernehmen' }).click();
+  await page.getByRole('button', { name: 'Übernehmen', exact: true }).click();
   await page.goto('/#/settings');
   await page.getByRole('tab', { name: 'Energie' }).click();
   await page.getByRole('radio', { name: '100 %' }).click();

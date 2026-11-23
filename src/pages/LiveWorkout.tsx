@@ -95,7 +95,8 @@ export function LiveWorkout() {
   const doneSets = w.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
 
   const finish = async () => {
-    if (!(await confirmDialog({ title: 'Training abschließen?', text: `${doneSets} abgeschlossene Sätze werden gespeichert. Nicht abgeschlossene Sätze werden verworfen.`, confirmLabel: 'Abschließen' }))) return;
+    const longHint = elapsed > 150 * 60 ? ` Das Training läuft schon ${formatDuration(elapsed)} – falls du das Abschließen vergessen hast, kannst du die Dauer danach in der Zusammenfassung korrigieren.` : '';
+    if (!(await confirmDialog({ title: 'Training abschließen?', text: `${doneSets} abgeschlossene Sätze werden gespeichert. Nicht abgeschlossene Sätze werden verworfen.${longHint}`, confirmLabel: 'Abschließen' }))) return;
     try {
       const seenTotal = game?.campaign.totalDamage;
       const saved = await finishWorkout();
