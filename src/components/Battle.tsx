@@ -160,15 +160,15 @@ function BattleStage({ scene }: { scene: Scene }) {
       </div>
 
       {/* Arena */}
-      <div className="relative z-10 flex flex-1 items-end justify-between px-2 pb-[18vh]">
-        <div className={cn('relative z-10 w-[50%] max-w-[250px]', beat.t === 'intro' && !reduced && 'battle-enter-left', beat.t === 'lunge' && 'battle-lunge', beat.t === 'impact' && 'battle-return')}>
+      <div className="relative z-10 flex flex-1 items-end justify-between px-4 pb-[18vh]">
+        <div className={cn('relative z-10 w-[36%] max-w-[200px]', beat.t === 'intro' && !reduced && 'battle-enter-left', beat.t === 'lunge' && 'battle-lunge', beat.t === 'impact' && 'battle-return')}>
           {body ? (
-            <HeroFigure bodyType={body.id} width={Math.min(250, typeof window !== 'undefined' ? window.innerWidth * 0.5 : 200)} />
+            <HeroFigure bodyType={body.id} width={Math.min(200, typeof window !== 'undefined' ? window.innerWidth * 0.36 : 150)} />
           ) : hero ? (
             <HeroPortrait classId={hero.classId} rankLevel={game?.rank.rank.level ?? 1} crest={hero.color} size={140} />
           ) : null}
         </div>
-        <div className="relative -ml-[6%] w-[52%] max-w-[260px]">
+        <div className="relative w-[46%] max-w-[256px]">
           <div
             key={`${view.boss.id}-${beat.t}-${view.lastHit}`}
             className={cn(
