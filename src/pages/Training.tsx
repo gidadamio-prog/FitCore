@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Archive, Copy, Dumbbell, Play, Plus, Star, Trash2, Search, Trophy } from 'lucide-react';
+import { Archive, Copy, Dumbbell, Play, Plus, Star, Trash2, Trophy } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Empty, Field, Input, NumberInput, Select, Sheet, Tabs, Textarea, fmt } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
-import { useActiveWorkout, useCardio, useExercises, usePlans, useWorkouts } from '@/hooks/data';
-import { addCardio, deleteCardio, deletePlan, duplicatePlan, saveCustomExercise, savePlan, searchExercises, setPlanStatus, startWorkout, updateCardio, DuplicateError } from '@/data/trainingRepo';
+import { ExerciseBrowser } from '@/components/ExerciseBrowser';
+import { useActiveWorkout, useCardio, usePlans, useWorkouts } from '@/hooks/data';
+import { addCardio, deleteCardio, deletePlan, duplicatePlan, saveCustomExercise, savePlan, setPlanStatus, startWorkout, updateCardio, DuplicateError } from '@/data/trainingRepo';
 import { WEEKDAY_SHORT, formatDate, isoWeekday, today, uid } from '@/domain/dates';
 import { toast, confirmDialog } from '@/stores/ui';
 import { firstError } from '@/domain/schemas';
@@ -353,83 +354,17 @@ function CardioEdit({ s, onClose }: { s: CardioSession; onClose: () => void }) {
   );
 }
 
-export function useExerciseFilters() {
-  const settings = useSettings();
-  const [q, setQ] = useState('');
-  const [muscle, setMuscle] = useState('');
-  const [equipment, setEquipment] = useState('');
-  const [gymOnly, setGymOnly] = useState<boolean | null>(null);
-  const gym = settings.homeGym;
-  const onlyGym = gymOnly ?? !!gym;
-  return { q, setQ, muscle, setMuscle, equipment, setEquipment, gym, onlyGym, setGymOnly };
-}
-
-export function ExerciseFilterBar({ f }: { f: ReturnType<typeof useExerciseFilters> }) {
-  return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        <Select aria-label="Muskelgruppe" value={f.muscle} onChange={(e) => f.setMuscle(e.target.value)}>
-          <option value="">Alle Muskelgruppen</option>
-          {MUSCLE_GROUPS.map((m) => (
-            <option key={m}>{m}</option>
-          ))}
-        </Select>
-        <Select aria-label="Gerät / Equipment" value={f.equipment} onChange={(e) => f.setEquipment(e.target.value)}>
-          <option value="">Alle Geräte</option>
-          {EQUIPMENT.map((m) => (
-            <option key={m}>{m}</option>
-          ))}
-        </Select>
-      </div>
-      {f.gym && (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" aria-pressed={f.onlyGym} onClick={() => f.setGymOnly(!f.onlyGym)} className={`h-8 rounded-full border px-3 text-xs ${f.onlyGym ? 'border-accent bg-accent/10 text-accent' : 'text-muted'}`}>
-            Nur {GYMS[f.gym] ?? 'mein Studio'}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ExerciseLibrary() {
-  const all = useExercises();
   const nav = useNavigate();
-  const f = useExerciseFilters();
-  const { q, setQ } = f;
   const [create, setCreate] = useState(false);
-  const list = useMemo(() => searchExercises(all, f.q, f.muscle || undefined, { gym: f.onlyGym ? f.gym : undefined, equipment: f.equipment || undefined }), [all, f.q, f.muscle, f.onlyGym, f.gym, f.equipment]);
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-5 w-5 text-muted" />
-          <Input aria-label="Übung suchen" className="pl-10" placeholder="Übung suchen …" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-        <Button onClick={() => setCreate(true)} aria-label="Eigene Übung">
-          <Plus className="h-4 w-4" />
+      <div className="flex justify-end">
+        <Button size="sm" variant="secondary" onClick={() => setCreate(true)} aria-label="Eigene Übung">
+          <Plus className="h-4 w-4" /> Eigene Übung
         </Button>
       </div>
-      <ExerciseFilterBar f={f} />
-      <p className="text-xs text-muted">{list.length} Übungen</p>
-      <Card>
-        <ul className="divide-y" data-testid="exercise-list">
-          {list.map((e) => (
-            <li key={e.id}>
-              <button className="w-full py-2 text-left" onClick={() => nav('/training/exercise/' + e.id)}>
-                <div className="text-sm font-medium">
-                  {e.name} {e.isCustom ? <Badge>eigene</Badge> : null} {e.gyms?.length ? <Badge tone="accent">Studio</Badge> : null}
-                </div>
-                <div className="text-xs text-muted">
-                  {e.primaryMuscle}
-                  {e.secondaryMuscles.length ? ` (+ ${e.secondaryMuscles.join(', ')})` : ''} · {e.equipment}
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-        {!list.length && <p className="py-4 text-center text-sm text-muted">Keine Übung gefunden.</p>}
-      </Card>
+      <ExerciseBrowser onPick={(e) => nav('/training/exercise/' + e.id)} />
       {create && <ExerciseForm onClose={() => setCreate(false)} />}
     </div>
   );

@@ -232,6 +232,19 @@ export async function updateWorkout(id: string, patch: Partial<Pick<Workout, 'kc
   await db.workouts.update(id, patch);
 }
 
+/**
+ * Dauer eines abgeschlossenen Trainings korrigieren (z. B. „Abschließen“ vergessen): Ende = Start + Dauer,
+ * Energie wird aus der neuen Dauer neu geschätzt. Ein manuell gesetzter kcal-Wert bleibt bestehen.
+ */
+export async function updateWorkoutDuration(id: string, durationMin: number) {
+  if (!(durationMin >= 1 && durationMin <= 600)) throw new Error('Dauer muss zwischen 1 und 600 Minuten liegen.');
+  const w = await db.workouts.get(id);
+  if (!w) throw new Error('Training nicht gefunden.');
+  const durationSec = Math.round(durationMin * 60);
+  const endedAt = new Date(new Date(w.startedAt).getTime() + durationSec * 1000).toISOString();
+  await db.workouts.update(id, { durationSec, endedAt, estimatedKcal: estimateStrengthKcal(durationSec, w.bodyWeightKg) });
+}
+
 export async function clearWorkoutKcalOverride(id: string) {
   await db.workouts.where('id').equals(id).modify((w) => {
     delete w.kcalOverride;

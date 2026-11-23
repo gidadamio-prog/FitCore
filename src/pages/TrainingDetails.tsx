@@ -2,16 +2,17 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Trash2 } from 'lucide-react';
-import { Badge, Button, Card, CardTitle, Field, NumberInput, Stat, fmt } from '@/components/ui';
+import { Badge, Button, Card, CardTitle, Field, Input, NumberInput, Stat, fmt } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { db } from '@/data/db';
 import { useExercises, useWorkouts } from '@/hooks/data';
 import { completedSets, exerciseHistory, exerciseVolume, personalRecords, setsPerMuscle, totalReps, workoutVolume, epley1RM, isCompletedSet } from '@/domain/training';
 import { formatDate, formatDuration } from '@/domain/dates';
-import { clearWorkoutKcalOverride, deleteWorkout, updateWorkout } from '@/data/trainingRepo';
+import { clearWorkoutKcalOverride, deleteWorkout, updateWorkout, updateWorkoutDuration } from '@/data/trainingRepo';
 import { confirmDialog, toast } from '@/stores/ui';
 import { firstError } from '@/domain/schemas';
 import { LineSeriesChart, SERIES } from '@/components/charts';
+import type { Workout } from '@/domain/types';
 
 export function WorkoutDetail() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export function WorkoutDetail() {
   const w = useLiveQuery(() => db.workouts.get(id!), [id]);
   const all = useWorkouts();
   const [kcal, setKcal] = useState<number | undefined>();
+  const [mins, setMins] = useState<number | undefined>();
   const prs = useMemo(() => (w ? personalRecords(all).filter((p) => p.workoutId === w.id) : []), [all, w]);
   if (w === undefined) return null;
   if (!w) return <p className="text-muted">Workout nicht gefunden.</p>;
@@ -82,29 +84,33 @@ export function WorkoutDetail() {
           <p className="whitespace-pre-line text-sm">{w.notes}</p>
         </Card>
       )}
+      <DurationCard w={w} mins={mins} setMins={setMins} />
       <Card className="space-y-2">
-        <CardTitle>Trainingsenergie</CardTitle>
-        <p className="text-xs text-muted">
-          Geschätzt: {fmt(w.estimatedKcal)} kcal (Netto-MET 5 × {w.bodyWeightKg ? fmt(w.bodyWeightKg, 1) + ' kg' : 'unbekanntes Körpergewicht'} × Dauer). Du kannst einen eigenen Wert setzen, z. B. von einer Pulsuhr.
-        </p>
-        <div className="flex items-end gap-2">
-          <Field label="Eigener Wert (kcal)" className="flex-1">
-            {(i) => <NumberInput id={i} value={kcal ?? w.kcalOverride} onValue={setKcal} />}
-          </Field>
-          <Button
-            onClick={async () => {
-              try {
-                if (kcal == null) await clearWorkoutKcalOverride(w.id);
-                else await updateWorkout(w.id, { kcalOverride: kcal });
-                toast('Energiebilanz aktualisiert', 'success');
-              } catch (e) {
-                toast(firstError(e), 'error');
-              }
-            }}
-          >
-            Übernehmen
-          </Button>
-        </div>
+        <details>
+          <summary className="cursor-pointer text-sm font-semibold">Eigener kcal-Wert (z. B. von einer Pulsuhr)</summary>
+          <p className="mt-2 text-xs text-muted">
+            Normalerweise wird die Energie aus der Dauer geschätzt (Netto-MET 5 × {w.bodyWeightKg ? fmt(w.bodyWeightKg, 1) + ' kg' : 'unbekanntes Körpergewicht'} × Dauer). Ein eigener Wert ersetzt diese Schätzung.
+          </p>
+          <div className="mt-2 flex items-end gap-2">
+            <Field label="Eigener Wert (kcal)" className="flex-1">
+              {(i) => <NumberInput id={i} value={kcal ?? w.kcalOverride} onValue={setKcal} />}
+            </Field>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  if (kcal == null) await clearWorkoutKcalOverride(w.id);
+                  else await updateWorkout(w.id, { kcalOverride: kcal });
+                  toast('Energiebilanz aktualisiert', 'success');
+                } catch (e) {
+                  toast(firstError(e), 'error');
+                }
+              }}
+            >
+              Übernehmen
+            </Button>
+          </div>
+        </details>
       </Card>
       <Button
         variant="ghost"
@@ -198,5 +204,51 @@ export function ExerciseDetail() {
         </Card>
       )}
     </div>
+  );
+}
+
+const hhmm = (d: Date) => d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+/** Dauer korrigieren, z. B. wenn „Training abschließen“ vergessen wurde – per Minuten oder Endzeit. */
+function DurationCard({ w, mins, setMins }: { w: Workout; mins: number | undefined; setMins: (v: number | undefined) => void }) {
+  const start = new Date(w.startedAt);
+  const current = Math.round(w.durationSec / 60);
+  const value = mins ?? current;
+  const end = new Date(start.getTime() + value * 60_000);
+  const setEnd = (t: string) => {
+    const [h, m] = t.split(':').map(Number) as [number, number];
+    if (Number.isNaN(h) || Number.isNaN(m)) return;
+    const e = new Date(start);
+    e.setHours(h, m, 0, 0);
+    if (e <= start) e.setDate(e.getDate() + 1); // über Mitternacht
+    setMins(Math.round((e.getTime() - start.getTime()) / 60_000));
+  };
+  return (
+    <Card className="space-y-2" data-testid="duration-card">
+      <CardTitle>Dauer anpassen</CardTitle>
+      <p className="text-xs text-muted">
+        „Abschließen“ vergessen? Trag die echte Dauer oder Endzeit ein – die Trainingsenergie ({fmt(w.estimatedKcal)} kcal geschätzt) wird daraus neu berechnet.
+      </p>
+      <div className="grid grid-cols-3 items-end gap-2">
+        <Field label="Start">{(i) => <Input id={i} value={hhmm(start)} disabled />}</Field>
+        <Field label="Ende">{(i) => <Input id={i} type="time" value={hhmm(end)} onChange={(e) => setEnd(e.target.value)} />}</Field>
+        <Field label="Dauer (Min.)">{(i) => <NumberInput id={i} value={value} onValue={setMins} />}</Field>
+      </div>
+      <Button
+        className="w-full"
+        disabled={mins == null || mins === current}
+        onClick={async () => {
+          try {
+            await updateWorkoutDuration(w.id, value);
+            setMins(undefined);
+            toast(`Dauer auf ${formatDuration(value * 60)} gesetzt – Energie neu geschätzt`, 'success');
+          } catch (e) {
+            toast(firstError(e), 'error');
+          }
+        }}
+      >
+        Dauer übernehmen
+      </Button>
+    </Card>
   );
 }

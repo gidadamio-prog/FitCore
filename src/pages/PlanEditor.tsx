@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowDown, ArrowUp, Plus, Trash2, Search, Layers } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Trash2, Layers, CheckSquare, Square } from 'lucide-react';
 import { Button, Card, Field, Input, NumberInput, Select, Sheet, Textarea, cn } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { db } from '@/data/db';
 import type { Exercise, Plan, PlanDay, PlanExercise, PlanGroup } from '@/domain/types';
-import { savePlan, searchExercises, setPlanStatus } from '@/data/trainingRepo';
+import { savePlan, setPlanStatus } from '@/data/trainingRepo';
 import { WEEKDAY_SHORT, uid } from '@/domain/dates';
 import { useExercises } from '@/hooks/data';
 import { confirmDialog, toast } from '@/stores/ui';
 import { firstError } from '@/domain/schemas';
-import { SPLIT_LABELS, ExerciseForm, ExerciseFilterBar, useExerciseFilters } from './Training';
+import { SPLIT_LABELS, ExerciseForm } from './Training';
+import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 
 export function PlanEditor() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export function PlanEditor() {
   const stored = useLiveQuery(() => db.plans.get(id!), [id]);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [pickFor, setPickFor] = useState<{ dayId: string; groupId?: string } | null>(null);
+  const [sel, setSel] = useState<{ dayId: string; ids: string[] } | null>(null);
   const exercises = useExercises();
   const exMap = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
   useEffect(() => {
@@ -58,6 +60,28 @@ export function PlanEditor() {
   const removeGroup = async (dayId: string, g: PlanGroup, count: number) => {
     if (count && !(await confirmDialog({ title: 'Einheit entfernen?', text: `„${g.name}“ und ihre ${count} Übung(en) werden aus dem Trainingstag entfernt.`, confirmLabel: 'Entfernen', danger: true }))) return;
     updDay(dayId, (d) => ({ ...d, groups: (d.groups ?? []).filter((x) => x.id !== g.id), exercises: d.exercises.filter((e) => e.groupId !== g.id) }));
+  };
+  /** Ausgewählte Einzelübungen zu einer neuen Einheit zusammenfassen (an der Stelle der ersten) */
+  const mergeToGroup = (dayId: string, ids: string[], target?: PlanGroup) => {
+    updDay(dayId, (d) => {
+      const picked = d.exercises.filter((e) => ids.includes(e.id));
+      if (!picked.length) return d;
+      const counts = new Map<number, number>();
+      for (const e of picked) counts.set(e.sets, (counts.get(e.sets) ?? 0) + 1);
+      const rounds = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] || 2;
+      const g: PlanGroup = target ?? { id: uid(), name: 'Zirkel', rounds: Math.min(20, Math.max(1, rounds)), restSec: 90 };
+      const moved = picked.map((e) => ({ ...e, groupId: g.id, restSec: 0 }));
+      const rest = d.exercises.filter((e) => !ids.includes(e.id));
+      let at: number;
+      if (target) {
+        const last = rest.map((e) => e.groupId).lastIndexOf(target.id);
+        at = last === -1 ? rest.length : last + 1;
+      } else at = d.exercises.findIndex((e) => ids.includes(e.id)); // vor der ersten Auswahl steht keine ausgewählte Übung
+      rest.splice(at, 0, ...moved);
+      return { ...d, exercises: rest, groups: target ? d.groups : [...(d.groups ?? []), g] };
+    });
+    setSel(null);
+    toast(target ? `${ids.length} Übung(en) zu „${target.name}“ hinzugefügt` : `Einheit aus ${ids.length} Übungen gebildet – Name, Durchgänge und Pause anpassen`, 'success');
   };
   const dissolveGroup = (dayId: string, gId: string) =>
     updDay(dayId, (d) => ({
@@ -133,9 +157,21 @@ export function PlanEditor() {
               );
               if (b.kind === 'single') {
                 const e = b.ex;
+                const selecting = sel?.dayId === d.id;
+                const checked = !!sel?.ids.includes(e.id);
                 return (
-                  <li key={e.id} className="rounded-xl border p-3" data-testid="plan-exercise">
-                    <ExerciseHead name={exMap.get(e.exerciseId)?.name ?? e.exerciseId} muscle={exMap.get(e.exerciseId)?.primaryMuscle}>
+                  <li key={e.id} className={cn('rounded-xl border p-3', checked && 'border-gold bg-gold/[0.06]')} data-testid="plan-exercise">
+                    <ExerciseHead
+                      name={exMap.get(e.exerciseId)?.name ?? e.exerciseId}
+                      muscle={exMap.get(e.exerciseId)?.primaryMuscle}
+                      lead={
+                        selecting ? (
+                          <button type="button" aria-pressed={checked} aria-label={`Auswählen: ${exMap.get(e.exerciseId)?.name ?? e.exerciseId}`} className="text-gold" onClick={() => setSel({ dayId: d.id, ids: checked ? sel!.ids.filter((x) => x !== e.id) : [...sel!.ids, e.id] })}>
+                            {checked ? <CheckSquare className="h-6 w-6" /> : <Square className="h-6 w-6 text-muted" />}
+                          </button>
+                        ) : null
+                      }
+                    >
                       {blockMove}
                       <Button variant="ghost" size="icon" aria-label="Übung entfernen" onClick={() => removeEx(d.id, e.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -201,20 +237,44 @@ export function PlanEditor() {
               );
             })}
           </ul>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setPickFor({ dayId: d.id })}>
-              <Plus className="h-4 w-4" /> Übung hinzufügen
-            </Button>
-            <Button variant="secondary" onClick={() => addGroup(d.id)}>
-              <Layers className="h-4 w-4" /> Einheit hinzufügen
-            </Button>
-          </div>
+          {sel?.dayId === d.id ? (
+            <div className="sticky bottom-20 z-10 space-y-2 rounded-2xl border-2 border-gold/50 bg-card p-3 shadow-lg md:bottom-4" data-testid="merge-bar">
+              <div className="text-sm font-medium">{sel.ids.length ? `${sel.ids.length} Übung(en) ausgewählt` : 'Übungen antippen, die zusammengehören'}</div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" disabled={sel.ids.length < 1} onClick={() => mergeToGroup(d.id, sel.ids)}>
+                  <Layers className="h-4 w-4" /> Als Einheit zusammenfassen
+                </Button>
+                {(d.groups ?? []).map((g) => (
+                  <Button key={g.id} size="sm" variant="secondary" disabled={sel.ids.length < 1} onClick={() => mergeToGroup(d.id, sel.ids, g)}>
+                    Zu „{g.name}“
+                  </Button>
+                ))}
+                <Button size="sm" variant="ghost" onClick={() => setSel(null)}>
+                  Abbrechen
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => setPickFor({ dayId: d.id })}>
+                <Plus className="h-4 w-4" /> Übung hinzufügen
+              </Button>
+              <Button variant="secondary" onClick={() => addGroup(d.id)}>
+                <Layers className="h-4 w-4" /> Einheit hinzufügen
+              </Button>
+              {d.exercises.some((e) => !e.groupId || !(d.groups ?? []).some((g) => g.id === e.groupId)) && (
+                <Button variant="ghost" onClick={() => setSel({ dayId: d.id, ids: [] })}>
+                  <CheckSquare className="h-4 w-4" /> Zusammenfassen
+                </Button>
+              )}
+            </div>
+          )}
         </Card>
       ))}
       <Button variant="outline" onClick={() => setPlan({ ...plan, days: [...plan.days, { id: uid(), name: `Tag ${String.fromCharCode(65 + plan.days.length)}`, weekdays: [], exercises: [] }] })}>
         <Plus className="h-4 w-4" /> Trainingstag hinzufügen
       </Button>
-      <div className="sticky bottom-20 z-10 flex gap-2 md:bottom-4">
+      <div className={cn('sticky bottom-20 z-10 flex gap-2 md:bottom-4', sel && 'hidden')}>
         <Button className="flex-1" variant="secondary" onClick={() => save(false)}>
           Speichern
         </Button>
@@ -269,9 +329,10 @@ function blocksOf(d: PlanDay): Block[] {
   return out;
 }
 
-function ExerciseHead({ name, muscle, children }: { name: string; muscle?: string; children: React.ReactNode }) {
+function ExerciseHead({ name, muscle, children, lead }: { name: string; muscle?: string; children: React.ReactNode; lead?: React.ReactNode }) {
   return (
     <div className="mb-2 flex items-center gap-1">
+      {lead && <div className="mr-1 shrink-0">{lead}</div>}
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{name}</div>
         <div className="text-xs text-muted">{muscle}</div>
@@ -292,31 +353,11 @@ function RepFields({ e, onPatch }: { e: PlanExercise; onPatch: (p: Partial<PlanE
 }
 
 export function ExercisePicker({ onClose, onPick }: { onClose: () => void; onPick: (e: Exercise) => void }) {
-  const all = useExercises();
-  const f = useExerciseFilters();
-  const { q, setQ } = f;
   const [create, setCreate] = useState(false);
-  const list = useMemo(() => searchExercises(all, f.q, f.muscle || undefined, { gym: f.onlyGym ? f.gym : undefined, equipment: f.equipment || undefined }), [all, f.q, f.muscle, f.onlyGym, f.gym, f.equipment]);
   return (
     <Sheet open onClose={onClose} title="Übung wählen">
       <div className="space-y-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-5 w-5 text-muted" />
-          <Input aria-label="Übung suchen" className="pl-10" placeholder="Suchen …" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-        <ExerciseFilterBar f={f} />
-        <ul className="divide-y">
-          {list.map((e) => (
-            <li key={e.id}>
-              <button className="w-full py-2 text-left" onClick={() => onPick(e)}>
-                <div className="text-sm font-medium">{e.name}</div>
-                <div className="text-xs text-muted">
-                  {e.primaryMuscle} · {e.equipment}
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <ExerciseBrowser onPick={onPick} />
         <Button variant="ghost" onClick={() => setCreate(true)}>
           <Plus className="h-4 w-4" /> Eigene Übung anlegen
         </Button>

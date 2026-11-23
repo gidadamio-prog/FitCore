@@ -100,3 +100,7 @@ Nach „Training abschließen“ und „Mahlzeit abschließen“ kämpft der Hel
 - **Abgeschlossene Mahlzeiten** werden je Tag gespeichert (`settings.closedMeals`, letzte 14 Tage) und können nur heute abgeschlossen werden.
 - Feiern (Bestleistung, Boss besiegt, Abzeichen …) erscheinen erst nach dem Kampf. Mit „Animationen reduzieren“ erscheint direkt das Ergebnis.
 
+## Trainingsdauer nachträglich korrigieren
+
+Wurde „Training abschließen“ vergessen, lässt sich die Dauer in der Zusammenfassung per Minuten oder Endzeit korrigieren (`updateWorkoutDuration`, 1–600 min). Ende = Start + Dauer; die geschätzte Trainingsenergie wird mit der neuen Dauer neu berechnet (gleiche MET-Formel). Ein manuell gesetzter kcal-Wert bleibt unverändert und hat weiterhin Vorrang.
+
