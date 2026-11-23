@@ -228,6 +228,32 @@ h1,
 @keyframes transform-in { 0% { filter: brightness(4) blur(6px); transform: scale(0.85); opacity: 0; } 60% { filter: brightness(1.6); opacity: 1; } 100% { filter: none; transform: scale(1); } }
 .transform-in { animation: transform-in 1.2s ease-out both; }
 
+/* Kampf gegen den Feldzug-Boss */
+.battle-bg {
+  background:
+    radial-gradient(120% 60% at 50% 100%, rgb(150 110 60 / 0.55), transparent 60%),
+    linear-gradient(180deg, #0b0608 0%, #1d0d12 45%, #3a2416 78%, #6b4a2a 100%);
+}
+.battle-bg::after { content: ''; position: absolute; inset: auto 0 0 0; height: 22vh; background: linear-gradient(180deg, rgb(120 86 48 / 0), rgb(150 110 64 / 0.6)); }
+@keyframes battle-enter-left { 0% { transform: translateX(-120%); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes battle-enter-right { 0% { transform: translateX(120%); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes battle-lunge { 0% { transform: none; } 55% { transform: translateX(38%) rotate(4deg) scale(1.04); } 100% { transform: translateX(30%) rotate(3deg); } }
+@keyframes battle-hit { 0% { transform: translateX(10px); filter: brightness(3) saturate(0); } 25% { transform: translateX(-8px) rotate(-2deg); filter: brightness(1.4) sepia(1) hue-rotate(-40deg) saturate(4); } 55% { transform: translateX(5px); } 100% { transform: none; filter: none; } }
+@keyframes battle-defeat { 0% { transform: none; filter: none; opacity: 1; } 35% { transform: translateX(6px) rotate(4deg); filter: brightness(2.5); } 100% { transform: translate(30%, 18%) rotate(78deg); filter: grayscale(1) brightness(0.4); opacity: 0; } }
+@keyframes battle-slash { 0% { clip-path: inset(0 100% 0 0); opacity: 1; } 45% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 0; } }
+@keyframes battle-banner { 0% { transform: scale(0.6); opacity: 0; } 25% { transform: scale(1.1); opacity: 1; } 80% { transform: scale(1); opacity: 1; } 100% { opacity: 0; } }
+@keyframes battle-result { 0% { transform: translateY(100%); } 100% { transform: none; } }
+.battle-enter-left { animation: battle-enter-left 700ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+.battle-enter-right { animation: battle-enter-right 700ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+.battle-lunge { animation: battle-lunge 380ms cubic-bezier(0.5, 0, 0.7, 1) forwards; }
+@keyframes battle-return { 0% { transform: translateX(30%) rotate(3deg); } 100% { transform: none; } }
+.battle-return { animation: battle-return 450ms ease-out both; }
+.battle-hit { animation: battle-hit 520ms ease-out both; }
+.battle-defeat { animation: battle-defeat 1.4s 250ms ease-in both; }
+.battle-slash { background: linear-gradient(135deg, transparent 44%, rgb(255 244 200 / 0.95) 49%, #fff 50%, rgb(255 210 120 / 0.9) 51%, transparent 56%); animation: battle-slash 380ms ease-out both; }
+.battle-banner { animation: battle-banner 1.7s ease-out both; }
+.battle-result { animation: battle-result 450ms cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+
 /* Animationen reduzieren (Einstellung oder System) */
 html[data-reduce-motion] *, html[data-reduce-motion] *::before, html[data-reduce-motion] *::after { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) {

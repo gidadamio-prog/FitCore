@@ -100,3 +100,4 @@ AK-098,I Gamification,"Klasse = Trainingsfokus (Vorlagen, Klassen-Feldzug), Lebe
 AK-099,I Gamification,"Geheime Erfolge mit Titeln und Denaren; Animationen inkl. Abschaltung",P1,BESTANDEN,Unit+E2E,"tests/domain/equipment.test.ts, e2e/rpg.spec.ts, Manuell",Version 1.7.0
 
 AK-100,I Gamification,"Grundkörper des Helden (12 Körperbauten) aus KFA und fettbereinigtem FFMI, mit Hysterese, KFA-Schätzung als Fallback und Kopf-Ausschnitt als Avatar",P1,BESTANDEN,Unit+E2E,"tests/domain/bodyType.test.ts, e2e/rpg.spec.ts",Version 1.8.0
+AK-101,I Gamification,"Kampf-Animation gegen den Feldzug-Boss nach Training und abgeschlossener Mahlzeit, Schaden seit dem letzten Kampf, Boss-Wechsel, Ergebnis-Zusammenfassung, Überspringen",P1,BESTANDEN,Unit+E2E,"tests/domain/battle.test.ts, e2e/battle.spec.ts",Version 1.9.0

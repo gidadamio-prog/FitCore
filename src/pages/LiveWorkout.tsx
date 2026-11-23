@@ -13,6 +13,8 @@ import { ExercisePicker } from './PlanEditor';
 import { newRecordsIn, suggestProgression, completedSets, workoutVolume } from '@/domain/training';
 import { celebrate } from '@/stores/celebrate';
 import { XP_RULES } from '@/domain/gamification';
+import { useGame } from '@/hooks/game';
+import { requestBattle } from '@/stores/battle';
 
 function useNow(ms = 1000) {
   const [now, setNow] = useState(Date.now());
@@ -29,6 +31,7 @@ export function LiveWorkout() {
   const [w, setW] = useState<ActiveWorkout | null>(null);
   const [picker, setPicker] = useState<{ mode: 'add' } | { mode: 'swap'; exId: string } | null>(null);
   const history = useWorkouts();
+  const game = useGame();
   const now = useNow(500);
   const beeped = useRef(false);
 
@@ -94,6 +97,7 @@ export function LiveWorkout() {
   const finish = async () => {
     if (!(await confirmDialog({ title: 'Training abschließen?', text: `${doneSets} abgeschlossene Sätze werden gespeichert. Nicht abgeschlossene Sätze werden verworfen.`, confirmLabel: 'Abschließen' }))) return;
     try {
+      const seenTotal = game?.campaign.totalDamage;
       const saved = await finishWorkout();
       const prs = newRecordsIn(saved, history).filter((p) => p.kind === 'weight' || p.kind === 'e1rm');
       const byExercise = new Map([...prs].sort((a) => (a.kind === 'weight' ? 1 : -1)).map((p) => [p.exerciseId, p])); // Gewichts-PR bevorzugt anzeigen
@@ -105,6 +109,19 @@ export function LiveWorkout() {
           lines: [...byExercise.values()].map((p) => `${p.name}: ${p.detail}`),
         });
       } else toast(`Training gespeichert · ${completedSets(saved)} Sätze, ${Math.round(workoutVolume(saved)).toLocaleString('de-DE')} kg · +${XP_RULES.workout.xp} EP`, 'success');
+      // Kampf gegen den Feldzug-Boss mit Trainingszusammenfassung
+      requestBattle({
+        reason: 'workout',
+        title: saved.name,
+        seenTotal,
+        lines: [
+          `Dauer ${formatDuration(saved.durationSec)}`,
+          `${completedSets(saved)} Sätze`,
+          `${Math.round(workoutVolume(saved)).toLocaleString('de-DE')} kg Volumen`,
+          `+${XP_RULES.workout.xp + Math.min(5, byExercise.size) * XP_RULES.pr.xp} EP`,
+          ...(byExercise.size ? [`${byExercise.size} ${byExercise.size === 1 ? 'Bestleistung' : 'Bestleistungen'}`] : []),
+        ],
+      });
       nav('/training/history/' + saved.id);
     } catch (e) {
       toast(firstError(e), 'error');

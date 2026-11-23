@@ -91,3 +91,12 @@ Der Held zeigt einen von 12 Körperbauten (`src/domain/bodyType.ts`). Er ist una
 | sehr muskulös | Bodybuilder | Bodybuilder | Muskulös mit Bauch | Strongman | Strongman |
 | extrem | Bodybuilder | Bodybuilder | Strongman | Koloss | Koloss |
 
+## Kampf gegen den Feldzug-Boss
+
+Nach „Training abschließen“ und „Mahlzeit abschließen“ kämpft der Held gegen den aktuellen Boss (`src/domain/battle.ts`). Der Feldzug selbst bleibt unverändert aus den Tagesdaten berechnet – der Kampf inszeniert nur den Zuwachs.
+
+- **Schaden des Kampfs** = Gesamtschaden jetzt − Gesamtschaden beim letzten Kampf (`settings.battleAck`, beim ersten Start still initialisiert). Alles seit dem letzten Kampf zählt mit (z. B. Wasser, Wiegen). Kein Zuwachs → kein Kampf.
+- **Angriffe:** höchstens 4, nach Bereichen im Verhältnis des heutigen Tagesschadens; der stärkste kommt zuletzt. Besiegt ein Angriff den Boss, wird er geteilt und der Rest trifft den nächsten Boss.
+- **Abgeschlossene Mahlzeiten** werden je Tag gespeichert (`settings.closedMeals`, letzte 14 Tage) und können nur heute abgeschlossen werden.
+- Feiern (Bestleistung, Boss besiegt, Abzeichen …) erscheinen erst nach dem Kampf. Mit „Animationen reduzieren“ erscheint direkt das Ergebnis.
+

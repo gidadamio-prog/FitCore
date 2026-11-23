@@ -2,19 +2,19 @@
 
 Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.
 
-**Pflicht: 64 Bilder** (20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung). **Optional: 25 Gegner-Porträts.**
+**Pflicht: 64 Bilder** (20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung) **+ 13 Bosse für die Kampfszene.** **Optional: 12 Gladiatoren-Porträts.**
 
 ## Regeln für alle Bilder
 
-| | Item-Icons | Heldenporträts | Gegner (optional) |
+| | Item-Icons | Heldenporträts | Bosse (Kampfszene) |
 | --- | --- | --- | --- |
-| Format | PNG mit Transparenz | PNG mit Transparenz | PNG |
-| Größe | 512 × 512 px | 1024 × 1280 px (4:5) | 768 × 768 px |
-| Motiv | ein Gegenstand, mittig, ca. 8 % Rand | Brustbild bis Hüfte, leicht nach rechts gedreht | Kopf und Schultern |
-| Hintergrund | keiner | keiner | darf, dunkel und schlicht |
-| Nicht enthalten | Rahmen, Text, Funken, Glow, Bodenschatten | Waffe, Schild, Helm, Handschuhe (kommen aus den Slots) | Text, Lebensbalken |
+| Format | PNG mit Transparenz | PNG mit Transparenz | PNG mit Transparenz |
+| Größe | 512 × 512 px | 1024 × 1280 px (4:5) | 1024 × 1536 px (2:3) |
+| Motiv | ein Gegenstand, mittig, ca. 8 % Rand | Brustbild bis Hüfte, leicht nach rechts gedreht | Ganzkörper von Kopf bis Fuß, Blick nach links (zum Helden) |
+| Hintergrund | keiner | keiner | keiner |
+| Nicht enthalten | Rahmen, Text, Funken, Glow, Bodenschatten | Waffe, Schild, Helm, Handschuhe (kommen aus den Slots) | Text, Lebensbalken, Effekte, Bodenschatten |
 
-1. **Stil:** handgemalter Fantasy-RPG-Look wie WoW- oder Diablo-Icons, römisch-kaiserlich; Farbwelt Purpur, Gold, Schwarz, Marmor wie das Konstantyn-Bild.
+1. **Stil:** Dark-Fantasy-Anime/Manhwa wie das Konstantyn-Bild und die Grundkörper, römisch-kaiserlich; Farbwelt Purpur, Gold, Schwarz, Marmor.
 2. **Licht** immer von oben links. **Waffen** diagonal von unten links nach oben rechts, Rüstungsteile frontal.
 3. **Lesbar bei 48 px:** klare Silhouette, keine feinen Details am Rand.
 4. **Keine Effekte malen** (Funken, Wasser, Flammen …) – die animiere ich im Code. Rahmen und Seltenheitsfarbe kommen ebenfalls aus dem Code.
@@ -26,7 +26,7 @@ Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett m
 Item-Icon (nur die eckigen Klammern tauschen):
 
 ```text
-Game item icon of [MOTIV], hand-painted fantasy RPG icon style like World of Warcraft,
+Game item icon of [MOTIV], dark fantasy anime / manhwa game icon style,
 Roman imperial theme, crimson, gold, black and marble accents, single object centered,
 light from top left, clean silhouette, transparent background,
 no frame, no text, no glow, no particles, no ground shadow
@@ -36,7 +36,7 @@ Porträt:
 
 ```text
 Half-body portrait of [PERSON], wearing [KLEIDUNG DER STUFE], no helmet, no weapon, no shield,
-3/4 view facing slightly right, same pose and framing as the reference, hand-painted fantasy RPG style,
+3/4 view facing slightly right, same pose and framing as the reference, dark fantasy anime / manhwa style,
 crimson and gold palette, transparent background, no text
 ```
 
@@ -179,23 +179,36 @@ Wird über Abzeichen freigeschaltet. Bronze/Silber/Gold verwenden dasselbe Bild;
 - [ ] `schuhe_marschstiefel-legion.png` – Marschstiefel der Legion: schwere Marschstiefel _(Effekt: Stampfen im Takt)_
 - [ ] `schuhe_schattensandalen.png` – Schattensandalen: dunkle Sandalen mit Rauchschleier-Muster _(Effekt: Schattenbild läuft hinterher)_
 
-## 5. Optional: Gegner (25 Bilder)
+## 5. Bosse für die Kampfszene (13 Bilder)
 
-**Feldzugs-Bosse**
+Nach jedem Training und jeder abgeschlossenen Mahlzeit kämpft der Held gegen den aktuellen Feldzug-Boss. Der Held steht links, der Boss rechts – deshalb **Ganzkörper, Blick nach links**. Ohne Bild erscheint eine gezeichnete Silhouette.
 
-- [ ] `boss_vercingetorix.png` – Vercingetorix, Fürst der Arverner (Gallia)
-- [ ] `boss_arminius.png` – Arminius, Schatten des Teutoburger Waldes (Germania)
-- [ ] `boss_boudicca.png` – Boudicca, Königin der Icener (Britannia)
-- [ ] `boss_viriathus.png` – Viriathus, Hirte und Rebell (Hispania)
-- [ ] `boss_decebalus.png` – Decebalus, König der Daker (Dacia)
-- [ ] `boss_iugurtha.png` – Iugurtha, König von Numidien (Africa)
-- [ ] `boss_sobek.png` – Der Wächter von Sobek, Herr des Nils (Aegyptus)
-- [ ] `boss_tiridates.png` – Tiridates, König der Berge (Armenia)
-- [ ] `boss_surena.png` – Surena, Feldherr von Carrhae (Parthia)
-- [ ] `boss_attila.png` – Attila, Geißel Gottes (Pannonia)
-- [ ] `boss_schapur.png` – Schapur, König der Könige (Persis)
-- [ ] `boss_maxentius.png` – Maxentius, Letzter Gegner Konstantins (Pons Milvius)
-- [ ] `boss_barbarenheer.png` – Barbarenheer am Limes (endloser Feldzug)
+Tipp: einen Grundkörper (z. B. `koerper_athletisch`) als Referenz mitgeben, dann passen Stil, Licht und Größe zum Helden. Bosse dürfen ruhig größer und wuchtiger wirken.
+
+```text
+Full-body character art of [BOSS], standing in a ready-to-fight pose, facing left in 3/4 view,
+dark fantasy anime / manhwa style matching the reference, light from top left,
+whole figure from head to feet with a small margin, 1024x1536 portrait canvas,
+transparent background, no text, no ground shadow, no particles or glow
+```
+
+- [ ] `boss_vercingetorix.png` – **Vercingetorix**, Fürst der Arverner (Gallia): gallischer Stammesfürst, wilde rotblonde Mähne, langer Schnurrbart, goldener Torques, karierter Umhang, Langschwert
+- [ ] `boss_arminius.png` – **Arminius**, Schatten des Teutoburger Waldes (Germania): germanischer Cherusker-Fürst, Haar im Suebenknoten, Wolfsfell über den Schultern, Rundschild und Speer, kalter Blick
+- [ ] `boss_boudicca.png` – **Boudicca**, Königin der Icener (Britannia): Kriegerkönigin der Icener, lange rote Haare, blaue Kriegsbemalung, goldener Torques, Speer, wehender Mantel
+- [ ] `boss_viriathus.png` – **Viriathus**, Hirte und Rebell (Hispania): lusitanischer Hirte und Rebell, wettergegerbt, kurzer Bart, Ziegenfellumhang, Falcata-Schwert, kleiner Rundschild
+- [ ] `boss_decebalus.png` – **Decebalus**, König der Daker (Dacia): Dakerkönig, Vollbart, phrygische Mütze, Schuppenpanzer, große Sichelwaffe (Falx), Drachenstandarte
+- [ ] `boss_iugurtha.png` – **Iugurtha**, König von Numidien (Africa): numidischer König, gelockter Bart, goldenes Diadem, weißer Mantel, Bündel Wurfspeere
+- [ ] `boss_sobek.png` – **Der Wächter von Sobek**, Herr des Nils (Aegyptus): Krieger mit Krokodilkopf, ägyptische Rüstung, breiter goldener Halskragen, Sichelschwert (Chepesch)
+- [ ] `boss_tiridates.png` – **Tiridates**, König der Berge (Armenia): armenischer Bergkönig, hohe Tiara, schwerer Schuppenpanzer, Pelzmantel, Kriegsbeil
+- [ ] `boss_surena.png` – **Surena**, Feldherr von Carrhae (Parthia): parthischer Feldherr, langer geölter Bart, Kataphrakt-Schuppenpanzer von Kopf bis Fuß, Reflexbogen
+- [ ] `boss_attila.png` – **Attila**, Geißel Gottes (Pannonia): Hunnenkönig, schmaler Bart, Pelzmütze, Lamellenpanzer, Kompositbogen auf dem Rücken, Säbel
+- [ ] `boss_schapur.png` – **Schapur**, König der Könige (Persis): sasanidischer Großkönig, prunkvolle Zinnenkrone mit Kugel, langer gelockter Bart, Seidengewänder, Langschwert
+- [ ] `boss_maxentius.png` – **Maxentius**, Letzter Gegner Konstantins (Pons Milvius): römischer Usurpator-Kaiser als dunkles Spiegelbild des Helden: Lorbeerkranz, schwarzer Muskelpanzer, Purpurmantel, Gladius
+- [ ] `boss_barbarenheer.png` – **Barbarenheer am Limes**, endloser Feldzug: bulliger Barbarenkrieger, Bärenfell, Hörnerhelm, zweihändige Axt, Narben
+
+## 6. Optional: Gladiatoren (12 Bilder)
+
+Kopf und Schultern, 768 × 768 px, Hintergrund darf dunkel und schlicht sein.
 
 **Kolosseum-Gladiatoren** (einer pro Monat)
 

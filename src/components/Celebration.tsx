@@ -4,6 +4,7 @@ import { Trophy } from 'lucide-react';
 import { Button } from './ui';
 import { Laurel } from './Laurel';
 import { useCelebrate, celebrate } from '@/stores/celebrate';
+import { useBattle } from '@/stores/battle';
 import { useGame } from '@/hooks/game';
 import { db } from '@/data/db';
 import { earnedBadgeKeys, TIER_LABEL, XP_RULES, type Tier } from '@/domain/gamification';
@@ -17,7 +18,8 @@ import { RANKS } from '@/domain/gamification';
 
 export function CelebrationHost() {
   const { queue, shift } = useCelebrate();
-  const c = queue[0];
+  const battle = useBattle((s) => !!s.scene || !!s.pending); // Feiern erst nach dem Kampf
+  const c = battle ? undefined : queue[0];
   useEffect(() => {
     if (c) navigator.vibrate?.([30, 40, 30]);
   }, [c]);

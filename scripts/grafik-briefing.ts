@@ -1,7 +1,23 @@
 // Erzeugt GRAFIK_BRIEFING.md direkt aus dem Katalog – Dateinamen stimmen dadurch immer mit dem Code überein.
 import { writeFileSync } from 'node:fs';
 import { APPEARANCE_STAGES, ITEMS, itemFile, portraitFile, CLASS_FILE } from '../src/domain/equipment';
-import { CAMPAIGN, HERO_CLASSES, colosseumBossName } from '../src/domain/rpg';
+import { CAMPAIGN, HERO_CLASSES, bossAt, bossFile, colosseumBossName } from '../src/domain/rpg';
+
+const BOSS_LOOK: Record<string, string> = {
+  gallia: 'gallischer Stammesfürst, wilde rotblonde Mähne, langer Schnurrbart, goldener Torques, karierter Umhang, Langschwert',
+  germania: 'germanischer Cherusker-Fürst, Haar im Suebenknoten, Wolfsfell über den Schultern, Rundschild und Speer, kalter Blick',
+  britannia: 'Kriegerkönigin der Icener, lange rote Haare, blaue Kriegsbemalung, goldener Torques, Speer, wehender Mantel',
+  hispania: 'lusitanischer Hirte und Rebell, wettergegerbt, kurzer Bart, Ziegenfellumhang, Falcata-Schwert, kleiner Rundschild',
+  dacia: 'Dakerkönig, Vollbart, phrygische Mütze, Schuppenpanzer, große Sichelwaffe (Falx), Drachenstandarte',
+  africa: 'numidischer König, gelockter Bart, goldenes Diadem, weißer Mantel, Bündel Wurfspeere',
+  aegyptus: 'Krieger mit Krokodilkopf, ägyptische Rüstung, breiter goldener Halskragen, Sichelschwert (Chepesch)',
+  armenia: 'armenischer Bergkönig, hohe Tiara, schwerer Schuppenpanzer, Pelzmantel, Kriegsbeil',
+  parthia: 'parthischer Feldherr, langer geölter Bart, Kataphrakt-Schuppenpanzer von Kopf bis Fuß, Reflexbogen',
+  pannonia: 'Hunnenkönig, schmaler Bart, Pelzmütze, Lamellenpanzer, Kompositbogen auf dem Rücken, Säbel',
+  persia: 'sasanidischer Großkönig, prunkvolle Zinnenkrone mit Kugel, langer gelockter Bart, Seidengewänder, Langschwert',
+  'pons-milvius': 'römischer Usurpator-Kaiser als dunkles Spiegelbild des Helden: Lorbeerkranz, schwarzer Muskelpanzer, Purpurmantel, Gladius',
+  limes: 'bulliger Barbarenkrieger, Bärenfell, Hörnerhelm, zweihändige Axt, Narben',
+};
 import { BODY_TYPES, bodyFile } from '../src/domain/bodyType';
 
 const LOOK: Record<string, string> = {
@@ -17,19 +33,19 @@ p('# FitCore – Grafik-Briefing');
 p();
 p('Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.');
 p();
-p('**Pflicht: 64 Bilder** (20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung). **Optional: 25 Gegner-Porträts.**');
+p('**Pflicht: 64 Bilder** (20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung) **+ 13 Bosse für die Kampfszene.** **Optional: 12 Gladiatoren-Porträts.**');
 p();
 p('## Regeln für alle Bilder');
 p();
-p('| | Item-Icons | Heldenporträts | Gegner (optional) |');
+p('| | Item-Icons | Heldenporträts | Bosse (Kampfszene) |');
 p('| --- | --- | --- | --- |');
-p('| Format | PNG mit Transparenz | PNG mit Transparenz | PNG |');
-p('| Größe | 512 × 512 px | 1024 × 1280 px (4:5) | 768 × 768 px |');
-p('| Motiv | ein Gegenstand, mittig, ca. 8 % Rand | Brustbild bis Hüfte, leicht nach rechts gedreht | Kopf und Schultern |');
-p('| Hintergrund | keiner | keiner | darf, dunkel und schlicht |');
-p('| Nicht enthalten | Rahmen, Text, Funken, Glow, Bodenschatten | Waffe, Schild, Helm, Handschuhe (kommen aus den Slots) | Text, Lebensbalken |');
+p('| Format | PNG mit Transparenz | PNG mit Transparenz | PNG mit Transparenz |');
+p('| Größe | 512 × 512 px | 1024 × 1280 px (4:5) | 1024 × 1536 px (2:3) |');
+p('| Motiv | ein Gegenstand, mittig, ca. 8 % Rand | Brustbild bis Hüfte, leicht nach rechts gedreht | Ganzkörper von Kopf bis Fuß, Blick nach links (zum Helden) |');
+p('| Hintergrund | keiner | keiner | keiner |');
+p('| Nicht enthalten | Rahmen, Text, Funken, Glow, Bodenschatten | Waffe, Schild, Helm, Handschuhe (kommen aus den Slots) | Text, Lebensbalken, Effekte, Bodenschatten |');
 p();
-p('1. **Stil:** handgemalter Fantasy-RPG-Look wie WoW- oder Diablo-Icons, römisch-kaiserlich; Farbwelt Purpur, Gold, Schwarz, Marmor wie das Konstantyn-Bild.');
+p('1. **Stil:** Dark-Fantasy-Anime/Manhwa wie das Konstantyn-Bild und die Grundkörper, römisch-kaiserlich; Farbwelt Purpur, Gold, Schwarz, Marmor.');
 p('2. **Licht** immer von oben links. **Waffen** diagonal von unten links nach oben rechts, Rüstungsteile frontal.');
 p('3. **Lesbar bei 48 px:** klare Silhouette, keine feinen Details am Rand.');
 p('4. **Keine Effekte malen** (Funken, Wasser, Flammen …) – die animiere ich im Code. Rahmen und Seltenheitsfarbe kommen ebenfalls aus dem Code.');
@@ -41,7 +57,7 @@ p();
 p('Item-Icon (nur die eckigen Klammern tauschen):');
 p();
 p('```text');
-p('Game item icon of [MOTIV], hand-painted fantasy RPG icon style like World of Warcraft,');
+p('Game item icon of [MOTIV], dark fantasy anime / manhwa game icon style,');
 p('Roman imperial theme, crimson, gold, black and marble accents, single object centered,');
 p('light from top left, clean silhouette, transparent background,');
 p('no frame, no text, no glow, no particles, no ground shadow');
@@ -51,7 +67,7 @@ p('Porträt:');
 p();
 p('```text');
 p('Half-body portrait of [PERSON], wearing [KLEIDUNG DER STUFE], no helmet, no weapon, no shield,');
-p('3/4 view facing slightly right, same pose and framing as the reference, hand-painted fantasy RPG style,');
+p('3/4 view facing slightly right, same pose and framing as the reference, dark fantasy anime / manhwa style,');
 p('crimson and gold palette, transparent background, no text');
 p('```');
 p();
@@ -113,13 +129,26 @@ for (const i of ITEMS.filter((x) => x.source.kind === 'badge')) {
   p(`- ${done ? '' : '[ ] '}\`${itemFile(i)}.png\` – ${i.name}: ${i.motif}${i.twoHanded ? ' (Zweihand)' : ''} _(Effekt: ${i.effectText})_${done ? ' – siehe Testlauf oben' : ''}`);
 }
 p();
-p('## 5. Optional: Gegner (25 Bilder)');
+p('## 5. Bosse für die Kampfszene (13 Bilder)');
 p();
-p('**Feldzugs-Bosse**');
+p('Nach jedem Training und jeder abgeschlossenen Mahlzeit kämpft der Held gegen den aktuellen Feldzug-Boss. Der Held steht links, der Boss rechts – deshalb **Ganzkörper, Blick nach links**. Ohne Bild erscheint eine gezeichnete Silhouette.');
 p();
-const bossFile = (name: string, id: string) => (id === 'aegyptus' ? 'sobek' : name.toLowerCase());
-for (const b of CAMPAIGN) p(`- [ ] \`boss_${bossFile(b.name, b.id)}.png\` – ${b.name}, ${b.epithet} (${b.province})`);
-p('- [ ] `boss_barbarenheer.png` – Barbarenheer am Limes (endloser Feldzug)');
+p('Tipp: einen Grundkörper (z. B. `koerper_athletisch`) als Referenz mitgeben, dann passen Stil, Licht und Größe zum Helden. Bosse dürfen ruhig größer und wuchtiger wirken.');
+p();
+p('```text');
+p('Full-body character art of [BOSS], standing in a ready-to-fight pose, facing left in 3/4 view,');
+p('dark fantasy anime / manhwa style matching the reference, light from top left,');
+p('whole figure from head to feet with a small margin, 1024x1536 portrait canvas,');
+p('transparent background, no text, no ground shadow, no particles or glow');
+p('```');
+p();
+for (const b of [...CAMPAIGN, bossAt(CAMPAIGN.length)]) {
+  p(`- [ ] \`${bossFile(b)}.png\` – **${b.id.startsWith('limes') ? 'Barbarenheer am Limes' : b.name}**, ${b.id.startsWith('limes') ? 'endloser Feldzug' : `${b.epithet} (${b.province})`}: ${BOSS_LOOK[b.id.startsWith('limes') ? 'limes' : b.id]}`);
+}
+p();
+p('## 6. Optional: Gladiatoren (12 Bilder)');
+p();
+p('Kopf und Schultern, 768 × 768 px, Hintergrund darf dunkel und schlicht sein.');
 p();
 p('**Kolosseum-Gladiatoren** (einer pro Monat)');
 p();
