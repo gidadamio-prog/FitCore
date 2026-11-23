@@ -11,6 +11,9 @@ import { MASTERY_TIERS, triumphWeek, weekRecap } from '@/domain/rpg';
 import { startOfWeek, today } from '@/domain/dates';
 import { useSettings } from '@/hooks/data';
 import { triumphCelebration } from '@/pages/game/HeroTab';
+import { HeroPortrait, ItemIcon } from './rpg/Visuals';
+import { APPEARANCE_STAGES, RARITY_COLOR, RARITY_LABEL, RARITY_MIN_RANK, appearanceStage, inventory, itemById } from '@/domain/equipment';
+import { RANKS } from '@/domain/gamification';
 
 export function CelebrationHost() {
   const { queue, shift } = useCelebrate();
@@ -24,11 +27,20 @@ export function CelebrationHost() {
       <div className="celebrate-pop relative w-full max-w-sm rounded-3xl border border-gold/40 bg-card p-6 text-center shadow-2xl shadow-primary/30" onClick={(e) => e.stopPropagation()}>
         <div className="celebrate-rays pointer-events-none absolute inset-0 rounded-3xl" />
         <div className="relative mx-auto mb-3 flex justify-center">
-          <Laurel size={120} className="celebrate-spin-in">
-            <Trophy className="h-10 w-10 text-gold" />
-          </Laurel>
+          {c.item && itemById(c.item.id) ? (
+            <div className="chest-open relative flex h-32 w-32 items-center justify-center">
+              <span className="rarity-rays" style={{ ['--rc' as string]: RARITY_COLOR[c.item.rarity], inset: '-10%' }} />
+              <ItemIcon item={itemById(c.item.id)!} rarity={c.item.rarity} size={104} />
+            </div>
+          ) : c.portrait ? (
+            <HeroPortrait classId={c.portrait.classId} rankLevel={c.portrait.rankLevel} crest={c.portrait.crest} size={120} transform aura="rgb(var(--gold))" />
+          ) : (
+            <Laurel size={120} className="celebrate-spin-in">
+              <Trophy className="h-10 w-10 text-gold" />
+            </Laurel>
+          )}
         </div>
-        <div className="font-brand relative text-xs uppercase tracking-[0.2em] text-gold">{{ pr: 'Neue Bestleistung', rank: 'Rangaufstieg', badge: 'Abzeichen', quest: 'Feldzug erfüllt', season: 'Saison-Triumph', boss: 'Provinz erobert', colosseum: 'Champion des Kolosseums', mastery: 'Meisterschaft', comeback: 'Comeback', duel: 'Schatten besiegt', level: 'Stufenaufstieg', triumph: 'Triumphzug' }[c.kind]}</div>
+        <div className="font-brand relative text-xs uppercase tracking-[0.2em] text-gold">{{ pr: 'Neue Bestleistung', rank: 'Rangaufstieg', badge: 'Abzeichen', quest: 'Feldzug erfüllt', season: 'Saison-Triumph', boss: 'Provinz erobert', colosseum: 'Champion des Kolosseums', mastery: 'Meisterschaft', comeback: 'Comeback', duel: 'Schatten besiegt', level: 'Stufenaufstieg', triumph: 'Triumphzug', item: 'Neue Ausrüstung', transform: 'Verwandlung' }[c.kind]}</div>
         <h2 className="font-brand relative mt-1 text-2xl font-bold" data-testid="celebration-title">
           {c.title}
         </h2>
@@ -61,12 +73,14 @@ interface Ack {
   comebacks?: string[];
   duels?: string[];
   triumph?: string | null;
+  items?: string[];
+  stage?: number;
 }
 
 /** Erkennt neue Ränge, Abzeichen, Feldzüge und Saisonsiege und feiert sie einmalig. Beim ersten Start wird still initialisiert. */
 export function GameWatcher() {
   const game = useGame();
-  const { hero } = useSettings();
+  const { hero, purchases } = useSettings();
   const busy = useRef(false);
   useEffect(() => {
     if (!game || busy.current) return;
@@ -86,6 +100,10 @@ export function GameWatcher() {
         comebacks: game.comebacks,
         duels: game.duelWeeksWon,
         triumph: null,
+        items: inventory(game.badges, hero?.classId, game.rank.rank.level, purchases)
+          .filter((o) => o.def.source.kind === 'badge' && o.unlocked)
+          .map((o) => `${o.def.id}:${o.unlocked}`),
+        stage: appearanceStage(game.rank.rank.level),
       };
       const row = await db.settings.get('gameAck');
       const ack = row?.value as Ack | undefined;
@@ -100,6 +118,8 @@ export function GameWatcher() {
       const prevMastery = ack.mastery ?? now.mastery;
       const prevComebacks = ack.comebacks ?? now.comebacks;
       const prevDuels = ack.duels ?? now.duels;
+      const prevItems = ack.items ?? now.items;
+      const prevStage = ack.stage ?? now.stage;
 
       if (now.rankLevel > ack.rankLevel) celebrate({ kind: 'rank', title: `${game.rank.rank.name}`, subtitle: `Du bist jetzt ${game.rank.rank.title} (Rang ${game.rank.rank.level} von 10).`, lines: [`${game.xp.toLocaleString('de-DE')} Erfahrungspunkte`] });
       for (const k of now.badges.filter((b) => !ack.badges.includes(b))) {
@@ -131,6 +151,23 @@ export function GameWatcher() {
       }
       for (const d of now.comebacks.filter((x) => !prevComebacks.includes(x))) celebrate({ kind: 'comeback', title: 'Der Phönix kehrt zurück', subtitle: `Willkommen zurück im Training (${d}) · +${XP_RULES.comeback.xp} EP` });
       for (const w of now.duels.filter((x) => !prevDuels.includes(x))) celebrate({ kind: 'duel', title: 'Schatten besiegt', subtitle: `Die Woche ab ${w} war besser als vor 4 Wochen · +${XP_RULES.duel.xp} EP` });
+      for (const k of now.items.filter((x) => !prevItems.includes(x))) {
+        const [id, rarity] = k.split(':') as [string, 'rare' | 'epic' | 'legendary'];
+        const def = itemById(id);
+        if (!def) continue;
+        const locked = game.rank.rank.level < RARITY_MIN_RANK[rarity];
+        celebrate({
+          kind: 'item',
+          title: def.name,
+          subtitle: `${RARITY_LABEL[rarity]}${def.effectText ? ` · ${def.effectText}` : ''}`,
+          lines: locked ? [`In dieser Pracht tragbar ab Rang ${RANKS[RARITY_MIN_RANK[rarity] - 1]?.name}`] : ['Im Inventar – jetzt anlegen unter Held'],
+          item: { id, rarity },
+        });
+      }
+      if (hero && now.stage > prevStage) {
+        const st = APPEARANCE_STAGES[now.stage - 1]!;
+        celebrate({ kind: 'transform', title: `${hero.name} wird ${st.name}`, subtitle: `Erscheinungsbild ${now.stage} von 5`, portrait: { classId: hero.classId, rankLevel: game.rank.rank.level, crest: hero.color } });
+      }
       // Triumphzug: einmal pro Woche, nur mit Held und wenn es etwas zu feiern gibt
       const tw = triumphWeek(t, new Date().getHours());
       let triumph = ack.triumph ?? null;
@@ -155,11 +192,13 @@ export function GameWatcher() {
           comebacks: merge(prevComebacks, now.comebacks, 200),
           duels: merge(prevDuels, now.duels, 200),
           triumph,
+          items: merge(prevItems, now.items, 500),
+          stage: Math.max(prevStage, now.stage),
         } satisfies Ack,
       });
     })().finally(() => {
       busy.current = false;
     });
-  }, [game, hero]);
+  }, [game, hero, purchases]);
   return null;
 }

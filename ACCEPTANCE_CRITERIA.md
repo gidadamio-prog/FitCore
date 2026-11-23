@@ -111,3 +111,7 @@ Maschinenlesbar: `acceptance_criteria.csv`.
 | AK-093 | I Gamification | RPG-Held: Klasse, Stufe, Attribute, Bosse, Kolosseum, Schatten-Duell, Comeback, Meisterschaft, Lebenswerk | BESTANDEN | Unit+E2E | `tests/domain/rpg.test.ts`, `e2e/rpg.spec.ts` | Version 1.6.0 |
 | AK-094 | I Gamification | Startunabhängiger Kampfwert, Teilen über Teilen-Menü, Rivale per Link/Code, Rangliste | BESTANDEN | Unit+E2E | `tests/domain/rpg.test.ts`, `e2e/rpg.spec.ts` | Version 1.6.0 |
 | AK-095 | I Gamification | Denare & Markt (Paletten, Kränze, Titel), Triumphzug als Wochenrückblick | BESTANDEN | Unit+E2E | `e2e/rpg.spec.ts`, `Manuell` | Version 1.6.0 |
+| AK-096 | I Gamification | Ausrüstung mit 6 Slots, Zweihand-Regel, Seltenheit aus Abzeichen, Rangbindung, Inventar, Set-Aura | BESTANDEN | Unit+E2E | `tests/domain/equipment.test.ts`, `e2e/rpg.spec.ts` | Version 1.7.0 |
+| AK-097 | I Gamification | Erscheinungsbild in 5 Stufen nach Rang, Bilder aus src/assets/rpg mit Platzhalter-Fallback | BESTANDEN | Unit+E2E | `tests/domain/equipment.test.ts`, `e2e/rpg.spec.ts` | Version 1.7.0 |
+| AK-098 | I Gamification | Klasse = Trainingsfokus (Vorlagen, Klassen-Feldzug), Lebensweg = Ernährungsziel als neue Zielversion | BESTANDEN | Unit+E2E | `tests/domain/equipment.test.ts`, `e2e/rpg.spec.ts` | Version 1.7.0 |
+| AK-099 | I Gamification | Geheime Erfolge mit Titeln und Denaren; Animationen inkl. Abschaltung | BESTANDEN | Unit+E2E | `tests/domain/equipment.test.ts`, `e2e/rpg.spec.ts`, `Manuell` | Version 1.7.0 |

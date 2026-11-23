@@ -1,6 +1,7 @@
 // Held, Rivalen und Markt – gespeichert in den lokalen Einstellungen.
-import { getSettings, setSetting, type Rival } from './profileRepo';
-import { encodeShare, SHOP, classById, denare, type Hero, type ShareCard } from '@/domain/rpg';
+import { addGoalVersion, currentGoal, deriveGoal, getProfile, getSettings, latestWeight, setSetting, type Rival } from './profileRepo';
+import { encodeShare, SHOP, classById, denare, pathById, type Hero, type PathId, type ShareCard } from '@/domain/rpg';
+import { STARTER_PRICE, equipItem, inventory, itemById, normalizeLoadout, unequip, type SlotId } from '@/domain/equipment';
 import type { GameState } from '@/domain/gamification';
 import { today, uid } from '@/domain/dates';
 
@@ -83,15 +84,75 @@ export async function removeRival(id: string) {
   await setSetting('rivals', s.rivals.filter((r) => r.id !== id));
 }
 
-export async function buyItem(itemId: string, xp: number) {
-  const item = SHOP.find((x) => x.id === itemId);
-  if (!item) throw new Error('Unbekannter Gegenstand.');
+/** Preise für Käufe außerhalb des SHOP-Katalogs (Start-Ausrüstung anderer Klassen) */
+export function extraPrices(purchases: string[]) {
+  return Object.fromEntries(purchases.filter((p) => p.startsWith('item-')).map((p) => [p, STARTER_PRICE]));
+}
+
+export async function buyItem(itemId: string, xp: number, bonus = 0) {
+  const shopItem = SHOP.find((x) => x.id === itemId);
+  const starter = itemId.startsWith('item-') ? itemById(itemId.slice(5)) : undefined;
+  if (!shopItem && !starter) throw new Error('Unbekannter Gegenstand.');
+  const price = shopItem?.price ?? STARTER_PRICE;
   const s = await getSettings();
   if (s.purchases.includes(itemId)) throw new Error('Schon gekauft.');
-  const { balance } = denare(xp, s.purchases);
-  if (balance < item.price) throw new Error(`Dir fehlen noch ${item.price - balance} Denare.`);
+  const { balance } = denare(xp, s.purchases, bonus, extraPrices(s.purchases));
+  if (balance < price) throw new Error(`Dir fehlen noch ${price - balance} Denare.`);
   await setSetting('purchases', [...s.purchases, itemId]);
 }
+
+/** Ausrüstung anlegen – prüft Freischaltung, Rang und Zweihand-Regel. */
+export async function equipToHero(itemId: string, game: GameState) {
+  const s = await getSettings();
+  if (!s.hero) throw new Error('Erschaffe zuerst deinen Helden.');
+  const item = itemById(itemId);
+  if (!item) throw new Error('Unbekannter Gegenstand.');
+  const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases);
+  const current = normalizeLoadout(s.hero.loadout, inv, s.hero.classId);
+  const r = equipItem(current, item, inv, s.hero.classId);
+  await setSetting('hero', { ...s.hero, loadout: r.loadout });
+  return r.notice;
+}
+
+export async function unequipFromHero(slot: SlotId, game: GameState) {
+  const s = await getSettings();
+  if (!s.hero) return;
+  const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases);
+  await setSetting('hero', { ...s.hero, loadout: unequip(normalizeLoadout(s.hero.loadout, inv, s.hero.classId), slot) });
+}
+
+/** Vorschau des Ernährungsziels für einen Lebensweg – gleiche Berechnung und Sicherheitsgrenzen wie im Zielrechner. */
+export async function previewPath(pathId: PathId) {
+  const path = pathById(pathId);
+  if (!path) throw new Error('Unbekannter Lebensweg.');
+  const [profile, goal, weight] = await Promise.all([getProfile(), currentGoal(), latestWeight()]);
+  if (!profile || !goal) throw new Error('Kein Profil oder Ziel vorhanden.');
+  if (!weight) throw new Error('Trage zuerst dein Gewicht ein.');
+  const computed = deriveGoal(profile, weight, { primaryGoal: path.goal, secondaryGoals: goal.secondaryGoals, macroStrategy: path.macroStrategy, formula: goal.formula });
+  return { path, goal, computed };
+}
+
+export async function applyPath(pathId: PathId) {
+  const { path, goal, computed } = await previewPath(pathId);
+  await addGoalVersion({
+    primaryGoal: path.goal,
+    secondaryGoals: goal.secondaryGoals,
+    weeklyRateKg: computed.weeklyRateKg,
+    macroStrategy: path.macroStrategy,
+    formula: computed.formula,
+    bmr: computed.bmr,
+    tdee: computed.tdee,
+    adjustmentKcal: computed.adjustmentKcal,
+    calorieTarget: computed.calorieTarget,
+    proteinG: computed.proteinG,
+    carbsG: computed.carbsG,
+    fatG: computed.fatG,
+    manualCalories: false,
+    manualMacros: false,
+    reason: `Lebensweg: ${path.name}`,
+  });
+}
+
 
 export async function equip(kind: 'palette' | 'title' | 'frame', value: string | undefined) {
   const s = await getSettings();

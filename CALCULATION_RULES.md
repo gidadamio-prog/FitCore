@@ -64,3 +64,11 @@ Implementierung: `src/domain/*.ts` · Tests: `tests/domain/*.test.ts`. Alle Wert
 - Meisterschaft: Bankdrücken, Kniebeuge, Kreuzheben, Schulterdrücken (LH), Langhantelrudern über e1RM ÷ Körpergewicht (Richtwerte Männer, Frauen × 0,65; Orientierung, keine Norm); andere Übungen über Steigerung des besten e1RM gegenüber der ersten Einheit (+10/25/50/100 %). e1RM nur aus Sätzen ≤ 12 Wdh.
 - Kampfwert = Summe der EP der letzten 28 Tage (startunabhängig vergleichbar); Ø EP/Woche = Gesamt-EP ÷ max(7, Tage seit erstem aktiven Tag) × 7. Denare = ⌊EP/10⌋ − Käufe.
 - Teilen: Code „FC1.<base64url(JSON)>.<FNV-1a-Prüfsumme>“ enthält nur Spielwerte (Name, Klasse, Wappen, Titel, Stufe, EP, Kampfwert, Ø/Woche, Tage seit Start, Bosse, Kolosseum-Siege, Datum). Keine Körper- oder Ernährungsdaten. Prüfsumme erkennt Übertragungsfehler, nicht Manipulation.
+
+## Ausrüstung, Erscheinungsbild, Klasse und Lebensweg
+- Ausrüstung ist rein kosmetisch (kein Einfluss auf Schaden, EP oder Kampfwert). 6 Slots; Zweihandwaffen leeren die Nebenhand, Nebenhand bei Zweihandwaffe tauscht auf eine Einhandwaffe.
+- Start-Set der eigenen Klasse ist Gewöhnlich. Achievement-Teile: Bronze = Selten, Silber = Episch, Gold = Legendär. Tragbar: Selten ab Rang 1, Episch ab Optio (5), Legendär ab Primus Pilus (7); höhere Freischaltungen werden bis dahin in der höchsten erlaubten Seltenheit getragen. Set-Aura bei 3 getragenen Teilen derselben Kategorie.
+- Erscheinungsbild-Stufe = ⌈Rang/2⌉ (1–5).
+- Klasse bestimmt Trainingsfokus, empfohlene Vorlagen und einen zusätzlichen wöchentlichen Klassen-Feldzug (Legionär 3 Krafteinheiten, Gladiator 4 Einheiten, Cursor 120 Ausdauerminuten, Stratege 5 Tage Protein- und Trinkziel).
+- Lebensweg ist eine Oberfläche für das Ernährungsziel: Asket = Fettabbau (high protein), Stoiker = Rekomposition (high protein), Epikureer = Muskelaufbau (ausgewogen); gleiche Berechnung und Sicherheitsgrenzen wie der Zielrechner, Wechsel legt eine neue Zielversion an.
+- Geheime Erfolge: Frühaufsteher (Training vor 7 Uhr), Doppelschicht (2 Einheiten an einem Tag), Säulen des Reiches (8 Wochen in Folge Beintraining), Wiedersehen (PR innerhalb 7 Tagen nach Comeback), Stoische Ruhe (30 Tage in Folge Kalorienziel ± 10 %). Belohnung: Titel und 50–150 Denare.

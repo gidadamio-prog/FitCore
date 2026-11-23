@@ -3,6 +3,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { X } from 'lucide-react';
 import React, { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 export const cn = (...c: ClassValue[]) => twMerge(clsx(c));
 
@@ -130,7 +131,8 @@ export function Sheet({ open, onClose, title, children, footer, wide }: { open: 
     };
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  // Portal: Sheets liegen immer direkt im body – animierte Eltern (transform) würden „fixed“ sonst einsperren.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
       <div ref={ref} className={cn('relative flex max-h-[92dvh] w-full flex-col rounded-t-3xl border bg-card shadow-2xl sm:rounded-3xl', wide ? 'sm:max-w-2xl' : 'sm:max-w-lg')}>
@@ -143,7 +145,8 @@ export function Sheet({ open, onClose, title, children, footer, wide }: { open: 
         <div className="flex-1 overflow-y-auto overscroll-contain p-4">{children}</div>
         {footer && <div className="safe-bottom flex gap-2 border-t p-3">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -14,6 +14,7 @@ import { EQUIPMENT, GYMS, MUSCLE_GROUPS } from '@/data/exerciseLibrary';
 import { PLAN_TEMPLATES, planFromTemplate } from '@/data/planTemplates';
 import { useSettings } from '@/hooks/data';
 import { sessionKcal } from '@/domain/balance';
+import { CLASS_TRAINING, classById } from '@/domain/rpg';
 import { formatDuration } from '@/domain/dates';
 
 type Tab = 'plans' | 'history' | 'cardio' | 'exercises' | 'records';
@@ -64,7 +65,8 @@ function Plans() {
   const nav = useNavigate();
   const active = useActiveWorkout();
   const [showArchived, setShowArchived] = useState(false);
-  const [tplOpen, setTplOpen] = useState(false);
+  const [params] = useSearchParams();
+  const [tplOpen, setTplOpen] = useState(params.get('vorlagen') === '1');
   const visible = plans.filter((p) => (showArchived ? p.status === 'archived' : p.status !== 'archived')).sort((a, b) => (a.status === 'active' ? -1 : b.status === 'active' ? 1 : 0));
   const newPlan = async () => {
     const p = await savePlan({ name: 'Neuer Plan', goal: '', split: 'fullbody', status: 'draft', notes: '', days: [{ id: uid(), name: 'Tag A', weekdays: [], exercises: [] }] });
@@ -171,7 +173,13 @@ function Plans() {
 
 function TemplatePicker({ onClose, onPick }: { onClose: () => void; onPick: (t: (typeof PLAN_TEMPLATES)[number]) => void }) {
   const settings = useSettings();
-  const list = [...PLAN_TEMPLATES].sort((a, b) => Number(b.gym === settings.homeGym && !!b.gym) - Number(a.gym === settings.homeGym && !!a.gym));
+  const cls = settings.hero ? CLASS_TRAINING[settings.hero.classId] : undefined;
+  const rec = (id: string) => (cls ? cls.templates.indexOf(id) : -1);
+  const list = [...PLAN_TEMPLATES].sort(
+    (a, b) =>
+      (rec(b.id) >= 0 ? 100 - rec(b.id) : 0) - (rec(a.id) >= 0 ? 100 - rec(a.id) : 0) ||
+      Number(b.gym === settings.homeGym && !!b.gym) - Number(a.gym === settings.homeGym && !!a.gym),
+  );
   return (
     <Sheet open onClose={onClose} title="Planvorlagen">
       <ul className="space-y-2" data-testid="template-list">
@@ -180,7 +188,10 @@ function TemplatePicker({ onClose, onPick }: { onClose: () => void; onPick: (t: 
             <button className="w-full rounded-xl border p-3 text-left hover:bg-fg/[0.04]" onClick={() => onPick(t)}>
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{t.name}</span>
-                {t.gym && <Badge tone="accent">{GYMS[t.gym]}</Badge>}
+                <span className="flex shrink-0 gap-1">
+                  {rec(t.id) >= 0 && settings.hero && <Badge tone="info">Empfohlen für {classById(settings.hero.classId)?.name}</Badge>}
+                  {t.gym && <Badge tone="accent">{GYMS[t.gym]}</Badge>}
+                </span>
               </div>
               <div className="mt-0.5 text-xs text-muted">
                 {SPLIT_LABELS[t.split]} · {t.days.length} Tag(e) · {t.sets}×{t.repMin}–{t.repMax}

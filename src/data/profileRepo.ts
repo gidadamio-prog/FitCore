@@ -160,6 +160,8 @@ export interface AppSettings {
   rivals: Rival[];
   /** Gekaufte Markt-Gegenstände (IDs) */
   purchases: string[];
+  /** Animationen reduzieren */
+  reduceMotion: boolean;
 }
 
 export type Rival = ShareCard & { importedAt: string };
@@ -175,6 +177,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hero: null,
   rivals: [],
   purchases: [],
+  reduceMotion: false,
 };
 
 export async function getSettings(): Promise<AppSettings> {

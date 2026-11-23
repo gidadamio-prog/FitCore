@@ -20,7 +20,11 @@ import { CelebrationHost, GameWatcher } from './components/Celebration';
 import { BootScreen } from './components/Boot';
 
 function useTheme() {
-  const { theme, hero } = useSettings();
+  const { theme, hero, reduceMotion } = useSettings();
+  useEffect(() => {
+    if (reduceMotion) document.documentElement.dataset.reduceMotion = '';
+    else delete document.documentElement.dataset.reduceMotion;
+  }, [reduceMotion]);
   const palette = hero?.palette && hero.palette !== 'imperium' ? hero.palette : '';
   useEffect(() => {
     if (palette) document.documentElement.dataset.palette = palette;

@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Check, Lock, Skull, Swords, Ghost } from 'lucide-react';
+import { rpgAsset } from '@/components/rpg/Visuals';
+import { useReducedMotion } from '@/hooks/motion';
 import { Badge, Card, CardTitle, Progress, fmt, cn } from '@/components/ui';
 import { CAMPAIGN, DOMAIN_LABEL, bossAt, dayDamage, type Domain } from '@/domain/rpg';
 import type { GameState } from '@/domain/gamification';
@@ -6,13 +9,47 @@ import { addDays, formatDate, rangeDates, startOfWeek, today } from '@/domain/da
 import { XP_RULES } from '@/domain/gamification';
 import { useSettings } from '@/hooks/data';
 
+const SEEN_KEY = 'fitcore-boss-seen';
+
+/** Zuletzt gesehener Stand des Bosses – für die Treffer-Animation seit dem letzten Besuch. */
+function useBossHit(bossId: string, remaining: number) {
+  const reduced = useReducedMotion();
+  const [hit, setHit] = useState<{ from: number; dmg: number } | null>(null);
+  useEffect(() => {
+    let prev: { id: string; remaining: number } | null = null;
+    try {
+      prev = JSON.parse(localStorage.getItem(SEEN_KEY) ?? 'null');
+      localStorage.setItem(SEEN_KEY, JSON.stringify({ id: bossId, remaining }));
+    } catch {
+      /* Speicher nicht verfügbar – dann ohne Animation */
+    }
+    if (!reduced && prev && prev.id === bossId && prev.remaining > remaining) setHit({ from: prev.remaining, dmg: prev.remaining - remaining });
+  }, [bossId, remaining, reduced]);
+  return hit;
+}
+
 export function BossCard({ game }: { game: GameState }) {
   const c = game.campaign.current;
+  const hit = useBossHit(c.boss.id, c.remaining);
+  const [drained, setDrained] = useState(false);
+  useEffect(() => {
+    if (!hit) return;
+    const t = setTimeout(() => setDrained(true), 350);
+    return () => clearTimeout(t);
+  }, [hit]);
+  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / c.boss.hp) * 100))}%`;
+  const shown = hit && !drained ? hit.from : c.remaining;
+  const portrait = rpgAsset(`boss_${c.boss.id === 'aegyptus' ? 'sobek' : c.boss.id.startsWith('limes') ? 'barbarenheer' : c.boss.name.toLowerCase()}`);
   return (
     <div data-testid="boss-card">
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15">
-          <Skull className="h-6 w-6 text-primary" />
+        <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/15', hit && 'hit-shake')}>
+          {portrait ? <img src={portrait} alt="" className="h-full w-full object-cover" /> : <Skull className="h-7 w-7 text-primary" />}
+          {hit && (
+            <span className="dmg-float absolute left-1/2 top-1 -translate-x-1/2 font-brand text-lg font-bold text-gold drop-shadow" data-testid="boss-damage">
+              −{fmt(hit.dmg)}
+            </span>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[11px] uppercase tracking-wider text-muted">{c.boss.province}</div>
@@ -22,7 +59,10 @@ export function BossCard({ game }: { game: GameState }) {
           <div className="truncate text-xs text-muted">{c.boss.epithet}</div>
         </div>
       </div>
-      <Progress className="mt-3 h-3" value={c.remaining} max={c.boss.hp} color="danger" label={`Lebenspunkte ${c.boss.name}`} />
+      <div className="relative mt-3 h-3 w-full overflow-hidden rounded-full bg-fg/[0.07]" role="progressbar" aria-label={`Lebenspunkte ${c.boss.name}`} aria-valuemin={0} aria-valuemax={c.boss.hp} aria-valuenow={c.remaining}>
+        <div className="absolute inset-y-0 left-0 rounded-full bg-white/70 transition-[width] delay-500 duration-1000 ease-out" style={{ width: pct(shown) }} />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-danger transition-[width] duration-300 ease-out" style={{ width: pct(c.remaining) }} />
+      </div>
       <div className="mt-1 flex justify-between text-[11px] text-muted">
         <span data-testid="boss-hp">
           {fmt(c.remaining)} / {fmt(c.boss.hp)} LP
@@ -51,7 +91,7 @@ export function CampaignTab({ game }: { game: GameState }) {
   const defeatedIdx = game.campaign.defeated.length;
   const shown = Math.max(CAMPAIGN.length, defeatedIdx + 1);
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="stagger grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="space-y-4">
         <CardTitle>Aktueller Gegner</CardTitle>
         <BossCard game={game} />
@@ -72,14 +112,18 @@ export function CampaignTab({ game }: { game: GameState }) {
         </p>
       </Card>
 
-      <Card className="space-y-3">
+      <Card className="relative space-y-3 overflow-hidden">
+        <span className="sand-drift" style={{ top: '30%' }} aria-hidden />
+        <span className="sand-drift" style={{ top: '62%', animationDelay: '-2s', animationDuration: '6.5s' }} aria-hidden />
+        <span className="sand-drift" style={{ top: '84%', animationDelay: '-3.5s' }} aria-hidden />
         <CardTitle action={col.defeatedOn ? <Badge tone="accent">besiegt</Badge> : undefined}>
           <span className="flex items-center gap-1">
             <Swords className="h-4 w-4 text-gold" /> Kolosseum – Champion des Monats
           </span>
         </CardTitle>
-        <div className="flex items-baseline justify-between">
-          <span className="font-brand text-lg font-bold" data-testid="colosseum-name">
+        <div className="flex items-center justify-between gap-2">
+          {rpgAsset(`gladiator_${col.name.toLowerCase().replace(/\s+/g, '-')}`) && <img src={rpgAsset(`gladiator_${col.name.toLowerCase().replace(/\s+/g, '-')}`)} alt="" className="h-12 w-12 rounded-xl object-cover" />}
+          <span className="flex-1 font-brand text-lg font-bold" data-testid="colosseum-name">
             {col.name}
           </span>
           <span className="text-xs text-muted">{formatDate(col.month + '-01', { month: 'long', year: 'numeric' })}</span>

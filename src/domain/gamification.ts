@@ -2,7 +2,8 @@
 // Belohnt werden Regelmäßigkeit, Training und Zielnähe – ausdrücklich NICHT möglichst wenig Kalorien oder schnelles Abnehmen.
 import type { CardioSession, DiaryEntry, Exercise, GoalVersion, Measurement, Plan, RecoveryLog, Sex, WaterLog, Workout } from './types';
 import type { MealDayHits } from './mealGame';
-import { battleScore, campaign, colosseum, comebackDates, dayDamage, exerciseMastery, heroLevel, attributes, lifeWork, shadowDuel, type CampaignState, type Duel, type HeroClassId, type MasteryEntry } from './rpg';
+import { secretAchievements, type SecretAchievement } from './achievements';
+import { CLASS_TRAINING, battleScore, campaign, colosseum, comebackDates, dayDamage, exerciseMastery, heroLevel, attributes, lifeWork, shadowDuel, type CampaignState, type Duel, type HeroClassId, type MasteryEntry } from './rpg';
 import { addDays, rangeDates, startOfWeek } from './dates';
 import { goalForDate } from './balance';
 import { isCompletedSet, setVolume, epley1RM } from './training';
@@ -288,7 +289,7 @@ function weekIndex(weekStart: string) {
   return Math.round(new Date(weekStart + 'T12:00:00Z').getTime() / (7 * 86400000));
 }
 
-export function questsForWeek(weekStart: string, facts: Map<string, DayFacts>, prs: PrEvent[], i: Pick<GameInput, 'activePlan' | 'trainingDaysPerWeek' | 'homeGym' | 'today'>): Quest[] {
+export function questsForWeek(weekStart: string, facts: Map<string, DayFacts>, prs: PrEvent[], i: Pick<GameInput, 'activePlan' | 'trainingDaysPerWeek' | 'homeGym' | 'today' | 'heroClass'>): Quest[] {
   const days = rangeDates(weekStart, addDays(weekStart, 6)).filter((d) => d <= i.today);
   const f = days.map((d) => facts.get(d)).filter((x): x is DayFacts => !!x);
   const planned = i.activePlan ? new Set(i.activePlan.days.flatMap((d) => d.weekdays)).size : i.trainingDaysPerWeek;
@@ -308,6 +309,19 @@ export function questsForWeek(weekStart: string, facts: Map<string, DayFacts>, p
     () => q('mobility', 'Rücken & Beweglichkeit', '6 Sätze an five, Dr. Wolff, DAVID, Sensopro, Arke oder Mobility-Übungen.', 6, f.reduce((a, x) => a + x.mobilitySets, 0), 'Sätze'),
   ].filter((fn) => i.homeGym || fn().id !== 'mobility');
   quests.push(rotating[Math.abs(weekIndex(weekStart)) % rotating.length]!());
+  // Klassen-Feldzug: passend zum Trainingsfokus der Klasse
+  if (i.heroClass) {
+    const c = CLASS_TRAINING[i.heroClass].quest;
+    const progress =
+      c.metric === 'strength'
+        ? f.reduce((a, x) => a + x.workouts, 0)
+        : c.metric === 'sessions'
+          ? sessions
+          : c.metric === 'cardio'
+            ? Math.round(f.reduce((a, x) => a + x.cardioMin, 0))
+            : f.filter((x) => x.proteinHit && x.waterHit).length;
+    quests.push(q(c.id, c.title, c.description, c.target, progress, c.unit));
+  }
   return quests;
 }
 
@@ -385,6 +399,9 @@ export interface GameState {
   battle: ReturnType<typeof battleScore>;
   mealHitsTotal: number;
   perfectDays: number;
+  secrets: SecretAchievement[];
+  /** Denare aus Erfolgen */
+  bonusDenare: number;
   facts: Map<string, DayFacts>;
   xpByDay: Map<string, number>;
   damageByDay: Map<string, number>;
@@ -525,6 +542,8 @@ export function computeGame(i: GameInput): GameState {
   }
   const badges = defs.map(badgeStatus);
 
+  const secrets = secretAchievements({ workouts: i.workouts, facts, prs, comebacks, today: i.today });
+
   const xpLast7 = rangeDates(addDays(i.today, -6), i.today).map((d) => ({ date: d, xp: xpByDay.get(d) ?? 0 }));
   return {
     xp,
@@ -553,6 +572,8 @@ export function computeGame(i: GameInput): GameState {
     battle: battleScore(xpByDay, i.today),
     mealHitsTotal,
     perfectDays,
+    secrets,
+    bonusDenare: secrets.filter((x) => x.achieved).reduce((a, x) => a + x.reward.denare, 0),
     facts,
     xpByDay,
     damageByDay,

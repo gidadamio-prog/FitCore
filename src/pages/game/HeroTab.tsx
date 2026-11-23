@@ -9,6 +9,8 @@ import { celebrate } from '@/stores/celebrate';
 import { ATTRIBUTE_LABEL, CREST_COLORS, EMBLEMS, EMBLEM_LABEL, HERO_CLASSES, MASTERY_TIERS, classById, triumphWeek, weekRecap, type AttributeId, type EmblemId, type Hero, type HeroClassId } from '@/domain/rpg';
 import type { GameState } from '@/domain/gamification';
 import { formatDate, today } from '@/domain/dates';
+import { CharacterSheet, ClassFocusCard, LifePathCard } from './CharacterSheet';
+import { useCountUp } from '@/hooks/motion';
 
 export const TIER_COLORS = ['', '#b0743a', '#aab3bd', 'rgb(var(--gold))', '#a0244a'];
 
@@ -95,6 +97,7 @@ export function HeroForm({ initial, onDone }: { initial?: Hero | null; onDone?: 
 export function HeroSummary({ hero, game, compact = false }: { hero: Hero; game: GameState; compact?: boolean }) {
   const cls = classById(hero.classId);
   const lv = game.level;
+  const score = useCountUp(game.battle.score);
   return (
     <div className="flex items-center gap-4" data-testid="hero-summary">
       <HeroCrest emblem={hero.emblem} color={hero.color} frame={hero.frame} size={compact ? 64 : 92} label={`Wappen von ${hero.name}`} />
@@ -104,7 +107,7 @@ export function HeroSummary({ hero, game, compact = false }: { hero: Hero; game:
           {hero.title && <span className="ml-1 text-sm font-normal text-gold">{hero.title}</span>}
         </div>
         <div className="text-xs text-muted">
-          {cls?.name} · <span data-testid="hero-level">Stufe {lv.level}</span> · Kampfwert <span data-testid="battle-score">{fmt(game.battle.score)}</span>
+          {cls?.name} · <span data-testid="hero-level">Stufe {lv.level}</span> · Kampfwert <span data-testid="battle-score">{fmt(score)}</span>
         </div>
         <Progress className="mt-2" value={lv.progress * 100} max={100} label="Fortschritt zur nächsten Stufe" />
         <div className="mt-1 text-[11px] text-muted">{lv.next ? `Noch ${fmt(lv.toNext)} EP bis Stufe ${lv.level + 1}` : 'Höchste Stufe erreicht'}</div>
@@ -127,9 +130,10 @@ export function HeroTab({ game }: { game: GameState }) {
     celebrate(triumphCelebration(r, hero.name));
   };
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="stagger grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="space-y-4">
         <HeroSummary hero={hero} game={game} />
+        <CharacterSheet hero={hero} game={game} />
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
             <Pencil className="h-4 w-4" /> Bearbeiten
@@ -139,6 +143,8 @@ export function HeroTab({ game }: { game: GameState }) {
           </Button>
         </div>
       </Card>
+      <ClassFocusCard hero={hero} />
+      <LifePathCard />
       <Card>
         <CardTitle action={<Badge tone="accent">Macht {power}</Badge>}>Attribute</CardTitle>
         <ul className="space-y-3" data-testid="attributes">

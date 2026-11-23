@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Field, NumberInput, Progress, Ring, Sheet, Stat, fmt } from '@/components/ui';
+import { HeroPortrait } from '@/components/rpg/Visuals';
 import { PageHeader } from '@/components/Layout';
 import { useActiveWorkout, useCardio, useDaySummary, useGoals, useMeasurements, usePlans, useProfile, useSettings, useWorkouts, useAllEntries } from '@/hooks/data';
 import { addDays, formatLongDate, isoWeekday, startOfWeek, today } from '@/domain/dates';
@@ -92,7 +93,9 @@ export function Today() {
           </div>
           <button className="mt-3 block w-full rounded-xl bg-fg/[0.04] p-3 text-left" onClick={() => nav(settings.hero ? '/erfolge?tab=feldzug' : '/erfolge?tab=held')} data-testid="today-hero">
             {settings.hero ? (
-              <>
+              <div className="flex items-center gap-3">
+                <HeroPortrait classId={settings.hero.classId} rankLevel={game.rank.rank.level} crest={settings.hero.color} size={44} />
+                <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2 text-sm">
                   <span className="truncate font-semibold">
                     {settings.hero.name} · Stufe {game.level.level}
@@ -108,7 +111,8 @@ export function Today() {
                   </span>
                 </div>
                 <Progress className="mt-1" value={game.campaign.current.remaining} max={game.campaign.current.boss.hp} color="danger" label="Lebenspunkte des Gegners" />
-              </>
+                </div>
+              </div>
             ) : (
               <span className="text-sm font-medium text-gold">Erschaffe deinen Helden und zieh gegen die Bosse des Reiches →</span>
             )}

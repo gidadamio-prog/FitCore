@@ -57,7 +57,7 @@ export function ArenaTab({ game }: { game: GameState }) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="stagger grid grid-cols-1 gap-4 lg:grid-cols-2">
       {pending && (
         <Card className="border-gold/50 lg:col-span-2" data-testid="rival-preview">
           <CardTitle>Rivale hinzufügen?</CardTitle>

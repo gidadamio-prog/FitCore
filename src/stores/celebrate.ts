@@ -2,10 +2,14 @@ import { create } from 'zustand';
 
 export interface Celebration {
   id: number;
-  kind: 'pr' | 'rank' | 'badge' | 'quest' | 'season' | 'boss' | 'colosseum' | 'mastery' | 'comeback' | 'duel' | 'level' | 'triumph';
+  kind: 'pr' | 'rank' | 'badge' | 'quest' | 'season' | 'boss' | 'colosseum' | 'mastery' | 'comeback' | 'duel' | 'level' | 'triumph' | 'item' | 'transform';
   title: string;
   subtitle?: string;
   lines?: string[];
+  /** Neues Ausrüstungsteil */
+  item?: { id: string; rarity: 'common' | 'rare' | 'epic' | 'legendary' };
+  /** Verwandlung des Porträts */
+  portrait?: { classId: 'legionar' | 'gladiator' | 'cursor' | 'strategos'; rankLevel: number; crest: string };
 }
 
 interface State {

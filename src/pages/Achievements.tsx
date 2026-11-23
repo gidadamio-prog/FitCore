@@ -7,6 +7,9 @@ import { Laurel } from '@/components/Laurel';
 import { useGame } from '@/hooks/game';
 import { RANKS, TIER_LABEL, XP_RULES, type BadgeStatus, type GameState, type Quest, type Tier } from '@/domain/gamification';
 import { formatDate } from '@/domain/dates';
+import { ITEMS, RARITY_LABEL } from '@/domain/equipment';
+import { ItemIcon } from '@/components/rpg/Visuals';
+import type { SecretAchievement } from '@/domain/achievements';
 import { HeroTab } from './game/HeroTab';
 import { CampaignTab } from './game/CampaignTab';
 import { ArenaTab } from './game/ArenaTab';
@@ -113,6 +116,8 @@ export function QuestList({ quests }: { quests: Quest[] }) {
 function BadgeTile({ b }: { b: BadgeStatus }) {
   const color = b.tier ? TIER_COLOR[b.tier] : 'rgb(var(--muted) / 0.45)';
   const shownTarget = b.nextTarget ?? b.tiers[2];
+  const reward = ITEMS.find((i) => i.source.kind === 'badge' && i.source.badgeId === b.id);
+  const rarity = b.tier ? ({ bronze: 'rare', silver: 'epic', gold: 'legendary' } as const)[b.tier] : null;
   return (
     <div className={cn('rounded-2xl border p-3 text-center', !b.tier && 'opacity-70')} data-testid={`badge-${b.id}`}>
       <Laurel size={56} color={color} className="mx-auto">
@@ -128,6 +133,31 @@ function BadgeTile({ b }: { b: BadgeStatus }) {
         {fmt(b.value)}
         {b.nextTarget != null ? ` / ${fmt(b.nextTarget)}` : ''} {b.unit ?? ''}
       </div>
+      {reward && (
+        <div className="mt-2 flex items-center gap-2 rounded-lg bg-fg/[0.04] p-1.5 text-left" data-testid={`reward-${b.id}`}>
+          <ItemIcon item={reward} rarity={rarity} locked={!rarity} size={32} animate={false} />
+          <span className="min-w-0 text-[10px] leading-tight">
+            <span className="block truncate font-semibold">{reward.name}</span>
+            <span className="text-muted">{rarity ? RARITY_LABEL[rarity] : 'Belohnung bei Bronze'}</span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SecretTile({ a }: { a: SecretAchievement }) {
+  return (
+    <div className={cn('rounded-2xl border p-3 text-center', !a.achieved && 'opacity-75')} data-testid={`secret-${a.id}`}>
+      <div className={cn('mx-auto flex h-12 w-12 items-center justify-center rounded-full font-brand text-xl', a.achieved ? 'bg-gold/20 text-gold' : 'bg-fg/[0.06] text-muted')}>{a.achieved ? '★' : '?'}</div>
+      <div className="mt-1 text-sm font-semibold">{a.achieved ? a.name : '???'}</div>
+      <div className="mt-0.5 text-[11px] text-muted">{a.achieved ? a.description : a.hint}</div>
+      {!a.achieved && a.progress && a.progress.value > 0 && <Progress className="mt-2" value={a.progress.value} max={a.progress.target} label="Fortschritt geheimer Erfolg" />}
+      {a.achieved && (
+        <div className="mt-1 text-[10px] text-gold">
+          Titel „{a.reward.title}“ · +{a.reward.denare} Denare{a.date ? ` · ${formatDate(a.date)}` : ''}
+        </div>
+      )}
     </div>
   );
 }
@@ -179,10 +209,20 @@ function FameTab({ game }: { game: GameState }) {
       </div>
 
       <Card>
-        <CardTitle>Abzeichen</CardTitle>
+        <CardTitle>Abzeichen & Ausrüstung</CardTitle>
+        <p className="mb-3 text-xs text-muted">Jedes Abzeichen schaltet bei Bronze ein Ausrüstungsteil frei; Silber und Gold werten es zu Episch und Legendär auf.</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" data-testid="badge-grid">
           {[...game.badges].sort((a, b) => (b.tier ? ['bronze', 'silver', 'gold'].indexOf(b.tier) + 1 : 0) - (a.tier ? ['bronze', 'silver', 'gold'].indexOf(a.tier) + 1 : 0)).map((b) => (
             <BadgeTile key={b.id} b={b} />
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle action={<Badge>{game.secrets.filter((x) => x.achieved).length}/{game.secrets.length}</Badge>}>Geheime Erfolge</CardTitle>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" data-testid="secret-grid">
+          {game.secrets.map((a) => (
+            <SecretTile key={a.id} a={a} />
           ))}
         </div>
       </Card>

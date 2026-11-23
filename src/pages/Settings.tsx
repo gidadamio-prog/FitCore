@@ -233,6 +233,13 @@ function AppSettingsView() {
       <Card className="space-y-3">
         <CardTitle>Darstellung</CardTitle>
         <Tabs value={s.theme} onChange={(t) => setSetting('theme', t)} items={[{ value: 'system', label: 'System' }, { value: 'light', label: 'Hell' }, { value: 'dark', label: 'Dunkel' }]} />
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium">Animationen reduzieren</div>
+            <div className="text-xs text-muted">Schaltet Effekte, Partikel und Bewegungen ab (spart auch Akku).</div>
+          </div>
+          <Switch label="Animationen reduzieren" checked={s.reduceMotion} onChange={(v) => setSetting('reduceMotion', v)} />
+        </div>
       </Card>
       <Card className="space-y-3">
         <CardTitle>Mein Studio</CardTitle>

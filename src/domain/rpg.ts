@@ -47,6 +47,74 @@ export const CREST_COLORS = ['#9e1b32', '#d4a64a', '#2f7d5b', '#2f5fa8', '#5b3a8
 export type FrameId = 'bronze' | 'silver' | 'gold' | 'purpur';
 export type PaletteId = 'imperium' | 'byzanz' | 'smaragd' | 'obsidian';
 
+// ---------------------------------------------------------------------------
+// Klasse = Trainingsfokus, Lebensweg = Ernährung
+// ---------------------------------------------------------------------------
+
+export interface ClassTraining {
+  focus: string;
+  guidance: string[];
+  /** IDs aus PLAN_TEMPLATES, in Reihenfolge der Empfehlung */
+  templates: string[];
+  repRange: string;
+  quest: { id: string; title: string; description: string; target: number; unit: string; metric: 'strength' | 'sessions' | 'cardio' | 'proteinWater' };
+}
+
+export const CLASS_TRAINING: Record<HeroClassId, ClassTraining> = {
+  legionar: {
+    focus: 'Kraft und Muskelaufbau',
+    guidance: ['3–5 Krafteinheiten pro Woche, Grundübungen zuerst', '6–10 Wiederholungen, 2–3 Minuten Pause bei schweren Sätzen', 'Ausdauer als Ergänzung (1–2× locker)'],
+    templates: ['ppl-free', 'vitova-upper-lower', 'vitova-tg-ab'],
+    repRange: '6–10',
+    quest: { id: 'class-legionar', title: 'Disziplin der Legion', description: '3 Krafteinheiten in der Woche.', target: 3, unit: 'Krafteinheiten', metric: 'strength' },
+  },
+  gladiator: {
+    focus: 'Athletik, Zirkel und Beweglichkeit',
+    guidance: ['Ganzkörper- und Zirkeltraining, gern Supersätze', '10–15 Wiederholungen, kurze Pausen', 'Mobility und Rumpf in jede Woche einbauen'],
+    templates: ['vitova-kinesis', 'vitova-milon', 'bodyweight-home', 'vitova-back'],
+    repRange: '10–15',
+    quest: { id: 'class-gladiator', title: 'Spiele der Arena', description: '4 Einheiten in der Woche (Kraft oder Ausdauer).', target: 4, unit: 'Einheiten', metric: 'sessions' },
+  },
+  cursor: {
+    focus: 'Ausdauer mit Kraftbasis',
+    guidance: ['3 Ausdauereinheiten, überwiegend locker (man kann noch sprechen)', '2 Ganzkörper-Krafteinheiten zur Verletzungsvorbeugung', '12–20 Wiederholungen an den Geräten'],
+    templates: ['vitova-milon', 'vitova-tg-ab', 'bodyweight-home'],
+    repRange: '12–20',
+    quest: { id: 'class-cursor', title: 'Die Botenroute', description: '120 Minuten Ausdauer in der Woche.', target: 120, unit: 'Minuten', metric: 'cardio' },
+  },
+  strategos: {
+    focus: 'Ausgewogen und gesund',
+    guidance: ['2–3 Ganzkörpereinheiten plus Rücken und Haltung', '8–12 Wiederholungen, saubere Technik vor Gewicht', 'Ernährung, Wasser und Erholung sind deine Waffen'],
+    templates: ['vitova-tg-ab', 'vitova-back', 'vitova-milon'],
+    repRange: '8–12',
+    quest: { id: 'class-strategos', title: 'Versorgung der Truppe', description: 'An 5 Tagen Protein- und Trinkziel erreichen.', target: 5, unit: 'Tage', metric: 'proteinWater' },
+  },
+};
+
+export type PathId = 'asket' | 'stoiker' | 'epikureer';
+export interface LifePath {
+  id: PathId;
+  name: string;
+  motto: string;
+  description: string;
+  goal: 'reduce_fat' | 'recomp' | 'build_muscle';
+  macroStrategy: 'high_protein' | 'balanced';
+  aura: string;
+}
+export const PATHS: LifePath[] = [
+  { id: 'asket', name: 'Asket', motto: 'Weniger ist mehr – aber nie zu wenig.', description: 'Moderates Defizit zum Fettabbau (ca. 0,5 % Körpergewicht pro Woche), eiweißbetont.', goal: 'reduce_fat', macroStrategy: 'high_protein', aura: '#8fc3e8' },
+  { id: 'stoiker', name: 'Stoiker', motto: 'Maß halten ist die höchste Kunst.', description: 'Gewicht halten bzw. Rekomposition: kaum Defizit, viel Eiweiß, Muskeln auf- und Fett abbauen.', goal: 'recomp', macroStrategy: 'high_protein', aura: '#e9dcc0' },
+  { id: 'epikureer', name: 'Epikureer', motto: 'Wer Großes baut, braucht Material.', description: 'Leichter Überschuss für Muskelaufbau (ca. 0,25 % Körpergewicht pro Woche), ausgewogene Makros.', goal: 'build_muscle', macroStrategy: 'balanced', aura: '#b8434e' },
+];
+export const pathById = (id: string | undefined) => PATHS.find((p) => p.id === id);
+/** Welcher Lebensweg zum aktuellen Ernährungsziel passt */
+export function pathForGoal(goal: string | undefined): PathId | null {
+  if (goal === 'reduce_fat' || goal === 'lose_weight') return 'asket';
+  if (goal === 'recomp' || goal === 'maintain') return 'stoiker';
+  if (goal === 'build_muscle' || goal === 'strength') return 'epikureer';
+  return null;
+}
+
 export interface Hero {
   /** Zufällige ID – erkennt beim Teilen denselben Helden wieder */
   id: string;
@@ -58,6 +126,8 @@ export interface Hero {
   title?: string;
   frame?: FrameId;
   palette?: PaletteId;
+  /** Getragene Ausrüstung je Slot (null = leer) */
+  loadout?: Partial<Record<'main' | 'off' | 'head' | 'hands' | 'legs' | 'feet', string | null>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -432,9 +502,10 @@ export const SHOP: ShopItem[] = [
   { id: 'title-augustus', kind: 'title', name: 'Augustus', description: 'Der Erhabene. Nur für die Ausdauerndsten.', price: 1500, value: 'Augustus' },
 ];
 
-export function denare(xp: number, purchases: string[]) {
-  const earned = Math.floor(Math.max(0, xp) / XP_PER_DENAR);
-  const spent = purchases.reduce((a, id) => a + (SHOP.find((s) => s.id === id)?.price ?? 0), 0);
+/** Denare aus EP plus Belohnungen aus Erfolgen, minus Käufe. `extraPrices` für Käufe außerhalb des SHOP-Katalogs (z. B. Start-Ausrüstung). */
+export function denare(xp: number, purchases: string[], bonus = 0, extraPrices: Record<string, number> = {}) {
+  const earned = Math.floor(Math.max(0, xp) / XP_PER_DENAR) + bonus;
+  const spent = purchases.reduce((a, id) => a + (SHOP.find((s) => s.id === id)?.price ?? extraPrices[id] ?? 0), 0);
   return { earned, spent, balance: earned - spent };
 }
 

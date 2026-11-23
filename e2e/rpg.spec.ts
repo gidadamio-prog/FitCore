@@ -25,6 +25,37 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   await expect(page.getByTestId('battle-score')).toHaveText('5'); // Wiegen beim Onboarding
   await expect(page.getByTestId('attributes')).toBeVisible();
 
+  // Charakterbogen: Start-Set des Legionärs, Erscheinung Stufe 1 (Tiro)
+  const sheet = page.getByTestId('character-sheet');
+  await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: Gladius');
+  await expect(sheet.getByTestId('slot-off')).toHaveAccessibleName('Nebenhand: Scutum');
+  await expect(sheet.getByTestId('hero-portrait')).toHaveAttribute('data-stage', '1');
+  await sheet.getByTestId('slot-main').click();
+  const inv = page.getByTestId('inventory');
+  await expect(inv.getByTestId('inv-gladius')).toContainText('angelegt');
+  await expect(inv.getByTestId('inv-gladius-bestleistung')).toContainText('Rekordjäger Bronze');
+  await expect(inv.getByTestId('inv-hammer-atlas')).toContainText('Zweihand');
+  await page.getByRole('button', { name: 'Haupthand ablegen' }).click();
+  await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: leer');
+  await sheet.getByTestId('slot-main').click();
+  await page.getByTestId('inv-gladius').getByRole('button', { name: 'Anlegen' }).click();
+  await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: Gladius');
+
+  // Klasse = Trainingsfokus
+  await expect(page.getByTestId('class-focus')).toContainText('Kraft und Muskelaufbau');
+  await expect(page.getByTestId('class-focus')).toContainText('Disziplin der Legion');
+
+  // Lebensweg = Ernährungsziel (neue Zielversion mit Vorschau)
+  const life = page.getByTestId('life-path');
+  await life.getByTestId('path-epikureer').click();
+  await expect(page.getByTestId('path-preview')).toContainText('Kalorien');
+  await page.getByRole('button', { name: 'Übernehmen' }).click();
+  await expect(life.getByTestId('path-epikureer')).toHaveAttribute('aria-pressed', 'true');
+  await page.goto('/#/settings');
+  await page.getByRole('tab', { name: 'Ziele' }).click();
+  await expect(page.getByText('Lebensweg: Epikureer').first()).toBeVisible();
+  await page.goto('/#/erfolge?tab=held');
+
   // Feldzug
   await page.getByRole('tab', { name: 'Feldzug' }).click();
   await expect(page.getByTestId('boss-name')).toHaveText('Vercingetorix');
@@ -64,10 +95,16 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   await page.getByRole('button', { name: 'Prüfen' }).click();
   await expect(page.getByText(/beschädigt/)).toBeVisible();
 
-  // Markt: noch zu wenig Denare
+  // Markt: noch zu wenig Denare, Start-Ausrüstung anderer Klassen
   await page.getByRole('tab', { name: 'Markt' }).click();
   await expect(page.getByTestId('denare')).toHaveText('0');
   await expect(page.getByTestId('shop-palette-byzanz').getByRole('button')).toBeDisabled();
+  await expect(page.getByTestId('shop-item-dreizack').getByRole('button')).toBeDisabled();
+
+  // Ruhm: geheime Erfolge verdeckt, Abzeichen mit Belohnung
+  await page.getByRole('tab', { name: 'Ruhm' }).click();
+  await expect(page.getByTestId('secret-fruehaufsteher')).toContainText('???');
+  await expect(page.getByTestId('reward-prs')).toContainText('Gladius der Bestleistung');
   await dismissCelebrations(page);
   // Kein horizontales Überlaufen auf dem Handy
   for (const t of ['Held', 'Feldzug', 'Arena', 'Ruhm', 'Markt']) {
