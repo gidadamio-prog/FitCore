@@ -3,7 +3,7 @@ import { Check, Lock, Skull, Swords, Ghost } from 'lucide-react';
 import { rpgAsset } from '@/components/rpg/Visuals';
 import { useReducedMotion } from '@/hooks/motion';
 import { Badge, Card, CardTitle, Progress, fmt, cn } from '@/components/ui';
-import { CAMPAIGN, DOMAIN_LABEL, bossAt, dayDamage, type Domain } from '@/domain/rpg';
+import { CAMPAIGN, DOMAIN_LABEL, bossAt, bossFile, dayDamage, type Domain } from '@/domain/rpg';
 import type { GameState } from '@/domain/gamification';
 import { addDays, formatDate, rangeDates, startOfWeek, today } from '@/domain/dates';
 import { XP_RULES } from '@/domain/gamification';
@@ -39,12 +39,12 @@ export function BossCard({ game }: { game: GameState }) {
   }, [hit]);
   const pct = (v: number) => `${Math.max(0, Math.min(100, (v / c.boss.hp) * 100))}%`;
   const shown = hit && !drained ? hit.from : c.remaining;
-  const portrait = rpgAsset(`boss_${c.boss.id === 'aegyptus' ? 'sobek' : c.boss.id.startsWith('limes') ? 'barbarenheer' : c.boss.name.toLowerCase()}`);
+  const portrait = rpgAsset(bossFile(c.boss));
   return (
     <div data-testid="boss-card">
       <div className="flex items-center gap-3">
         <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/15', hit && 'hit-shake')}>
-          {portrait ? <img src={portrait} alt="" className="h-full w-full object-cover" /> : <Skull className="h-7 w-7 text-primary" />}
+          {portrait ? <img src={portrait} alt="" className="h-full w-full origin-top scale-[1.8] object-cover object-top" /> : <Skull className="h-7 w-7 text-primary" />}
           {hit && (
             <span className="dmg-float absolute left-1/2 top-1 -translate-x-1/2 font-brand text-lg font-bold text-gold drop-shadow" data-testid="boss-damage">
               −{fmt(hit.dmg)}

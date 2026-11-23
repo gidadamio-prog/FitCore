@@ -77,10 +77,10 @@ export async function createAndActivatePlan(page: Page) {
   await expect(page.getByTestId('plan-card').first()).toContainText('aktiv');
 }
 
-/** Schließt eventuell angezeigte Feier-Dialoge (Bestleistung, Abzeichen, Rang). */
+/** Schließt eventuell angezeigte Feier-Dialoge (Bestleistung, Abzeichen, Rang) und überspringt Kämpfe. */
 export async function dismissCelebrations(page: Page) {
   for (let i = 0; i < 10; i++) {
-    const btn = page.getByRole('button', { name: /^(Ave!|Weiter)$/ });
+    const btn = page.getByRole('button', { name: /^(Ave!|Weiter|Überspringen)$/ });
     try {
       await btn.first().waitFor({ state: 'visible', timeout: 1200 });
     } catch {

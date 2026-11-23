@@ -17,6 +17,7 @@ import { Coach } from './pages/Coach';
 import { SettingsPage } from './pages/Settings';
 import { Achievements } from './pages/Achievements';
 import { CelebrationHost, GameWatcher } from './components/Celebration';
+import { BattleHost, BattleWatcher } from './components/Battle';
 import { BootScreen } from './components/Boot';
 
 function useTheme() {
@@ -74,6 +75,8 @@ export function App() {
       <ConfirmHost />
       <CelebrationHost />
       <GameWatcher />
+      <BattleHost />
+      <BattleWatcher />
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Today />} />

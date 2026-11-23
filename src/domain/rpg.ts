@@ -241,6 +241,13 @@ export function bossAt(index: number): Boss {
   return { id: `limes-${n}`, province: 'Limes', name: `Barbarenheer ${toRoman(n)}`, epithet: 'Grenzwacht – endloser Feldzug', hp: ENDLESS_HP };
 }
 
+/** Bilddatei des Bosses in src/assets/rpg (ohne Endung) */
+export function bossFile(b: Pick<Boss, 'id' | 'name'>): string {
+  if (b.id === 'aegyptus') return 'boss_sobek';
+  if (b.id.startsWith('limes')) return 'boss_barbarenheer';
+  return `boss_${b.name.toLowerCase().replace(/\s+/g, '-')}`;
+}
+
 export function toRoman(n: number): string {
   const map: [number, string][] = [
     [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],

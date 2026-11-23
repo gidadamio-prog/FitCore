@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Copy, MoreHorizontal, Plus, Trash2, Droplets, Save, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, MoreHorizontal, Plus, Trash2, Droplets, Save, Heart, Swords, Check } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Field, Input, NumberInput, Progress, Select, Sheet, Tabs, fmt } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { useDaySummary, useMeals, useSettings } from '@/hooks/data';
@@ -17,6 +17,7 @@ import { FoodsManager } from './nutrition/FoodsManager';
 import { DAY_TYPE_LABELS } from '@/domain/coach';
 import { db } from '@/data/db';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { requestBattle } from '@/stores/battle';
 
 type Tab = 'diary' | 'recipes' | 'plan' | 'foods';
 
@@ -85,6 +86,8 @@ function Diary() {
     const shares = effectiveSplit(meals.map((m) => m.id), settings.mealSplit);
     return new Map(mealTargets(dayTotal, shares, eaten).map((t) => [t.id, t]));
   }, [dayTotal, byMeal, meals, settings.mealSplit]);
+
+  const closed = useLiveQuery(() => db.settings.get(CLOSED_KEY).then((r) => (r?.value as ClosedMeals | undefined) ?? {}), []) ?? {};
 
   if (!s) return null;
   const g = s.goal;
@@ -191,6 +194,36 @@ function Diary() {
             ) : (
               <p className="text-sm text-muted">Noch nichts eingetragen.</p>
             )}
+            {list.length > 0 && date === today() && (
+              <div className="mt-2 flex justify-end">
+                {closed[date]?.includes(m.id) ? (
+                  <span className="flex items-center gap-1 text-xs font-medium text-gold" data-testid={`meal-closed-${m.id}`}>
+                    <Check className="h-3.5 w-3.5" /> Abgeschlossen
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    data-testid={`meal-close-${m.id}`}
+                    onClick={() =>
+                      void closeMeal(date, m.id).then(() =>
+                        requestBattle({
+                          reason: 'meal',
+                          title: `${m.label} abgeschlossen`,
+                          lines: [
+                            `${fmt(ms.kcal)} kcal`,
+                            `Protein ${fmt(ms.protein)} g`,
+                            ...(tg && tg.target > 0 ? [tg.hit ? 'Punktlandung ✓' : `Ziel ${fmt(tg.target)} kcal`] : []),
+                          ],
+                        }),
+                      )
+                    }
+                  >
+                    <Swords className="h-4 w-4" /> Mahlzeit abschließen
+                  </Button>
+                )}
+              </div>
+            )}
           </Card>
         );
       })}
@@ -236,6 +269,17 @@ function Diary() {
       />
     </div>
   );
+}
+
+const CLOSED_KEY = 'closedMeals';
+type ClosedMeals = Record<string, string[]>;
+
+/** Merkt sich abgeschlossene Mahlzeiten (nur die letzten 14 Tage). */
+async function closeMeal(date: string, meal: string) {
+  const cur = ((await db.settings.get(CLOSED_KEY))?.value as ClosedMeals | undefined) ?? {};
+  const next: ClosedMeals = { ...cur, [date]: [...new Set([...(cur[date] ?? []), meal])] };
+  const keep = Object.keys(next).sort().slice(-14);
+  await db.settings.put({ key: CLOSED_KEY, value: Object.fromEntries(keep.map((k) => [k, next[k]!])) });
 }
 
 function MealTargetBar({ target, eaten, label }: { target: MealTarget; eaten: number; label: string }) {
