@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Download, Upload, Trash2, Plus, ShieldCheck, Sparkles } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Field, Input, NumberInput, Select, Switch, Tabs, fmt } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
-import { useGoals, useMeasurements, useProfile, useSettings } from '@/hooks/data';
+import { useGoals, useMeals, useMeasurements, useProfile, useSettings } from '@/hooks/data';
+import { DEFAULT_MEAL_SPLIT, effectiveSplit, splitKcal } from '@/domain/nutrition';
 import { setSetting, updateProfile } from '@/data/profileRepo';
 import { download, diaryCSV, exportBackup, measurementsCSV, restoreBackup, wipeAllData, workoutsCSV } from '@/data/backup';
 import { db } from '@/data/db';
@@ -121,8 +122,55 @@ function Goals({ profile }: { profile: Profile }) {
   return (
     <div className="space-y-4">
       {current && <GoalEditor key={current.id} profile={profile} current={current} weightKg={weight} />}
+      <MealSplitCard dailyKcal={current?.calorieTarget ?? null} />
       <GoalHistory goals={goals} />
     </div>
+  );
+}
+
+function MealSplitCard({ dailyKcal }: { dailyKcal: number | null }) {
+  const s = useSettings();
+  const meals = useMeals();
+  const shares = effectiveSplit(meals.map((m) => m.id), s.mealSplit);
+  const sum = shares.reduce((a, x) => a + x.pct, 0);
+  const kcal = dailyKcal != null ? splitKcal(dailyKcal, shares) : null;
+  const setPct = (id: string, v: number | undefined) => {
+    const next = { ...Object.fromEntries(shares.map((x) => [x.id, x.pct])), [id]: v == null ? 0 : Math.max(0, Math.min(100, Math.round(v))) };
+    setSetting('mealSplit', next);
+  };
+  return (
+    <Card className="space-y-3" data-testid="meal-split">
+      <CardTitle>Kalorien je Mahlzeit</CardTitle>
+      <p className="text-xs text-muted">
+        Anteil des Tagesziels pro Mahlzeit. Die kcal-Ziele ergeben zusammen immer genau dein Tagesziel; an Trainingstagen werden die angerechneten kcal mit aufgeteilt. Isst du bei einer Mahlzeit mehr oder weniger, passen sich die noch offenen an.
+      </p>
+      <ul className="space-y-2">
+        {meals.map((m) => {
+          const x = shares.find((y) => y.id === m.id);
+          return (
+            <li key={m.id} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate text-sm">{m.label}</span>
+              <div className="w-20">
+                <NumberInput aria-label={`Anteil ${m.label} in Prozent`} min={0} max={100} step={1} value={x?.pct ?? 0} onValue={(v) => setPct(m.id, v)} />
+              </div>
+              <span className="w-4 text-sm text-muted">%</span>
+              <span className="w-20 text-right text-sm tabular-nums text-muted" data-testid={`split-kcal-${m.id}`}>
+                {kcal ? `${fmt(kcal.get(m.id) ?? 0)} kcal` : '–'}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className={sum === 100 ? 'text-muted' : 'text-warn'} data-testid="split-sum">
+          Summe {fmt(sum)} %{sum !== 100 && sum > 0 && ' – wird anteilig auf 100 % umgerechnet'}
+          {sum === 0 && ' – wird gleichmäßig verteilt'}
+        </span>
+        <Button size="sm" variant="ghost" onClick={() => setSetting('mealSplit', { ...DEFAULT_MEAL_SPLIT })}>
+          Standard
+        </Button>
+      </div>
+    </Card>
   );
 }
 

@@ -151,6 +151,8 @@ export interface AppSettings {
   externalSearchConsent: boolean;
   /** Heimstudio für den Geräte-Filter, '' = keins */
   homeGym: string;
+  /** Anteil je Mahlzeit am Tagesziel in %, leer = Standardaufteilung */
+  mealSplit: Record<string, number>;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -160,6 +162,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   usdaApiKey: '',
   externalSearchConsent: true,
   homeGym: '',
+  mealSplit: {},
 };
 
 export async function getSettings(): Promise<AppSettings> {

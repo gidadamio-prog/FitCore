@@ -37,6 +37,12 @@ Implementierung: `src/domain/*.ts` · Tests: `tests/domain/*.test.ts`. Alle Wert
 - Progression (doppelte Progression): alle Sätze ≥ Wdh.-Max → +2,5 kg; zwei Einheiten mit Sätzen < Wdh.-Min → −10 %; sonst halten.
 - **Energie (Netto-MET):** (MET − 1) × kg × h. Kraft MET 5; Laufen ≈ km/h (6–16); Gehen 2,8–5; Rad 4–12 nach Tempo; Schwimmen/Rudern 7; Crosstrainer 5; eigene Sportart 2 + 0,7·RPE. Ohne erfasstes Körpergewicht: 0 kcal + Hinweis.
 
+## Kalorienziel je Mahlzeit
+- Tagesbudget = Kalorienziel der Zielversion + angerechnete Trainings-kcal (wie Energiebilanz).
+- Aufteilung in % je Mahlzeit (Standard Frühstück 25 / Mittag 35 / Abend 30 / Snacks 10, eigene Mahlzeiten 0). Anteile werden auf ihre Summe normiert (Summe 0 → gleichmäßig).
+- Ganzzahlige Verteilung nach der Methode der größten Reste: Die Mahlzeitziele ergeben immer exakt das Tagesbudget.
+- Anpassung im Tagesverlauf: Mahlzeiten mit Einträgen gelten als gegessen. Rest = Tagesbudget − gegessene kcal dieser Mahlzeiten (nie < 0) wird auf die offenen Mahlzeiten im Verhältnis ihrer Anteile verteilt (alle offenen 0 % → gleichmäßig).
+
 ## Energiebilanz
 - anrechenbar = max(0, Σ Trainings-kcal − bereits enthaltene kcal (falls „Training im Aktivitätsfaktor“)); angerechnet = anrechenbar × Quote.
 - **Verbleibend = Ziel + angerechnet − gegessen** (2000 + 300 − 1500 = 800).

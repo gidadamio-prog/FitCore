@@ -170,3 +170,75 @@ export function parseServingSize(text?: string | null): number | null {
   const v = parseFloat(m[1].replace(',', '.'));
   return Number.isFinite(v) && v > 0 ? v : null;
 }
+
+// ---------------------------------------------------------------------------
+// Kalorienziel je Mahlzeit
+// ---------------------------------------------------------------------------
+
+/** Standardaufteilung in Prozent des Tagesziels. Eigene Mahlzeiten starten mit 0 %. */
+export const DEFAULT_MEAL_SPLIT: Record<string, number> = { breakfast: 25, lunch: 35, dinner: 30, snack: 10 };
+
+export interface MealShare {
+  id: string;
+  pct: number;
+}
+
+/** Effektive Prozentanteile: gespeicherter Wert, sonst Standard, sonst 0. Negative/ungültige Werte → 0. */
+export function effectiveSplit(mealIds: string[], stored: Record<string, number> | undefined): MealShare[] {
+  return mealIds.map((id) => {
+    const raw = stored?.[id] ?? DEFAULT_MEAL_SPLIT[id] ?? 0;
+    return { id, pct: Number.isFinite(raw) && raw > 0 ? raw : 0 };
+  });
+}
+
+/**
+ * Verteilt `total` kcal ganzzahlig auf die Anteile (Methode der größten Reste).
+ * Die Anteile werden auf ihre Summe normiert; die Ergebnisse ergeben immer exakt `total`.
+ * Summe 0 → gleichmäßige Verteilung.
+ */
+export function splitKcal(total: number, shares: MealShare[]): Map<string, number> {
+  const out = new Map<string, number>();
+  if (!shares.length) return out;
+  const t = Math.max(0, Math.round(total));
+  const sum = shares.reduce((s, x) => s + x.pct, 0);
+  const weights = shares.map((x) => (sum > 0 ? x.pct / sum : 1 / shares.length));
+  const exact = weights.map((w) => w * t);
+  const floors = exact.map(Math.floor);
+  let rest = t - floors.reduce((s, x) => s + x, 0);
+  const order = exact.map((e, i) => ({ i, r: e - Math.floor(e) })).sort((a, b) => b.r - a.r || a.i - b.i);
+  for (const { i } of order) {
+    if (rest <= 0) break;
+    floors[i] = (floors[i] ?? 0) + 1;
+    rest--;
+  }
+  shares.forEach((x, i) => out.set(x.id, floors[i] ?? 0));
+  return out;
+}
+
+export interface MealTarget {
+  id: string;
+  /** Geplantes Ziel laut Aufteilung */
+  planned: number;
+  /** Angepasstes Ziel für noch offene Mahlzeiten (null = keine Anpassung nötig bzw. Mahlzeit schon gegessen) */
+  adjusted: number | null;
+  /** Bereits gegessen (null = noch nichts eingetragen) */
+  eaten: number | null;
+}
+
+/**
+ * Ziele je Mahlzeit, die in Summe immer zum Tagesziel passen.
+ * Sobald Mahlzeiten Einträge haben, wird das verbleibende Budget auf die noch offenen
+ * Mahlzeiten im Verhältnis ihrer Anteile neu verteilt (nie negativ).
+ */
+export function mealTargets(total: number, shares: MealShare[], eatenByMeal: Map<string, number>): MealTarget[] {
+  const planned = splitKcal(total, shares);
+  const open = shares.filter((s) => !eatenByMeal.has(s.id));
+  const closedEaten = shares.reduce((s, x) => s + (eatenByMeal.get(x.id) ?? 0), 0);
+  const anyClosed = open.length < shares.length;
+  const adjusted = anyClosed && open.length ? splitKcal(Math.max(0, total - closedEaten), open.some((o) => o.pct > 0) ? open : open.map((o) => ({ ...o, pct: 1 }))) : new Map<string, number>();
+  return shares.map((s) => {
+    const p = planned.get(s.id) ?? 0;
+    const a = adjusted.get(s.id);
+    return { id: s.id, planned: p, adjusted: a != null && a !== p ? a : null, eaten: eatenByMeal.has(s.id) ? Math.round(eatenByMeal.get(s.id) ?? 0) : null };
+  });
+}

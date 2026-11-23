@@ -8,7 +8,7 @@ import { addDays, formatLongDate, today } from '@/domain/dates';
 import { useUi, toast, confirmDialog } from '@/stores/ui';
 import { AddFoodSheet, NutrientTable, SourceBadge } from './nutrition/AddFood';
 import type { DiaryEntry, MealId } from '@/domain/types';
-import { sumEntries, scaleNutrients } from '@/domain/nutrition';
+import { sumEntries, scaleNutrients, effectiveSplit, mealTargets, type MealTarget } from '@/domain/nutrition';
 import { addWater, copyDay, copyEntry, copyMeal, deleteEntry, saveMealFromEntries, toggleFavorite, undoLastWater, updateEntryAmount } from '@/data/nutritionRepo';
 import { firstError } from '@/domain/schemas';
 import { Recipes } from './nutrition/Recipes';
@@ -77,6 +77,14 @@ function Diary() {
   }, [s?.entries]);
   const unknownMeals = [...byMeal.keys()].filter((k) => !meals.some((m) => m.id === k));
   const allMeals = [...meals, ...unknownMeals.map((id) => ({ id, label: id }))];
+  const dayTotal = s?.goal ? s.goal.calorieTarget + s.credit.creditedKcal : null;
+  const targets = useMemo(() => {
+    if (dayTotal == null) return new Map<string, MealTarget>();
+    const eaten = new Map<string, number>();
+    for (const [id, list] of byMeal) if (list.length) eaten.set(id, sumEntries(list).totals.kcal);
+    const shares = effectiveSplit(meals.map((m) => m.id), settings.mealSplit);
+    return new Map(mealTargets(dayTotal, shares, eaten).map((t) => [t.id, t]));
+  }, [dayTotal, byMeal, meals, settings.mealSplit]);
 
   if (!s) return null;
   const g = s.goal;
@@ -131,18 +139,27 @@ function Diary() {
             <span>Salz {fmt(t.salt, 2)} g</span>
           </div>
         )}
+        {[...targets.values()].some((x) => x.adjusted != null) && (
+          <p className="mt-2 text-xs text-muted" data-testid="meal-adjust-hint">
+            Die Ziele der noch offenen Mahlzeiten sind an das bereits Gegessene angepasst, damit der Tag aufgeht.
+          </p>
+        )}
         {s.sum.unknown.kcal + s.sum.unknown.protein > 0 && <p className="mt-2 text-xs text-warn">Einige Einträge haben unbekannte Nährwerte – Summen sind Mindestwerte.</p>}
       </Card>
 
       {allMeals.map((m) => {
         const list = byMeal.get(m.id) ?? [];
         const ms = sumEntries(list).totals;
+        const tg = targets.get(m.id);
         return (
           <Card key={m.id} data-testid={`meal-${m.id}`}>
             <CardTitle
               action={
                 <div className="flex items-center gap-1">
-                  <span className="text-sm tabular-nums text-muted">{fmt(ms.kcal)} kcal</span>
+                  <span className="text-sm tabular-nums text-muted" data-testid={`meal-kcal-${m.id}`}>
+                    {fmt(ms.kcal)}
+                    {tg && tg.planned > 0 && <> / {fmt(tg.adjusted ?? tg.planned)}</>} kcal
+                  </span>
                   <Button variant="ghost" size="icon" aria-label={`Menü ${m.label}`} onClick={() => setMealMenu(m.id)}>
                     <MoreHorizontal className="h-5 w-5" />
                   </Button>
@@ -154,6 +171,7 @@ function Diary() {
             >
               {m.label}
             </CardTitle>
+            {tg && tg.planned > 0 && <MealTargetBar target={tg} eaten={ms.kcal} label={m.label} />}
             {list.length ? (
               <ul className="divide-y">
                 {list.map((e) => (
@@ -216,6 +234,23 @@ function Diary() {
           setCopyOpen({ meal: m });
         }}
       />
+    </div>
+  );
+}
+
+function MealTargetBar({ target, eaten, label }: { target: MealTarget; eaten: number; label: string }) {
+  const goal = target.adjusted ?? target.planned;
+  const over = eaten > goal && target.eaten != null;
+  return (
+    <div className="mb-2" data-testid={`meal-target-${target.id}`}>
+      <Progress value={eaten} max={goal || 1} color={over ? 'danger' : 'accent'} label={`Mahlzeitziel ${label}`} />
+      <div className="mt-0.5 flex justify-between text-[11px] text-muted">
+        <span>
+          Ziel {fmt(goal)} kcal
+          {target.adjusted != null && <> · geplant {fmt(target.planned)}</>}
+        </span>
+        {target.eaten != null && <span className={over ? 'text-danger' : ''}>{over ? `${fmt(eaten - goal)} drüber` : `${fmt(goal - eaten)} übrig`}</span>}
+      </div>
     </div>
   );
 }

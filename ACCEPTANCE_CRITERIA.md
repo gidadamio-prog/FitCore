@@ -106,3 +106,4 @@ Maschinenlesbar: `acceptance_criteria.csv`.
 | AK-088 | J Qualität | Hauptbereiche auf Smartphone & Desktop bedienbar | BESTANDEN | E2E | `e2e/responsive.spec.ts` | Touch-Ziele ≥ 40 px, Dialog-Buttons im Viewport |
 | AK-089 | J Qualität | Echte Daten, keine funktionslosen Bedienelemente | BESTANDEN | E2E+Manuell | `e2e/journeys.spec.ts` | Code-Review aller Buttons; keine Demo-/Mock-Daten im Produktcode |
 | AK-090 | J Qualität | P0-Tests, TypeScript, Linting, Build erfolgreich | BESTANDEN | CI-Befehle | – | 118 Unit/Integration, 17 E2E grün; Live-Test AK-017 als Blocker ausgewiesen |
+| AK-091 | B Ernährung | Kalorienziel je Mahlzeit: Summe = Tagesbudget, offene Mahlzeiten passen sich an | BESTANDEN | Unit+E2E | `tests/domain/mealTargets.test.ts`, `e2e/meal-targets.spec.ts` | Aufteilung in Einstellungen › Ziele; Standard 25/35/30/10 (Version 1.5.0) |
