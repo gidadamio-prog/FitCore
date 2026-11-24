@@ -41,7 +41,7 @@ export const REGIONS: Region[] = [
   { id: 'kaiserstadt', bossId: 'pons-milvius', name: 'Kaiserstadt', capital: 'Palatium', minLevel: 23, terrain: 'stadt', cx: 490, cy: 680, color: '#8a3a3a', foes: ['Prätorianer', 'Stadtwache', 'Verschwörer'], elite: 'Präfekt der Garde' },
 ];
 
-/** Kartengröße (Weltkoordinaten); Regionsmitten oben sind für 1000 × 1400 angegeben und werden mit MAP_K gestreckt */
+/** Kartengröße (Weltkoordinaten = gemaltes Kartenbild 1060 × 1484, gestreckt); Regionsmitten oben sind für 1000 × 1400 angegeben */
 export const MAP_K = 1.6;
 export const MAP_W = 1000 * MAP_K;
 export const MAP_H = 1400 * MAP_K;
@@ -84,14 +84,88 @@ export const START_NODE = 'start';
 export const START_NAME = 'Aurelia';
 
 /**
- * Wegenetz je Region: Eingang → Gegner → Lager → Gegner → Kreuzung (Abzweig Truhe) → Elite (Abzweig Dorf + Truhe) → Hauptstadt.
- * Die Lage wird aus Startpunkt (vorige Hauptstadt) und Regionsmitte berechnet; mit der fertigen Karte werden die Punkte angepasst.
+ * Wegenetz je Region, von Hand auf die gemalte Weltkarte gesetzt (Weltkoordinaten 1600 × 2240 = Bild × 1600/1060).
+ * Hauptweg: Eingang → a Gegner → b Lager → c Gegner → d Kreuzung → e Elite → f Hauptstadt.
+ * Abzweige (Standard): g Truhe an d, h Dorf an b, i Gegner an h, j Truhe an i – je Region anpassbar.
  */
+type Key = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j';
+interface RegionLayout {
+  pts: Record<Key, [number, number]>;
+  /** Abweichende Eltern der Abzweige */
+  sp?: Partial<Record<'g' | 'h' | 'i' | 'j', Key>>;
+  /** Vorgänger von a (Standard: Hauptstadt der vorigen Region bzw. Heimatstadt) */
+  entry?: string;
+  /** Orte, die auf der Karte gemalt und beschriftet sind */
+  towns?: Partial<Record<Key, { name: string; type?: NodeType }>>;
+  /** Name des namenlosen Dorfs (h), falls h kein gemalter Ort ist */
+  village?: string;
+}
+
+const START_POS: [number, number] = [762, 2065];
+const LAYOUT: Record<string, RegionLayout> = {
+  arverner: {
+    pts: { a: [649, 2015], b: [377, 1932], c: [589, 1879], d: [649, 1789], e: [566, 1736], f: [430, 1763], g: [709, 1721], h: [332, 1718], i: [166, 1804], j: [128, 1917] },
+    towns: { h: { name: 'Hügelfurt' } },
+  },
+  dunkelwald: {
+    pts: { a: [664, 1623], b: [528, 1525], c: [377, 1577], d: [166, 1525], e: [151, 1404], f: [272, 1377], g: [106, 1612], h: [322, 1277], i: [453, 1449], j: [453, 1343] },
+    sp: { h: 'f', i: 'c' },
+    towns: { h: { name: 'Finsterhain' } },
+  },
+  nebelinseln: {
+    pts: { a: [453, 1162], b: [475, 1042], c: [468, 875], d: [370, 871], e: [264, 838], f: [226, 939], g: [513, 792], h: [385, 1117], i: [257, 1105], j: [121, 1102] },
+    entry: 'dunkelwald-h',
+    towns: { d: { name: 'Nebelhafen', type: 'dorf' } },
+    village: 'Fischerdorf',
+  },
+  hirtenland: {
+    pts: { a: [430, 717], b: [294, 664], c: [181, 589], d: [219, 465], e: [325, 435], f: [438, 531], g: [113, 438], h: [377, 604], i: [558, 634], j: [649, 682] },
+    towns: { d: { name: 'Weidmark', type: 'dorf' } },
+    village: 'Einödhof',
+  },
+  drachenberge: {
+    pts: { a: [589, 491], b: [725, 450], c: [687, 377], d: [687, 309], e: [687, 226], f: [785, 269], g: [845, 453], h: [604, 276], i: [498, 254], j: [438, 181] },
+    sp: { g: 'b', h: 'd' },
+    towns: { h: { name: 'Drachenpass' } },
+  },
+  loewensteppe: {
+    pts: { a: [921, 400], b: [1026, 325], c: [1147, 453], d: [1358, 438], e: [1411, 279], f: [1268, 359], g: [1487, 453], h: [1170, 276], i: [1094, 226], j: [966, 193] },
+    towns: { h: { name: 'Löwenrast' } },
+  },
+  sobekdelta: {
+    pts: { a: [1147, 551], b: [1102, 664], c: [1125, 785], d: [1223, 725], e: [1306, 694], f: [1396, 722], g: [1283, 898], h: [1230, 611], i: [1358, 574], j: [1502, 611] },
+    towns: { h: { name: 'Deltahafen' } },
+  },
+  gipfelreich: {
+    pts: { a: [1155, 883], b: [1102, 989], c: [1147, 1117], d: [1283, 1132], e: [1509, 1094], f: [1404, 1174], g: [1275, 1310], h: [1215, 1042], i: [1343, 1026], j: [1449, 996] },
+    towns: { h: { name: 'Felswacht' } },
+  },
+  reiterwueste: {
+    pts: { a: [1208, 1226], b: [1170, 1343], c: [1170, 1509], d: [1192, 1600], e: [1472, 1509], f: [1321, 1600], g: [1147, 1683], h: [1260, 1452], i: [1351, 1457], j: [1509, 1442] },
+    towns: { h: { name: 'Dünenrast', type: 'lager' } },
+  },
+  hunnensteppe: {
+    pts: { a: [1487, 1660], b: [1389, 1811], c: [1283, 2008], d: [1147, 1970], e: [1109, 1864], f: [978, 1845], g: [906, 1985], h: [1238, 1887], i: [1494, 1857], j: [1509, 1992] },
+    sp: { i: 'b' },
+    towns: { h: { name: 'Steppenlager', type: 'lager' } },
+  },
+  koenigsthron: {
+    pts: { a: [755, 1804], b: [785, 1645], c: [936, 1660], d: [1057, 1525], e: [1064, 1396], f: [891, 1472], g: [845, 1577], h: [709, 1487], i: [634, 1404], j: [566, 1328] },
+    sp: { g: 'c' },
+    village: 'Tempelhain',
+  },
+  kaiserstadt: {
+    pts: { a: [725, 1366], b: [672, 1241], c: [853, 1260], d: [996, 1230], e: [1042, 1079], f: [800, 1042], g: [1109, 1275], h: [558, 1177], i: [604, 1064], j: [664, 958] },
+    towns: { b: { name: 'Kaiservorstadt', type: 'dorf' } },
+    village: 'Hafenviertel',
+  },
+};
+
 function buildWorld() {
-  const nodes: WorldNode[] = [{ id: START_NODE, type: 'start', region: null, name: START_NAME, x: Math.round(500 * MAP_K), y: Math.round(1330 * MAP_K) }];
+  const nodes: WorldNode[] = [{ id: START_NODE, type: 'start', region: null, name: START_NAME, x: START_POS[0], y: START_POS[1] }];
   const edges: [string, string][] = [];
-  let prev = nodes[0]!;
-  const main: [NodeType, string][] = [
+  let prev = START_NODE;
+  const main: [NodeType, Key][] = [
     ['gegner', 'a'],
     ['lager', 'b'],
     ['gegner', 'c'],
@@ -99,48 +173,35 @@ function buildWorld() {
     ['elite', 'e'],
     ['hauptstadt', 'f'],
   ];
-  REGIONS.forEach((r, ri) => {
-    // Hauptstadt etwas hinter die Regionsmitte (Richtung nächste Region)
-    const next = REGIONS[ri + 1];
-    const capX = next ? r.cx + (next.cx - r.cx) * 0.18 : r.cx;
-    const capY = next ? r.cy + (next.cy - r.cy) * 0.18 : r.cy;
-    const dx = capX - prev.x;
-    const dy = capY - prev.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const px = -dy / len;
-    const py = dx / len;
-    const clamp = (v: number, max: number) => Math.round(Math.max(70, Math.min(max - 70, v)));
-    // Abzweige zeigen zur Kartenmitte, damit nichts über den Rand ragt
-    const cx = MAP_W / 2 - (prev.x + dx / 2);
-    const cy = MAP_H / 2 - (prev.y + dy / 2);
-    const inward = px * cx + py * cy >= 0 ? 1 : -1;
-    const at = (t: number, off: number, side = false) => {
-      const o = (side ? inward * Math.abs(off) : off) * MAP_K;
-      return { x: clamp(prev.x + dx * t + px * o, MAP_W), y: clamp(prev.y + dy * t + py * o, MAP_H) };
-    };
+  const sides: [NodeType, 'g' | 'h' | 'i' | 'j', Key][] = [
+    ['truhe', 'g', 'd'],
+    ['dorf', 'h', 'b'],
+    ['gegner', 'i', 'h'],
+    ['truhe', 'j', 'i'],
+  ];
+  for (const r of REGIONS) {
+    const L = LAYOUT[r.id]!;
     const id = (k: string) => `${r.id}-${k}`;
-    const ts = [0.24, 0.38, 0.52, 0.66, 0.82, 1];
-    const wiggle = [18, -22, 16, -14, 12, 0];
-    let last = prev.id;
+    const add = (k: Key, type: NodeType, name: string) => {
+      const town = L.towns?.[k];
+      const [x, y] = L.pts[k];
+      nodes.push({ id: id(k), type: town?.type ?? type, region: r.id, name: town?.name ?? name, x, y });
+    };
     let foe = 0;
-    main.forEach(([type, k], i) => {
-      const p = at(ts[i]!, wiggle[i]!);
-      const name = type === 'gegner' ? r.foes[foe++ % r.foes.length]! : type === 'elite' ? r.elite : type === 'hauptstadt' ? r.capital : type === 'lager' ? `Lager am ${r.name}` : `Kreuzweg im ${r.name}`;
-      nodes.push({ id: id(k), type, region: r.id, name, ...p });
+    const nameFor = (type: NodeType, k: Key) =>
+      type === 'gegner' ? r.foes[k === 'i' ? 2 % r.foes.length : foe++ % r.foes.length]! : type === 'elite' ? r.elite : type === 'hauptstadt' ? r.capital : type === 'lager' ? 'Feldlager' : type === 'weg' ? 'Kreuzweg' : type === 'dorf' ? L.village ?? 'Weiler' : k === 'g' ? 'Verborgene Truhe' : 'Schatzversteck';
+    let last = L.entry ?? prev;
+    for (const [type, k] of main) {
+      add(k, type, nameFor(type, k));
       edges.push([last, id(k)]);
       last = id(k);
-    });
-    // Abzweige: Truhe an der Kreuzung, Dorf + Gegner + Truhe am Elite-Platz
-    const side = (from: string, k: string, type: NodeType, t: number, off: number, name: string) => {
-      nodes.push({ id: id(k), type, region: r.id, name, ...at(t, off, true) });
-      edges.push([from, id(k)]);
-    };
-    side(id('d'), 'g', 'truhe', 0.62, 70, 'Verborgene Truhe');
-    side(id('b'), 'h', 'dorf', 0.4, -75, `Dorf im ${r.name}`);
-    side(id('h'), 'i', 'gegner', 0.5, -135, r.foes[2 % r.foes.length]!);
-    side(id('i'), 'j', 'truhe', 0.6, -175, 'Schatzversteck');
-    prev = nodes.find((n) => n.id === id('f'))!;
-  });
+    }
+    for (const [type, k, parent] of sides) {
+      add(k, type, nameFor(type, k));
+      edges.push([id(L.sp?.[k] ?? parent), id(k)]);
+    }
+    prev = id('f');
+  }
   return { nodes, edges };
 }
 
