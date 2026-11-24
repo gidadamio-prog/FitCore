@@ -2,7 +2,7 @@
 
 Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.
 
-**Als Nächstes dran: 8 Merkmale (Narben, Bemalung, Augen) + 8 Helme auf der Figur (Abschnitt 0).** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**
+**Als Nächstes dran: 8 Helme auf der Figur (Abschnitt 0); alle Merkmale sind geliefert.** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**
 
 ## Regeln für alle Bilder
 
@@ -81,26 +81,15 @@ Then output ONLY the [MERKMAL] as an isolated layer on a fully transparent backg
 exact same position and scale as on the character, [HINWEIS]. No body, no face, no text.
 ```
 
-**Frisur** – geliefert (24/24), eingebaut mit Freischaltungen
+**Frisur** – geliefert (27/27), eingebaut mit Freischaltungen
 
 **Bart** – geliefert (23/23), eingebaut mit Freischaltungen
 
-**Narbe** – nur die Narbe auf transparentem Grund, Hautton leicht heller/rötlicher als die Haut
+**Narbe** – geliefert (15/15), eingebaut mit Freischaltungen
 
-- [ ] `narbe_auge.png` – Narbe über dem Auge: senkrechte Narbe über das linke Auge (Braue bis Wange), Auge intakt
-- [ ] `narbe_wange.png` – Wangenschnitt: schräger Schnitt über die rechte Wange
-- [ ] `narbe_nase.png` – Nasenrücken: kurze quer verlaufende Narbe über den Nasenrücken
+**Tattoo** – geliefert (15/15), eingebaut mit Freischaltungen
 
-**Kriegsbemalung** – nur die Farbe auf dem Gesicht, mattes Pigment, Ränder leicht ausgefranst
-
-- [ ] `bemalung_waid.png` – Waid-Streifen: drei blaue Streifen quer über beide Wangen (britannisch)
-- [ ] `bemalung_blut.png` – Blutbalken: roter waagrechter Balken über die Augenpartie
-- [ ] `bemalung_gold.png` – Goldlinien: feine goldene Linien von der Stirn über die Wangen
-
-**Augen** – nur das Accessoire mit Band/Bügel, so wie es auf dem Kopf sitzt
-
-- [ ] `augen_augenklappe.png` – Augenklappe: schwarze Leder-Augenklappe über dem linken Auge mit Band um den Kopf
-- [ ] `augen_brille.png` – Brille: kleine runde Brille mit dünnem Metallrahmen
+**Brille & Augenklappe** – geliefert (12/12), eingebaut mit Freischaltungen
 
 ### Helme auf der Figur (Ebene über den Merkmalen)
 

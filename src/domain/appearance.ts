@@ -5,14 +5,14 @@ import { ITEMS, itemFile, type ItemDef } from './equipment';
 import { RANKS, TIERS, TIER_LABEL, type BadgeStatus, type Tier } from './gamification';
 import { CAMPAIGN, bossAt } from './rpg';
 
-export type TraitCategory = 'hair' | 'beard' | 'scar' | 'paint' | 'eyes';
+export type TraitCategory = 'hair' | 'beard' | 'scar' | 'tattoo' | 'eyes';
 
 export const TRAIT_CATEGORIES: { id: TraitCategory; label: string; file: string; recolor: boolean; hint: string }[] = [
   { id: 'hair', label: 'Frisur', file: 'frisur', recolor: true, hint: 'nur die Haare, in neutralem hellem Grau mit Schattierung (Farbe kommt aus dem Code)' },
   { id: 'beard', label: 'Bart', file: 'bart', recolor: true, hint: 'nur der Bart, in neutralem hellem Grau mit Schattierung (Farbe kommt aus dem Code)' },
-  { id: 'scar', label: 'Narbe', file: 'narbe', recolor: false, hint: 'nur die Narbe auf transparentem Grund, Hautton leicht heller/rötlicher als die Haut' },
-  { id: 'paint', label: 'Kriegsbemalung', file: 'bemalung', recolor: false, hint: 'nur die Farbe auf dem Gesicht, mattes Pigment, Ränder leicht ausgefranst' },
-  { id: 'eyes', label: 'Augen', file: 'augen', recolor: false, hint: 'nur das Accessoire mit Band/Bügel, so wie es auf dem Kopf sitzt' },
+  { id: 'scar', label: 'Narbe', file: 'narbe', recolor: false, hint: 'nur die Narbe auf transparentem Grund' },
+  { id: 'tattoo', label: 'Tattoo', file: 'tattoo', recolor: false, hint: 'Ganzkörper-Tattoo im Schablonen-Raster' },
+  { id: 'eyes', label: 'Brille & Augenklappe', file: 'augen', recolor: false, hint: 'nur das Accessoire mit Band/Bügel, so wie es auf dem Kopf sitzt' },
 ];
 
 export type Unlock =
@@ -86,15 +86,54 @@ export const TRAITS: TraitDef[] = [
   t('beard', 'perlenbart', 'Perlenbart', rank(9)),
   t('beard', 'zopfbart', 'Zopfbart', badge('volume', 'silver')),
   t('beard', 'doppelzopf', 'Doppelzopf', badge('quests', 'silver')),
-  // Noch nicht geliefert – erscheinen erst, wenn die Ebene da ist
-  t('scar', 'auge', 'Narbe über dem Auge', START, 'senkrechte Narbe über das linke Auge (Braue bis Wange), Auge intakt'),
-  t('scar', 'wange', 'Wangenschnitt', START, 'schräger Schnitt über die rechte Wange'),
-  t('scar', 'nase', 'Nasenrücken', START, 'kurze quer verlaufende Narbe über den Nasenrücken'),
-  t('paint', 'waid', 'Waid-Streifen', boss('britannia'), 'drei blaue Streifen quer über beide Wangen (britannisch)'),
-  t('paint', 'blut', 'Blutbalken', badge('bosses', 'silver'), 'roter waagrechter Balken über die Augenpartie'),
-  t('paint', 'gold', 'Goldlinien', rank(8), 'feine goldene Linien von der Stirn über die Wangen'),
-  t('eyes', 'augenklappe', 'Augenklappe', badge('comeback'), 'schwarze Leder-Augenklappe über dem linken Auge mit Band um den Kopf'),
-  t('eyes', 'brille', 'Brille', START, 'kleine runde Brille mit dünnem Metallrahmen'),
+  t('hair', 'zerzaust', 'Zerzaust', badge('recipes')),
+  t('hair', 'fransen', 'Fransen', badge('water')),
+  t('hair', 'wuschel', 'Wuschelkopf', badge('protein')),
+  // Tattoos – 2 zum Start, je Boss eines
+  t('tattoo', 'blutstreifen', 'Blutstreifen', START),
+  t('tattoo', 'kampfbaender', 'Kampfbänder', START),
+  t('tattoo', 'runen', 'Kriegsrunen', boss('gallia')),
+  t('tattoo', 'dornen', 'Dornenranken', boss('germania')),
+  t('tattoo', 'flammen', 'Flammen', boss('britannia')),
+  t('tattoo', 'saeule', 'Säulen des Herkules', boss('hispania')),
+  t('tattoo', 'schlange', 'Drache der Daker', boss('dacia')),
+  t('tattoo', 'loewe', 'Löwe', boss('africa')),
+  t('tattoo', 'sol', 'Sol Invictus', boss('aegyptus')),
+  t('tattoo', 'nordstern', 'Nordstern', boss('armenia')),
+  t('tattoo', 'lichtadern', 'Lichtadern', boss('parthia')),
+  t('tattoo', 'glutadern', 'Glutadern', boss('pannonia')),
+  t('tattoo', 'lorbeer', 'Lorbeerranken', boss('persia')),
+  t('tattoo', 'adler', 'Adler', boss('pons-milvius')),
+  t('tattoo', 'zenturio', 'Zenturio', boss('limes-1')),
+  // Narben – 3 zum Start, Rest über Ränge und Abzeichen
+  t('scar', 'auge', 'Narbe über dem Auge', START),
+  t('scar', 'wange', 'Wangenschnitt', START),
+  t('scar', 'langer-schnitt', 'Langer Schnitt', START),
+  t('scar', 'unterarm', 'Unterarmschnitte', rank(2)),
+  t('scar', 'vierfachhieb', 'Vierfachhieb', rank(4)),
+  t('scar', 'brustnaht', 'Brustnaht', rank(6)),
+  t('scar', 'greifenkrallen', 'Greifenkrallen', rank(9)),
+  t('scar', 'kratzer', 'Kratzer', badge('workouts')),
+  t('scar', 'hiebe', 'Hiebe', badge('prs')),
+  t('scar', 'schenkelhieb', 'Schenkelhieb', badge('cardio', 'silver')),
+  t('scar', 'doppelnaht', 'Doppelnaht', badge('trainstreak', 'silver')),
+  t('scar', 'brand', 'Brandnarbe', badge('comeback')),
+  t('scar', 'baerenkralle', 'Bärenkralle', badge('colosseum')),
+  t('scar', 'schulterkralle', 'Schulterkralle', badge('duels')),
+  t('scar', 'blitz', 'Blitznarbe', badge('mastery')),
+  // Brillen & Augenklappen – 3 zum Start
+  t('eyes', 'drahtbrille', 'Drahtbrille', START),
+  t('eyes', 'rundbrille', 'Rundbrille', START),
+  t('eyes', 'augenklappe', 'Augenklappe', START),
+  t('eyes', 'hornbrille', 'Hornbrille', rank(3)),
+  t('eyes', 'lederklappe', 'Lederklappe', rank(5)),
+  t('eyes', 'monokel', 'Monokel', rank(7)),
+  t('eyes', 'kaisermaske', 'Kaisermaske', rank(10)),
+  t('eyes', 'pilotenbrille', 'Pilotenbrille', badge('cardio')),
+  t('eyes', 'schutzbrille', 'Schutzbrille', badge('volume')),
+  t('eyes', 'schildklappe', 'Schildklappe', badge('duels', 'silver')),
+  t('eyes', 'uhrwerkklappe', 'Uhrwerk-Klappe', badge('mastery', 'silver')),
+  t('eyes', 'visier', 'Rotes Visier', badge('bosses', 'gold')),
 ];
 
 export const traitFile = (tr: TraitDef) => `${TRAIT_CATEGORIES.find((c) => c.id === tr.category)!.file}_${tr.id}`;
@@ -159,6 +198,9 @@ export function unlockStatus(u: Unlock, ctx: UnlockContext): { unlocked: boolean
 export interface HeroLook {
   hair?: string | null;
   beard?: string | null;
+  scar?: string | null;
+  tattoo?: string | null;
+  eyes?: string | null;
   hairColor?: string;
   beardColor?: string;
 }
@@ -174,7 +216,7 @@ export function normalizeLook(look: HeroLook | undefined, ctx: UnlockContext): R
     return c && unlockStatus(c.unlock, ctx).unlocked ? c.id : DEFAULT_HAIR_COLOR;
   };
   const hairColor = color(look?.hairColor);
-  return { hair: ok('hair', look?.hair), beard: ok('beard', look?.beard), hairColor, beardColor: look?.beardColor ? color(look.beardColor) : hairColor };
+  return { hair: ok('hair', look?.hair), beard: ok('beard', look?.beard), scar: ok('scar', look?.scar), tattoo: ok('tattoo', look?.tattoo), eyes: ok('eyes', look?.eyes), hairColor, beardColor: look?.beardColor ? color(look.beardColor) : hairColor };
 }
 
 /** Alles, was über Bosse, Ränge und Abzeichen freigeschaltet ist (für „Neu“-Hinweise). */
@@ -200,3 +242,38 @@ export const helmetHidesHair = (i: ItemDef) => i.slot === 'head' && !SHOWS_HAIR.
 /** Ausrüstungs-Ebene auf der Figur (zusätzlich zum Item-Icon). */
 export const figureFile = (i: ItemDef) => `${itemFile(i)}_figur`;
 export const HEAD_ITEMS = ITEMS.filter((i) => i.slot === 'head');
+
+// ---------------------------------------------------------------------------
+// Lage von Tattoos und Narben auf dem Körper
+// ---------------------------------------------------------------------------
+
+/** Bereiche des Tattoo-Schablonenrahmens (Anteile 0..1: x0, y0, x1, y1) – je Bereich auf den Körperbereich gelegt. */
+export const TATTOO_TEMPLATE: Record<'torso' | 'armL' | 'armR' | 'legL' | 'legR', [number, number, number, number]> = {
+  torso: [0.25, 0, 0.75, 0.5],
+  armL: [0, 0, 0.25, 0.8],
+  armR: [0.75, 0, 1, 0.8],
+  legL: [0.25, 0.5, 0.5, 1],
+  legR: [0.5, 0.5, 0.75, 1],
+};
+
+/** Gesicht im 2:3-Kasten (bei allen Körpern gleich): [links %, oben %, Breite %, Höhe %] */
+export const FACE_BOX: [number, number, number, number] = [44.79, 8.25, 10.42, 9.11];
+
+/** Wo jede Narbe sitzt: Bereich, Mittelpunkt (u, v als Anteil des Bereichs), Breite als Anteil der Bereichsbreite. */
+export const SCAR_PLACE: Record<string, { part: 'face' | keyof typeof TATTOO_TEMPLATE; u: number; v: number; w: number }> = {
+  auge: { part: 'face', u: 0.22, v: 0.37, w: 0.09 },
+  wange: { part: 'face', u: 0.24, v: 0.6, w: 0.3 },
+  kratzer: { part: 'face', u: 0.77, v: 0.6, w: 0.28 },
+  'langer-schnitt': { part: 'torso', u: 0.5, v: 0.55, w: 0.85 },
+  brustnaht: { part: 'torso', u: 0.45, v: 0.45, w: 0.7 },
+  baerenkralle: { part: 'torso', u: 0.64, v: 0.35, w: 0.42 },
+  hiebe: { part: 'torso', u: 0.4, v: 0.78, w: 0.42 },
+  vierfachhieb: { part: 'torso', u: 0.32, v: 0.5, w: 0.38 },
+  greifenkrallen: { part: 'torso', u: 0.5, v: 0.12, w: 1.15 },
+  blitz: { part: 'armR', u: 0.5, v: 0.33, w: 0.5 },
+  brand: { part: 'armL', u: 0.45, v: 0.55, w: 0.75 },
+  unterarm: { part: 'armR', u: 0.55, v: 0.65, w: 0.6 },
+  schulterkralle: { part: 'armL', u: 0.6, v: 0.24, w: 0.8 },
+  schenkelhieb: { part: 'legL', u: 0.5, v: 0.36, w: 0.75 },
+  doppelnaht: { part: 'legR', u: 0.5, v: 0.36, w: 0.8 },
+};

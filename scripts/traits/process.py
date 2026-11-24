@@ -110,43 +110,44 @@ def slice_sheet(path, cols, rows):
         out[f'{r}{c}'] = part
     return out
 
-layout = {}
-for (name, cols, rows), path in zip(SHEETS, sys.argv[1:5]):
-    for cell, a in slice_sheet(path, cols, rows).items():
-        key = f'{name}_{cell}'
-        if key not in IDS: continue
-        hair = name[0] == 'h'
-        f = hair_fit(a) if hair else beard_fit(a)
-        o = OVER.get(key, {})
-        if 'ay' in o: f['ay'] = o['ay'] * a.shape[0]
-        if 'hw' in o: f['s'] = 78 / o['hw']
-        s = f['s'] * o.get('k', 1)
-        x = CX - f['ax'] * s + o.get('dx', 0)
-        y = f['ty'] - f['ay'] * s + o.get('dy', 0)
-        w, h = a.shape[1] * s, a.shape[0] * s
-        file = f"{'frisur' if hair else 'bart'}_{IDS[key]}"
-        size = (max(1, round(w * SCALE)), max(1, round(h * SCALE)))
-        # graue Ebene: Helligkeit auf 0..1 gestreckt
-        f32 = a.astype(float)
-        lum = 0.299 * f32[..., 0] + 0.587 * f32[..., 1] + 0.114 * f32[..., 2]
-        vis = a[..., 3] > 128
-        lo, hi = np.percentile(lum[vis], 2), np.percentile(lum[vis], 98)
-        t = np.clip((lum - lo) / max(1, hi - lo), 0, 1)
-        gray = np.dstack([(t * 255).astype(np.uint8)] * 3 + [(a[..., 3] * SOFT.get(key, 1)).astype(np.uint8)])
-        Image.fromarray(gray).resize(size, Image.LANCZOS).save(f'{OUT}/{file}.webp', quality=88, method=6)
-        deco = False
-        if key in DECO:
-            m = deco_mask(a)
-            if m.sum() > 20:
-                d = a.copy(); d[..., 3] = np.where(m, d[..., 3], 0)
-                Image.fromarray(d).resize(size, Image.LANCZOS).save(f'{OUT}/{file}_deko.webp', quality=88, method=6)
-                deco = True
-        layout[file] = [round(x / 768 * 100, 2), round(y / 1152 * 100, 2), round(w / 768 * 100, 2), deco]
+if __name__ == '__main__':
+    layout = {}
+    for (name, cols, rows), path in zip(SHEETS, sys.argv[1:5]):
+        for cell, a in slice_sheet(path, cols, rows).items():
+            key = f'{name}_{cell}'
+            if key not in IDS: continue
+            hair = name[0] == 'h'
+            f = hair_fit(a) if hair else beard_fit(a)
+            o = OVER.get(key, {})
+            if 'ay' in o: f['ay'] = o['ay'] * a.shape[0]
+            if 'hw' in o: f['s'] = 78 / o['hw']
+            s = f['s'] * o.get('k', 1)
+            x = CX - f['ax'] * s + o.get('dx', 0)
+            y = f['ty'] - f['ay'] * s + o.get('dy', 0)
+            w, h = a.shape[1] * s, a.shape[0] * s
+            file = f"{'frisur' if hair else 'bart'}_{IDS[key]}"
+            size = (max(1, round(w * SCALE)), max(1, round(h * SCALE)))
+            # graue Ebene: Helligkeit auf 0..1 gestreckt
+            f32 = a.astype(float)
+            lum = 0.299 * f32[..., 0] + 0.587 * f32[..., 1] + 0.114 * f32[..., 2]
+            vis = a[..., 3] > 128
+            lo, hi = np.percentile(lum[vis], 2), np.percentile(lum[vis], 98)
+            t = np.clip((lum - lo) / max(1, hi - lo), 0, 1)
+            gray = np.dstack([(t * 255).astype(np.uint8)] * 3 + [(a[..., 3] * SOFT.get(key, 1)).astype(np.uint8)])
+            Image.fromarray(gray).resize(size, Image.LANCZOS).save(f'{OUT}/{file}.webp', quality=88, method=6)
+            deco = False
+            if key in DECO:
+                m = deco_mask(a)
+                if m.sum() > 20:
+                    d = a.copy(); d[..., 3] = np.where(m, d[..., 3], 0)
+                    Image.fromarray(d).resize(size, Image.LANCZOS).save(f'{OUT}/{file}_deko.webp', quality=88, method=6)
+                    deco = True
+            layout[file] = [round(x / 768 * 100, 2), round(y / 1152 * 100, 2), round(w / 768 * 100, 2), deco]
 
-lines = ['// Generiert von scripts/traits/process.py – Lage jeder Merkmal-Ebene im 2:3-Kasten der Heldenfigur.',
-         '// [links %, oben %, Breite %, hat Schmuck-Ebene]',
-         'export const TRAIT_LAYOUT: Record<string, [number, number, number, boolean]> = {']
-for k in sorted(layout): lines.append(f"  '{k}': [{', '.join(str(v).lower() for v in layout[k])}],")
-lines.append('};')
-open('src/domain/traitLayout.ts', 'w').write('\n'.join(lines) + '\n')
-print(len(layout), 'Ebenen')
+    lines = ['// Generiert von scripts/traits/process.py – Lage jeder Merkmal-Ebene im 2:3-Kasten der Heldenfigur.',
+             '// [links %, oben %, Breite %, hat Schmuck-Ebene]',
+             'export const TRAIT_LAYOUT: Record<string, [number, number, number, boolean]> = {']
+    for k in sorted(layout): lines.append(f"  '{k}': [{', '.join(str(v).lower() for v in layout[k])}],")
+    lines.append('};')
+    open('src/domain/traitLayout.ts', 'w').write('\n'.join(lines) + '\n')
+    print(len(layout), 'Ebenen')

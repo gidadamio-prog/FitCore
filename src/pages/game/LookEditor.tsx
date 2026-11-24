@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Lock, Check } from 'lucide-react';
 import { Sheet, Tabs, cn } from '@/components/ui';
-import { HeadPreview, rpgAsset } from '@/components/rpg/Visuals';
+import { BodyPreview, HeadPreview, rpgAsset } from '@/components/rpg/Visuals';
 import { HAIR_COLORS, TRAITS, normalizeLook, traitFile, unlockStatus, unlockedLookKeys, type HeroLook, type TraitCategory, type TraitDef, type UnlockContext } from '@/domain/appearance';
 import type { GameState } from '@/domain/gamification';
 import type { Hero } from '@/domain/rpg';
@@ -25,7 +25,7 @@ export function useNewLooks(game: GameState) {
   return useMemo(() => unlockedLookKeys(lookContext(game), traitAvailable).filter((k) => !lookSeen.includes(k)), [game, lookSeen]);
 }
 
-type Tab = 'hair' | 'beard' | 'color';
+type Tab = 'hair' | 'beard' | 'color' | 'tattoo' | 'scar' | 'eyes';
 
 export function LookEditor({ hero, game, onClose }: { hero: Hero; game: GameState; onClose: () => void }) {
   const ctx = lookContext(game);
@@ -46,8 +46,11 @@ export function LookEditor({ hero, game, onClose }: { hero: Hero; game: GameStat
   const traitGrid = (cat: TraitCategory) => {
     const list = TRAITS.filter((t) => t.category === cat && traitAvailable(t)).map((t) => ({ t, st: unlockStatus(t.unlock, ctx) }));
     list.sort((a, b) => Number(b.st.unlocked) - Number(a.st.unlocked));
-    const current = cat === 'hair' ? look.hair : look.beard;
-    const set = (id: string | null) => apply(cat === 'hair' ? { ...look, hair: id } : { ...look, beard: id });
+    const field = cat as 'hair' | 'beard' | 'tattoo' | 'scar' | 'eyes';
+    const current = look[field];
+    const set = (id: string | null) => apply({ ...look, [field]: id });
+    const full = cat === 'tattoo' || cat === 'scar';
+    const NONE: Record<string, string> = { hair: 'Grundschnitt', beard: 'Kein Bart', tattoo: 'Kein Tattoo', scar: 'Keine Narbe', eyes: 'Nichts' };
     const tile = (key: string, id: string | null, name: string, unlocked: boolean, hint?: string) => {
       const active = current === id;
       return (
@@ -60,7 +63,11 @@ export function LookEditor({ hero, game, onClose }: { hero: Hero; game: GameStat
           aria-label={unlocked ? name : `${name} (gesperrt: ${hint})`}
           data-testid={`look-${cat}-${id ?? 'none'}`}
         >
-          <HeadPreview look={cat === 'hair' ? { ...look, hair: id } : { ...look, beard: id }} size={76} className={cn(!unlocked && 'opacity-35 grayscale')} />
+          {full ? (
+            <BodyPreview look={{ ...look, [field]: id }} width={64} className={cn(!unlocked && 'opacity-35 grayscale')} />
+          ) : (
+            <HeadPreview look={{ ...look, [field]: id }} size={76} className={cn(!unlocked && 'opacity-35 grayscale')} />
+          )}
           {!unlocked && <Lock className="absolute right-2 top-2 h-4 w-4 text-gold" />}
           {active && <Check className="absolute right-2 top-2 h-4 w-4 text-gold" />}
           {newKeys.has(`${cat}:${id}`) && <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-1.5 text-[9px] font-bold text-white">NEU</span>}
@@ -71,7 +78,7 @@ export function LookEditor({ hero, game, onClose }: { hero: Hero; game: GameStat
     };
     return (
       <div className="grid grid-cols-3 gap-1.5" data-testid={`look-grid-${cat}`}>
-        {tile('none', null, cat === 'hair' ? 'Grundschnitt' : 'Kein Bart', true)}
+        {tile('none', null, NONE[cat]!, true)}
         {list.map(({ t, st }) => tile(t.id, t.id, t.name, st.unlocked, st.hint))}
       </div>
     );
@@ -109,19 +116,26 @@ export function LookEditor({ hero, game, onClose }: { hero: Hero; game: GameStat
       <div className="space-y-3" data-testid="look-editor">
         <div className="flex items-center gap-3">
           <HeadPreview look={look} size={96} />
-          <p className="text-xs text-muted">Zum Start stehen je 5 Frisuren und Bärte in gedeckten Farben bereit. Weitere schaltest du frei, indem du Bosse besiegst, im Rang aufsteigst und Abzeichen sammelst.</p>
+          <p className="text-xs text-muted">Zum Start stehen 5 Frisuren, 5 Bärte, gedeckte Farben und je ein paar Tattoos, Narben und Brillen bereit. Weitere schaltest du frei, indem du Bosse besiegst, im Rang aufsteigst und Abzeichen sammelst.</p>
         </div>
         <Tabs
+          className="[&>button]:px-2"
           value={tab}
           onChange={setTab}
           items={[
             { value: 'hair', label: 'Frisur' },
             { value: 'beard', label: 'Bart' },
             { value: 'color', label: 'Farben' },
+            { value: 'tattoo', label: 'Tattoo' },
+            { value: 'scar', label: 'Narbe' },
+            { value: 'eyes', label: 'Brille' },
           ]}
         />
         {tab === 'hair' && traitGrid('hair')}
         {tab === 'beard' && traitGrid('beard')}
+        {tab === 'tattoo' && traitGrid('tattoo')}
+        {tab === 'scar' && traitGrid('scar')}
+        {tab === 'eyes' && traitGrid('eyes')}
         {tab === 'color' && (
           <div className="space-y-4">
             <div>

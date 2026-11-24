@@ -132,3 +132,8 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - 24 Frisuren und 23 Bärte als graue Ebenen (`scripts/traits/process.py` zerlegt die gelieferten Sammelbilder, setzt jede Ebene automatisch auf den Kopf – Haaransatz bzw. Mund/Kinn – und speichert die Lage in `src/domain/traitLayout.ts`). Ringe/Perlen liegen als ungefärbte Schmuck-Ebene darüber.
 - Einfärben per SVG-Verlaufsabbildung (dunkel → Farbton → Glanz). Bartfarbe folgt der Haarfarbe, solange sie gleich ist.
 - Freischaltung: Start je 5 Frisuren/Bärte und 5 gedeckte Farben; jeder Feldzug-Boss (inkl. erstem Barbarenheer) gibt 1 Frisur + 1 Bart (Gallia/Britannia zusätzlich Kupfer/Waidblau); Rest über Ränge (Miles, Decanus, Signifer, Optio, Centurio, Tribunus, Legatus, Imperator) und Abzeichen. Nicht freigeschaltete Auswahl fällt auf Grundschnitt/Dunkelbraun zurück.
+
+## Tattoos, Narben, Brillen
+- Tattoos und Narben liegen im Schablonenrahmen der Lieferung (Rumpf/Arme/Beine gestaucht). `scripts/traits/process_extras.py` erkennt je Grundkörper aus der Silhouette Rumpf, Arme und Beine (`BODY_PARTS`); in der App wird jeder Schablonen-Bereich (`TATTOO_TEMPLATE`) einzeln auf seinen Körperbereich gelegt und auf die Hautsilhouette maskiert.
+- Narben: eine wählbar; Platz je Narbe in `SCAR_PLACE` (Gesicht, Rumpf, Arm, Bein). Brillen/Augenklappen sitzen wie Frisuren fest am Kopf; klare Gläser werden durchsichtig gemacht.
+- Freischaltung: Tattoos 2 zum Start + 1 je Boss; Narben 3 zum Start, Rest über Ränge/Abzeichen; Brillen 3 zum Start, Rest über Ränge/Abzeichen. 3 Zusatz-Frisuren über Abzeichen (Rezepte, Wasser, Protein).

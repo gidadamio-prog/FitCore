@@ -35,7 +35,7 @@ p('# FitCore – Grafik-Briefing');
 p();
 p('Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.');
 p();
-p(`**Als Nächstes dran: ${TRAITS.filter((t) => !have(traitFile(t))).length} Merkmale (Narben, Bemalung, Augen) + ${HEAD_ITEMS.length} Helme auf der Figur (Abschnitt 0).** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**`);
+p(`**Als Nächstes dran: ${HEAD_ITEMS.length} Helme auf der Figur (Abschnitt 0); alle Merkmale sind geliefert.** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**`);
 p();
 p('## Regeln für alle Bilder');
 p();
