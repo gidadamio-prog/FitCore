@@ -1,3 +1,5 @@
+import { bossRewards } from '@/domain/appearance';
+import { traitAvailable } from './LookEditor';
 import { useEffect, useState } from 'react';
 import { Check, Lock, Skull, Swords, Ghost } from 'lucide-react';
 import { rpgAsset } from '@/components/rpg/Visuals';
@@ -69,6 +71,11 @@ export function BossCard({ game }: { game: GameState }) {
         </span>
         <span>{game.campaign.defeated.length} besiegt</span>
       </div>
+      {bossRewards(c.boss.id, traitAvailable).length > 0 && (
+        <div className="mt-1 text-[11px] text-gold" data-testid="boss-rewards">
+          Belohnung: {bossRewards(c.boss.id, traitAvailable).join(' · ')}
+        </div>
+      )}
     </div>
   );
 }

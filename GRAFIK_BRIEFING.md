@@ -2,7 +2,7 @@
 
 Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.
 
-**Als Nächstes dran: 19 Merkmale + 8 Helme auf der Figur (Abschnitt 0).** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**
+**Als Nächstes dran: 8 Merkmale (Narben, Bemalung, Augen) + 8 Helme auf der Figur (Abschnitt 0).** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**
 
 ## Regeln für alle Bilder
 
@@ -81,22 +81,9 @@ Then output ONLY the [MERKMAL] as an isolated layer on a fully transparent backg
 exact same position and scale as on the character, [HINWEIS]. No body, no face, no text.
 ```
 
-**Frisur** – nur die Haare, in neutralem hellem Grau mit Schattierung (Farbe kommt aus dem Code)
+**Frisur** – geliefert (24/24), eingebaut mit Freischaltungen
 
-- [ ] `frisur_kurz.png` – Legionärsschnitt: kurzes, dichtes Haar, an den Seiten kürzer, kleine Stirnfransen
-- [ ] `frisur_locken.png` – Locken: mittellange dichte Locken, bis knapp über die Ohren
-- [ ] `frisur_zopf.png` – Kriegerzopf: Haar straff nach hinten, Seiten kurz, Zopf im Nacken (von vorne knapp sichtbar)
-- [ ] `frisur_maehne.png` – Mähne: lange offene Mähne bis auf die Schultern, leicht wild
-- [ ] `frisur_irokese.png` – Kammfrisur: Seiten rasiert, breiter Haarkamm in der Mitte nach hinten
-- [ ] `frisur_knoten.png` – Suebenknoten: Haar seitlich zu einem Knoten über dem rechten Ohr gebunden
-
-**Bart** – nur der Bart, in neutralem hellem Grau mit Schattierung (Farbe kommt aus dem Code)
-
-- [ ] `bart_stoppeln.png` – Dreitagebart: kurze Stoppeln an Kinn, Wangen und Oberlippe
-- [ ] `bart_kinnbart.png` – Kinnbart: schmaler Kinnbart mit Schnurrbart, Wangen frei
-- [ ] `bart_vollbart.png` – Vollbart: gepflegter kurzer Vollbart, klare Kontur
-- [ ] `bart_barbar.png` – Barbarenbart: langer, dichter Vollbart bis auf die Brust
-- [ ] `bart_schnauzer.png` – Schnauzer: kräftiger, nach unten hängender Schnurrbart
+**Bart** – geliefert (23/23), eingebaut mit Freischaltungen
 
 **Narbe** – nur die Narbe auf transparentem Grund, Hautton leicht heller/rötlicher als die Haut
 

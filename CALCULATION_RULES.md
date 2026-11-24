@@ -127,3 +127,8 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 
 ## Merkmal- und Helm-Ebenen
 - Raster 1024 × 1536, Ebenenfolge Grundkörper → Narbe → Bemalung → Bart → Frisur → Augen → Helm. Haare und Bärte werden grau geliefert und im Code eingefärbt (`HAIR_COLORS`). Echte Helme blenden die Frisur aus, Kränze/Diademe nicht (`helmetHidesHair`). Katalog: `src/domain/appearance.ts`.
+
+## Frisuren, Bärte und Farben
+- 24 Frisuren und 23 Bärte als graue Ebenen (`scripts/traits/process.py` zerlegt die gelieferten Sammelbilder, setzt jede Ebene automatisch auf den Kopf – Haaransatz bzw. Mund/Kinn – und speichert die Lage in `src/domain/traitLayout.ts`). Ringe/Perlen liegen als ungefärbte Schmuck-Ebene darüber.
+- Einfärben per SVG-Verlaufsabbildung (dunkel → Farbton → Glanz). Bartfarbe folgt der Haarfarbe, solange sie gleich ist.
+- Freischaltung: Start je 5 Frisuren/Bärte und 5 gedeckte Farben; jeder Feldzug-Boss (inkl. erstem Barbarenheer) gibt 1 Frisur + 1 Bart (Gallia/Britannia zusätzlich Kupfer/Waidblau); Rest über Ränge (Miles, Decanus, Signifer, Optio, Centurio, Tribunus, Legatus, Imperator) und Abzeichen. Nicht freigeschaltete Auswahl fällt auf Grundschnitt/Dunkelbraun zurück.

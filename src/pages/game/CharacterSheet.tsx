@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Dumbbell, Salad, Check } from 'lucide-react';
+import { Lock, Dumbbell, Salad, Check, Scissors } from 'lucide-react';
+import { LookEditor, useNewLooks } from './LookEditor';
 import { Badge, Button, Card, CardTitle, Sheet, fmt, cn } from '@/components/ui';
 import { HeroFigure, HeroPortrait, ItemIcon } from '@/components/rpg/Visuals';
 import { useBodyType } from '@/hooks/game';
@@ -48,6 +49,8 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
   const { inv, loadout, aura } = useHeroGear(hero, game);
   const [open, setOpen] = useState<SlotId | null>(null);
   const [flash, setFlash] = useState<SlotId | null>(null);
+  const [lookOpen, setLookOpen] = useState(false);
+  const newLooks = useNewLooks(game);
   const path = pathById(pathForGoal(goal?.primaryGoal) ?? undefined);
   const stage = appearanceStage(game.rank.rank.level);
   const twoHand = !!(loadout.main && itemById(loadout.main)?.twoHanded);
@@ -81,6 +84,16 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
           ) : (
             <div className="max-w-[140px] text-center text-[10px] text-muted">Gewicht eintragen, damit dein Held deinen Körperbau bekommt.</div>
           )}
+          {body && (
+            <Button size="sm" variant="secondary" className="relative mt-1.5" onClick={() => setLookOpen(true)}>
+              <Scissors className="h-3.5 w-3.5" /> Aussehen
+              {newLooks.length > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white" data-testid="look-new">
+                  {newLooks.length}
+                </span>
+              )}
+            </Button>
+          )}
           {aura && (
             <Badge tone="accent" className="mt-1" data-testid="set-aura">
               Aura: {CATEGORY_LABEL[aura]}
@@ -89,6 +102,7 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
         </div>
         {col(['off', 'legs', 'feet'])}
       </div>
+      {lookOpen && <LookEditor hero={hero} game={game} onClose={() => setLookOpen(false)} />}
       {open && (
         <SlotSheet
           slot={open}

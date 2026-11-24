@@ -1,5 +1,7 @@
 // Kampf-Inszenierung gegen den Feldzug-Boss nach Training oder abgeschlossener Mahlzeit.
 // Der Schaden ist der Zuwachs seit dem letzten Kampf (persistiert in settings.battleAck).
+import { bossRewards } from '@/domain/appearance';
+import { traitAvailable } from '@/pages/game/LookEditor';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Swords } from 'lucide-react';
 import { Button, cn, fmt } from './ui';
@@ -223,6 +225,11 @@ function BattleStage({ scene }: { scene: Scene }) {
             {plan.defeated.length > 0 && <>{plan.defeated.map((b) => b.name).join(', ')} besiegt · </>}
             {plan.end.boss.name}: noch {fmt(plan.end.remaining)} LP
           </p>
+          {plan.defeated.flatMap((b) => bossRewards(b.id, traitAvailable)).length > 0 && (
+            <p className="mt-1 text-sm text-gold" data-testid="battle-rewards">
+              Freigeschaltet: {plan.defeated.flatMap((b) => bossRewards(b.id, traitAvailable)).join(' · ')}
+            </p>
+          )}
           <Button className="mt-4 w-full" onClick={close}>
             Ave!
           </Button>

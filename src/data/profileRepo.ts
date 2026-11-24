@@ -170,6 +170,8 @@ export interface AppSettings {
   lastBackupAt: string | null;
   /** Backup-Erinnerung bis zu diesem Tag ausblenden */
   backupSnoozeUntil: string | null;
+  /** Bereits gesehene Aussehen-Freischaltungen („Neu“-Hinweis) */
+  lookSeen: string[];
 }
 
 export type Rival = ShareCard & { importedAt: string };
@@ -190,6 +192,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   questPicks: {},
   lastBackupAt: null,
   backupSnoozeUntil: null,
+  lookSeen: [],
 };
 
 export async function getSettings(): Promise<AppSettings> {
