@@ -123,3 +123,26 @@ describe('Backup-Erinnerung', async () => {
     expect(backupDue('2026-11-16T10:00:00Z', '2026-11-25', '2026-01-01T00:00:00Z', now)).toBe(false); // „Später“
   });
 });
+
+describe('Buchung mit Zubereitung', async () => {
+  const { addEntry, updateEntryAmount, repeatEntry } = await import('@/data/nutritionRepo');
+  const { BASIC_FOODS } = await import('@/data/basicFoods');
+  const { per100For, prepProfile, baseState } = await import('@/domain/preparation');
+  const dbm = await import('@/data/db');
+  it('speichert umgerechnete Bezugswerte; Mengenänderung und „wie zuletzt“ behalten die Zubereitung', async () => {
+    await freshDb();
+    const db = dbm.db;
+    const rice = BASIC_FOODS.find((f) => f.id === 'basic:reis')!;
+    const p = prepProfile(rice)!;
+    const per100 = per100For(rice.per100, baseState(p, rice), p.states[1]!);
+    const e = await addEntry({ date: '2026-11-24', meal: 'lunch', food: rice, amount: 280, unit: 'g', prep: { label: 'gekocht', per100 } });
+    expect(e.prep).toBe('gekocht');
+    expect(e.nutrients.kcal).toBeCloseTo(355, 0); // 280 g gekocht ≙ 100 g trocken
+    await updateEntryAmount(e.id, 140, 'g');
+    expect((await db.diary.get(e.id))!.nutrients.kcal).toBe(178);
+    const again = await repeatEntry((await db.diary.get(e.id))!, '2026-11-25', 'dinner');
+    expect(again.prep).toBe('gekocht');
+    expect(again.date).toBe('2026-11-25');
+    expect((await db.foods.get('basic:reis'))!.useCount).toBe(2);
+  });
+});

@@ -53,6 +53,7 @@ test('Kampf nach Training und nach abgeschlossener Mahlzeit', async ({ page }) =
   await dlg.getByRole('button', { name: /^Haferbrei/ }).click();
   await dlg.getByLabel('Menge').fill('100');
   await dlg.getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByTestId('add-done').click();
   await expect(page.getByTestId('meal-breakfast')).toContainText('Haferbrei');
   await page.getByTestId('meal-close-breakfast').click();
   await expect(battle).toBeVisible();

@@ -189,7 +189,7 @@ function Diary() {
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">{e.name}</div>
                         <div className="text-xs text-muted">
-                          {e.unit === 'serving' ? `${fmt(e.amount, 2)} × ${e.servingLabel ?? 'Portion'}` : `${fmt(e.amount, 1)} ${e.unit}`} · P {fmt(e.nutrients.protein, 1, '?')} · KH {fmt(e.nutrients.carbs, 1, '?')} · F {fmt(e.nutrients.fat, 1, '?')}
+                          {e.unit === 'serving' ? `${fmt(e.amount, 2)} × ${e.servingLabel ?? 'Portion'}` : `${fmt(e.amount, 1)} ${e.unit}`}{e.prep ? ` ${e.prep}` : ''} · P {fmt(e.nutrients.protein, 1, '?')} · KH {fmt(e.nutrients.carbs, 1, '?')} · F {fmt(e.nutrients.fat, 1, '?')}
                         </div>
                       </div>
                       <div className="text-sm font-medium tabular-nums">{e.nutrients.kcal == null ? '?' : fmt(e.nutrients.kcal)}</div>
@@ -403,7 +403,7 @@ function EntrySheet({ entry, onClose }: { entry: DiaryEntry | null; onClose: () 
         </div>
         <div className="grid grid-cols-2 gap-3">
           {entry.source !== 'quick' && (
-            <Field label={entry.unit === 'serving' ? `Menge (× ${entry.servingLabel ?? 'Portion'})` : `Menge (${entry.unit})`} error={err}>
+            <Field label={(entry.unit === 'serving' ? `Menge (× ${entry.servingLabel ?? 'Portion'})` : `Menge (${entry.unit})`) + (entry.prep ? ` – ${entry.prep}` : '')} error={err}>
               {(id) => <NumberInput id={id} value={amount} onValue={setAmount} />}
             </Field>
           )}

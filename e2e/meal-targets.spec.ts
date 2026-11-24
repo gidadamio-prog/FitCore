@@ -20,6 +20,7 @@ test('Kalorienziel je Mahlzeit: Aufteilung passt zum Tagesziel und offene Mahlze
   await dlg.getByLabel('Einheit').selectOption('g');
   await dlg.getByLabel('Menge').fill('100');
   await dlg.getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByTestId('add-done').click();
   await expect(page.getByTestId('meal-kcal-breakfast')).toHaveText('539 / 502 kcal');
   await expect(page.getByTestId('meal-hit-breakfast')).toHaveText('Punktlandung ✓');
   await expect(page.getByTestId('meal-kcal-lunch')).toHaveText('0 / 685 kcal');

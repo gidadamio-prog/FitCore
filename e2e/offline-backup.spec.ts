@@ -19,9 +19,10 @@ test('E2E-11 Offline: lokale Kernfunktionen nutzen → Verbindung wiederherstell
   await page.getByRole('tab', { name: 'Tagebuch' }).click();
   await page.getByRole('button', { name: 'Snacks: Lebensmittel hinzufügen' }).click();
   await page.getByRole('dialog').getByLabel('Lebensmittel suchen').fill('Apfel');
-  await page.getByRole('dialog').getByRole('button', { name: /^Apfel/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Apfel.*Eigenes/ }).click();
   await page.getByRole('dialog').getByLabel('Menge').fill('150');
   await page.getByRole('dialog').getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByTestId('add-done').click();
   await expect(page.getByTestId('day-kcal')).toHaveText('78');
   await nav(page, 'Körper');
   await page.getByRole('button', { name: 'Messung' }).click();
@@ -51,6 +52,7 @@ test('E2E-12 Backup → getrennte Instanz wiederherstellen → Integrität', asy
   await page.getByRole('dialog').getByRole('button', { name: /^Quark/ }).click();
   await page.getByRole('dialog').getByLabel('Menge').fill('500');
   await page.getByRole('dialog').getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByTestId('add-done').click();
   await page.goto('/#/settings');
   await page.getByRole('tab', { name: 'Daten' }).click();
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Als Datei herunterladen' }).click()]);

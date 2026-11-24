@@ -137,3 +137,10 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Tattoos und Narben liegen im Schablonenrahmen der Lieferung (Rumpf/Arme/Beine gestaucht). `scripts/traits/process_extras.py` erkennt je Grundkörper aus der Silhouette Rumpf, Arme und Beine (`BODY_PARTS`); in der App wird jeder Schablonen-Bereich (`TATTOO_TEMPLATE`) einzeln auf seinen Körperbereich gelegt und auf die Hautsilhouette maskiert.
 - Narben: eine wählbar; Platz je Narbe in `SCAR_PLACE` (Gesicht, Rumpf, Arm, Bein). Brillen/Augenklappen sitzen wie Frisuren fest am Kopf; klare Gläser werden durchsichtig gemacht.
 - Freischaltung: Tattoos 2 zum Start + 1 je Boss; Narben 3 zum Start, Rest über Ränge/Abzeichen; Brillen 3 zum Start, Rest über Ränge/Abzeichen. 3 Zusatz-Frisuren über Abzeichen (Rezepte, Wasser, Protein).
+
+## Zubereitung (roh/trocken vs. gekocht)
+- Beim Kochen ändert sich das Gewicht (Wasser), nicht der Nährstoffgehalt. Nährwerte pro 100 g wie gewogen = Bezugswerte × Ausbeute(Bezug) / Ausbeute(gewogen); Ausbeute = Gewicht nach Zubereitung / Rohgewicht.
+- Richtwerte (aus USDA roh vs. gegart): Reis 2,8 (365 → 130 kcal), Nudeln 2,35, Quinoa 3,0, Linsen 3,0, Kichererbsen 2,3, Kartoffeln gekocht 0,9 / Ofen 0,8, Hähnchen-/Putenbrust gegart 0,73.
+- Erkennung über den Namen (mit Ausschlüssen wie Reiswaffeln, Chips, Tortellini). Bezugszustand: „gekocht/cooked“ im Namen oder kcal unter einer Schwelle (z. B. Reis < 230 kcal/100 g) = bereits gegart, sonst Rohware.
+- Der Eintrag speichert die umgerechneten Bezugswerte und die Zubereitung (`prep`); Mengenänderung und „wie zuletzt“ behalten sie.
+- 28 Grundnahrungsmittel mit Durchschnittswerten (offline, Quelle „Grundnahrungsmittel“); in der Suche nach eigenen/gespeicherten Lebensmitteln gelistet.
