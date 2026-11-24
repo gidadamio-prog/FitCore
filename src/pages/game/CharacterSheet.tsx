@@ -1,40 +1,52 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Dumbbell, Salad, Check, Scissors } from 'lucide-react';
+import { Lock, Dumbbell, Salad, Check, Scissors, Eye, EyeOff } from 'lucide-react';
 import { LookEditor, useNewLooks } from './LookEditor';
+import { gearExtra } from '@/domain/gear';
+import { ARMOR_CLASS_COLOR, ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, bonusText, fullArmorSet, setBonuses, type ArmorSlot } from '@/domain/armor';
+
+const setIdx = (o: OwnedItem) => (o.def.source.kind === 'armor' ? o.def.source.setIdx : -1);
 import { Badge, Button, Card, CardTitle, Sheet, fmt, cn } from '@/components/ui';
 import { HeroFigure, HeroPortrait, ItemIcon } from '@/components/rpg/Visuals';
 import { useBodyType } from '@/hooks/game';
 import { bodyTypeLabel } from '@/domain/bodyType';
 import { useCurrentGoalVersion } from './useGoal';
 import { useSettings } from '@/hooks/data';
-import { applyPath, equipToHero, previewPath, unequipFromHero } from '@/data/arena';
+import { applyPath, equipArmorSet, equipToHero, previewPath, toggleArmorHidden, unequipFromHero } from '@/data/arena';
 import { toast } from '@/stores/ui';
 import { RANKS, type GameState } from '@/domain/gamification';
-import {
-  APPEARANCE_STAGES, CATEGORY_AURA, CATEGORY_LABEL, RARITY_COLOR, RARITY_LABEL, RARITY_MIN_RANK, SLOTS, appearanceStage, inventory, itemById, normalizeLoadout, setAura,
-  type OwnedItem, type SlotId,
-} from '@/domain/equipment';
+import { APPEARANCE_STAGES, CATEGORY_AURA, CATEGORY_LABEL, RARITY_COLOR, RARITY_LABEL, RARITY_MIN_RANK, SLOTS, appearanceStage, inventory, itemById, normalizeLoadout, setAura, type OwnedItem, type SlotId } from '@/domain/equipment';
 import { CLASS_TRAINING, PATHS, classById, pathById, pathForGoal, type Hero, type PathId } from '@/domain/rpg';
 import { PLAN_TEMPLATES } from '@/data/planTemplates';
 
 const rankName = (level: number) => RANKS[level - 1]?.name ?? '';
 
 export function useHeroGear(hero: Hero, game: GameState) {
-  const { purchases } = useSettings();
-  const inv = inventory(game.badges, hero.classId, game.rank.rank.level, purchases);
+  const { purchases, armorLoot } = useSettings();
+  const inv = inventory(game.badges, hero.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot));
   const loadout = normalizeLoadout(hero.loadout, inv, hero.classId);
-  return { inv, loadout, aura: setAura(loadout) };
+  return {
+    inv,
+    loadout,
+    aura: setAura(loadout),
+    fullSet: fullArmorSet(loadout),
+  };
 }
 
-function SlotButton({ slot, itemId, inv, blocked, onClick, flash }: { slot: SlotId; itemId: string | null; inv: OwnedItem[]; blocked: boolean; onClick: () => void; flash: boolean }) {
+function SlotButton({ slot, itemId, inv, blocked, onClick, flash, hidden }: { slot: SlotId; itemId: string | null; inv: OwnedItem[]; blocked: boolean; onClick: () => void; flash: boolean; hidden?: boolean }) {
   const o = itemId ? inv.find((x) => x.def.id === itemId) : undefined;
   const label = SLOTS.find((s) => s.id === slot)!.label;
   return (
-    <button onClick={onClick} className={cn('flex flex-col items-center gap-0.5 rounded-xl p-1', flash && 'equip-flash')} aria-label={`${label}: ${o ? o.def.name : blocked ? 'durch Zweihandwaffe belegt' : 'leer'}`} data-testid={`slot-${slot}`}>
+    <button
+      onClick={onClick}
+      className={cn('flex flex-col items-center gap-0.5 rounded-xl p-1', flash && 'equip-flash')}
+      aria-label={`${label}: ${o ? o.def.name : blocked ? 'durch Zweihandwaffe belegt' : 'leer'}${o && hidden ? ' (ausgeblendet)' : ''}`}
+      data-testid={`slot-${slot}`}
+    >
       {o ? (
-        <span key={o.def.id} className="equip-pop">
+        <span key={o.def.id} className={cn('equip-pop relative', hidden && 'opacity-50')}>
           <ItemIcon item={o.def} rarity={o.worn} size={54} />
+          {hidden && <EyeOff className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-card p-0.5 text-muted" />}
         </span>
       ) : (
         <span className="flex h-[54px] w-[54px] items-center justify-center rounded-xl border border-dashed text-[10px] text-muted">{blocked ? 'Zweihand' : 'leer'}</span>
@@ -46,7 +58,7 @@ function SlotButton({ slot, itemId, inv, blocked, onClick, flash }: { slot: Slot
 
 export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) {
   const goal = useCurrentGoalVersion();
-  const { inv, loadout, aura } = useHeroGear(hero, game);
+  const { inv, loadout, aura, fullSet } = useHeroGear(hero, game);
   const [open, setOpen] = useState<SlotId | null>(null);
   const [flash, setFlash] = useState<SlotId | null>(null);
   const [lookOpen, setLookOpen] = useState(false);
@@ -55,24 +67,20 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
   const stage = appearanceStage(game.rank.rank.level);
   const twoHand = !!(loadout.main && itemById(loadout.main)?.twoHanded);
   const body = useBodyType();
-  const heroAura = aura ? CATEGORY_AURA[aura] : path?.aura;
+  const heroAura = fullSet ? ARMOR_CLASS_COLOR[fullSet.cls] : aura ? CATEGORY_AURA[aura] : path?.aura;
   const col = (slots: SlotId[]) => (
     <div className="flex flex-col justify-around gap-2">
       {slots.map((s) => (
-        <SlotButton key={s} slot={s} itemId={loadout[s]} inv={inv} blocked={s === 'off' && twoHand} onClick={() => setOpen(s)} flash={flash === s} />
+        <SlotButton key={s} slot={s} itemId={loadout[s]} inv={inv} blocked={s === 'off' && twoHand} onClick={() => setOpen(s)} flash={flash === s} hidden={hero.armorHidden?.includes(s)} />
       ))}
     </div>
   );
   return (
     <div data-testid="character-sheet">
       <div className="flex items-stretch justify-between gap-1">
-        {col(['main', 'head', 'hands'])}
+        {col(['head', 'chest', 'hands', 'main'])}
         <div className="flex flex-col items-center">
-          {body ? (
-            <HeroFigure bodyType={body.id} aura={heroAura} width={128} />
-          ) : (
-            <HeroPortrait classId={hero.classId} rankLevel={game.rank.rank.level} crest={hero.color} aura={heroAura} size={140} />
-          )}
+          {body ? <HeroFigure bodyType={body.id} aura={heroAura} width={128} /> : <HeroPortrait classId={hero.classId} rankLevel={game.rank.rank.level} crest={hero.color} aura={heroAura} size={140} />}
           <div className="mt-1 text-center text-[11px] text-muted" data-testid="appearance-stage">
             Erscheinung {stage}/5 · {APPEARANCE_STAGES[stage - 1]!.name}
           </div>
@@ -93,6 +101,16 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
                 </span>
               )}
             </Button>
+          )}
+          {fullSet && (
+            <Badge tone="accent" className="mt-1" data-testid="armor-set-bonus">
+              Set-Bonus: {fullSet.name} ({ARMOR_CLASS_LABEL[fullSet.cls]})
+            </Badge>
+          )}
+          {fullSet && (
+            <div className="mt-0.5 max-w-[170px] text-center text-[11px] text-gold" data-testid="armor-set-effects">
+              {setBonuses(fullSet).map(bonusText).join(' · ')}
+            </div>
           )}
           {aura && (
             <Badge tone="accent" className="mt-1" data-testid="set-aura">
@@ -123,7 +141,8 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
 
 function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { slot: SlotId; hero: Hero; game: GameState; inv: OwnedItem[]; current: string | null; onClose: () => void; onEquipped: (s: SlotId) => void }) {
   const nav = useNavigate();
-  const items = inv.filter((o) => o.def.slot === slot).sort((a, b) => Number(!!b.worn) - Number(!!a.worn) || Number(a.def.source.kind === 'badge') - Number(b.def.source.kind === 'badge'));
+  const items = inv.filter((o) => o.def.slot === slot).sort((a, b) => Number(!!b.worn) - Number(!!a.worn) || Number(a.def.source.kind === 'badge') - Number(b.def.source.kind === 'badge') || setIdx(a) - setIdx(b));
+  const ownedOfSet = (idx: number) => inv.filter((o) => o.worn && o.def.source.kind === 'armor' && o.def.source.setIdx === idx).length;
   const label = SLOTS.find((s) => s.id === slot)!.label;
   return (
     <Sheet open onClose={onClose} title={`${label} – Inventar`}>
@@ -138,7 +157,13 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
                   {o.def.name}
                   {o.def.twoHanded && <span className="ml-1 text-[10px] font-normal text-muted">Zweihand</span>}
                 </div>
-                {o.worn && (
+                {o.def.source.kind === 'armor' && (
+                  <div className="text-[11px] text-muted">
+                    {`${ARMOR_CLASS_LABEL[ARMOR_SETS[o.def.source.setIdx]!.cls]}-Rüstung · Set ${ARMOR_SETS[o.def.source.setIdx]!.name}`}
+                    <span className="text-gold"> · Set-Bonus: {setBonuses(ARMOR_SETS[o.def.source.setIdx]!).map(bonusText).join(', ')}</span>
+                  </div>
+                )}
+                {o.worn && o.def.source.kind !== 'armor' && (
                   <div className="text-[11px]" style={{ color: RARITY_COLOR[o.worn] }}>
                     {RARITY_LABEL[o.worn]}
                     {o.def.effectText && <span className="text-muted"> · {o.def.effectText}</span>}
@@ -156,22 +181,38 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
                   <Check className="h-3 w-3" /> angelegt
                 </Badge>
               ) : o.worn ? (
-                <Button
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const notice = await equipToHero(o.def.id, game);
-                      if (notice) toast(notice, 'info');
-                      onEquipped(slot);
-                      onClose();
-                    } catch (e) {
-                      toast((e as Error).message, 'error');
-                    }
-                  }}
-                >
-                  Anlegen
-                </Button>
-              ) : o.def.source.kind === 'starter' ? (
+                <div className="flex flex-col items-end gap-1">
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const notice = await equipToHero(o.def.id, game);
+                        if (notice) toast(notice, 'info');
+                        onEquipped(slot);
+                        onClose();
+                      } catch (e) {
+                        toast((e as Error).message, 'error');
+                      }
+                    }}
+                  >
+                    Anlegen
+                  </Button>
+                  {o.def.source.kind === 'armor' && ownedOfSet(o.def.source.setIdx) > 1 && (
+                    <button
+                      type="button"
+                      className="text-[10px] text-accent underline"
+                      onClick={async () => {
+                        const n = await equipArmorSet((o.def.source as { setIdx: number }).setIdx, game);
+                        toast(`${n} Teile des Sets angelegt`, 'success');
+                        onEquipped(slot);
+                        onClose();
+                      }}
+                    >
+                      ganzes Set anlegen
+                    </button>
+                  )}
+                </div>
+              ) : o.def.source.kind === 'starter' || (o.def.source.kind === 'armor' && ARMOR_SETS[o.def.source.setIdx]!.cls !== 'boss' && game.rank.rank.level >= ARMOR_CLASS_MIN_RANK[ARMOR_SETS[o.def.source.setIdx]!.cls]) ? (
                 <Button size="sm" variant="secondary" onClick={() => nav('/erfolge?tab=markt')}>
                   Markt
                 </Button>
@@ -180,6 +221,12 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
           );
         })}
       </ul>
+      {current && ARMOR_SLOTS.includes(slot as ArmorSlot) && (
+        <Button variant="secondary" className="mt-3 w-full" data-testid="toggle-armor-hidden" onClick={() => void toggleArmorHidden(slot)}>
+          {hero.armorHidden?.includes(slot) ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          {hero.armorHidden?.includes(slot) ? 'Auf der Figur wieder zeigen' : 'Auf der Figur ausblenden (bleibt angelegt)'}
+        </Button>
+      )}
       {current && (
         <Button
           variant="ghost"
@@ -193,7 +240,9 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
         </Button>
       )}
       <p className="mt-3 text-[11px] text-muted">
-        Ausrüstung ist rein kosmetisch. Seltenheit wächst mit der Stufe des Erfolgs (Bronze = Selten, Silber = Episch, Gold = Legendär); Episch ist ab {rankName(RARITY_MIN_RANK.epic)}, Legendär ab {rankName(RARITY_MIN_RANK.legendary)} tragbar. {hero.name} ist {game.rank.rank.name}.
+        Ausrüstung ist rein kosmetisch. Rüstung bekommst du als Start-Set, durch Ränge und Bosse, im Markt (Leder ab {rankName(ARMOR_CLASS_MIN_RANK.leder)}, Schwer ab {rankName(ARMOR_CLASS_MIN_RANK.schwer)}) und als Beute nach Kämpfen; ein
+        komplettes Set gibt einen Set-Bonus. Seltenheit von Waffen wächst mit der Stufe des Erfolgs (Bronze = Selten, Silber = Episch, Gold = Legendär); Episch ist ab {rankName(RARITY_MIN_RANK.epic)}, Legendär ab{' '}
+        {rankName(RARITY_MIN_RANK.legendary)} tragbar. {hero.name} ist {game.rank.rank.name}.
       </p>
     </Sheet>
   );
@@ -253,7 +302,13 @@ export function LifePathCard() {
       <p className="mb-2 text-xs text-muted">Der Lebensweg setzt dein Kalorien- und Makroziel. Berechnet wird wie im Zielrechner, mit denselben Sicherheitsgrenzen; ein Wechsel legt eine neue Zielversion ab heute an.</p>
       <div className="grid gap-2">
         {PATHS.map((p) => (
-          <button key={p.id} onClick={() => p.id !== current && choose(p.id)} className={cn('rounded-xl border p-3 text-left transition', p.id === current ? 'border-gold bg-gold/10' : 'hover:bg-fg/[0.04]')} aria-pressed={p.id === current} data-testid={`path-${p.id}`}>
+          <button
+            key={p.id}
+            onClick={() => p.id !== current && choose(p.id)}
+            className={cn('rounded-xl border p-3 text-left transition', p.id === current ? 'border-gold bg-gold/10' : 'hover:bg-fg/[0.04]')}
+            aria-pressed={p.id === current}
+            data-testid={`path-${p.id}`}
+          >
             <div className="flex items-center justify-between">
               <span className="font-brand font-semibold">{p.name}</span>
               {p.id === current && <Badge tone="accent">aktiv</Badge>}

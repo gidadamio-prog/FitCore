@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { HEAD_ITEMS, TRAITS, figureFile, helmetHidesHair, traitFile } from '@/domain/appearance';
+import { TRAITS, traitFile } from '@/domain/appearance';
 
 describe('Merkmal- und Helm-Ebenen', () => {
   it('haben eindeutige, saubere Dateinamen', () => {
-    const files = [...TRAITS.map(traitFile), ...HEAD_ITEMS.map(figureFile)];
+    const files = TRAITS.map(traitFile);
     expect(new Set(files).size).toBe(files.length);
     for (const f of files) expect(f).toMatch(/^[a-z0-9_-]+$/);
-  });
-  it('Helme verdecken die Frisur, Kränze und Diademe nicht', () => {
-    expect(helmetHidesHair(HEAD_ITEMS.find((i) => i.id === 'galea')!)).toBe(true);
-    expect(helmetHidesHair(HEAD_ITEMS.find((i) => i.id === 'lorbeerkranz-triumphator')!)).toBe(false);
   });
 });
 
@@ -55,7 +51,7 @@ describe('Frisuren, Bärte und Farben freischalten', () => {
     const k = TRAITS.find((t) => t.id === 'kasten')!;
     expect(unlockStatus(k.unlock, { ...fresh, badges: [{ id: 'workouts', name: 'Veteran', tier: 'bronze' }] })).toEqual({ unlocked: false, hint: 'Abzeichen Veteran Silber' });
     expect(unlockStatus(k.unlock, { ...fresh, badges: [{ id: 'workouts', name: 'Veteran', tier: 'gold' }] }).unlocked).toBe(true);
-    expect(bossRewards('gallia')).toEqual(['Frisur „Wellenmähne“', 'Bart „Gallischer Zwirbel“', 'Tattoo „Kriegsrunen“', 'Farbe „Kupfer“']);
+    expect(bossRewards('gallia')).toEqual(['Frisur „Wellenmähne“', 'Bart „Gallischer Zwirbel“', 'Tattoo „Kriegsrunen“', 'Farbe „Kupfer“', 'Rüstung „Pelzjäger“']);
   });
   it('gesperrte Auswahl fällt auf Grundschnitt bzw. Dunkelbraun zurück, Bartfarbe folgt der Haarfarbe', () => {
     expect(normalizeLook({ hair: 'wellenmaehne', beard: 'vollbart', hairColor: 'kupfer' }, fresh)).toEqual({ hair: null, beard: 'vollbart', scar: null, tattoo: null, eyes: null, hairColor: 'dunkelbraun', beardColor: 'dunkelbraun' });

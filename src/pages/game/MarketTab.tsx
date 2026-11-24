@@ -1,9 +1,13 @@
 import { Coins } from 'lucide-react';
-import { Badge, Button, Card, CardTitle, fmt, cn } from '@/components/ui';
+import { Badge, Button, Card, CardTitle, Tabs, fmt, cn } from '@/components/ui';
 import { useSettings } from '@/hooks/data';
-import { buyItem, equip, extraPrices } from '@/data/arena';
+import { buyArmor, buyItem, equip, equipArmorSet, extraPrices } from '@/data/arena';
 import { denare, SHOP, XP_PER_DENAR, classById, type ShopItem } from '@/domain/rpg';
-import { ITEMS, STARTER_PRICE, starterPurchaseId } from '@/domain/equipment';
+import { ITEMS, STARTER_PRICE, inventory, itemById, starterPurchaseId } from '@/domain/equipment';
+import { ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, armorItemId, armorPrice, bonusText, setBonuses, type ArmorClass } from '@/domain/armor';
+import { gearExtra } from '@/domain/gear';
+import { RANKS } from '@/domain/gamification';
+import { useState } from 'react';
 import { ItemIcon } from '@/components/rpg/Visuals';
 import type { GameState } from '@/domain/gamification';
 import { confirmDialog, toast } from '@/stores/ui';
@@ -87,6 +91,7 @@ export function MarketTab({ game }: { game: GameState }) {
           </ul>
         </Card>
       ))}
+      {hero && <ArmorShop game={game} balance={coins.balance} />}
       {hero && (
         <Card>
           <CardTitle>Start-Ausrüstung anderer Klassen</CardTitle>
@@ -131,5 +136,79 @@ export function MarketTab({ game }: { game: GameState }) {
       )}
       <p className="text-[11px] text-muted">Werden EP durch gelöschte Einträge weniger, kann dein Kontostand negativ werden. Gekauftes behältst du; neue Käufe gehen erst wieder mit positivem Stand.</p>
     </div>
+  );
+}
+
+function ArmorShop({ game, balance }: { game: GameState; balance: number }) {
+  const { hero, purchases, armorLoot } = useSettings();
+  const [cls, setCls] = useState<Exclude<ArmorClass, 'boss'>>('stoff');
+  const inv = inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot));
+  const owned = new Set(inv.filter((o) => o.unlocked).map((o) => o.def.id));
+  const rank = game.rank.rank.level;
+  const open = rank >= ARMOR_CLASS_MIN_RANK[cls];
+  const buy = async (ids: string[], label: string, price: number, idx: number) => {
+    if (!(await confirmDialog({ title: `${label} kaufen?`, text: `Kostet ${price} Denare. Danach im Inventar anlegbar.`, confirmLabel: 'Kaufen' }))) return;
+    try {
+      await buyArmor(ids, game);
+      if (ids.length > 1 && (await confirmDialog({ title: 'Gleich anziehen?', text: 'Alle Teile des Sets jetzt anlegen?', confirmLabel: 'Anlegen' }))) await equipArmorSet(idx, game);
+      toast(`${label} gehört dir`, 'success');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  };
+  return (
+    <Card data-testid="armor-shop">
+      <CardTitle>Rüstung</CardTitle>
+      <p className="mb-2 text-[11px] text-muted">Einzelteile oder ganze Sets. Boss-Rüstung gibt es nur im Feldzug. Teile bekommst du auch als Beute nach Kämpfen.</p>
+      <Tabs
+        value={cls}
+        onChange={setCls}
+        items={(['stoff', 'leder', 'schwer'] as const).map((c) => ({ value: c, label: `${ARMOR_CLASS_LABEL[c]}${rank < ARMOR_CLASS_MIN_RANK[c] ? ' 🔒' : ''}` }))}
+      />
+      {!open && <p className="py-3 text-sm text-muted">{ARMOR_CLASS_LABEL[cls]}-Rüstung gibt es ab Rang {RANKS[ARMOR_CLASS_MIN_RANK[cls] - 1]?.name}.</p>}
+      <ul className="mt-2 divide-y">
+        {ARMOR_SETS.filter((st) => st.cls === cls).map((st) => {
+          const ids = ARMOR_SLOTS.map((sl) => armorItemId(st.idx, sl));
+          const missing = ids.filter((id) => !owned.has(id));
+          const piece = armorPrice(st);
+          return (
+            <li key={st.idx} className="py-2" data-testid={`armor-set-${st.idx}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{st.name}</div>
+                  <div className="text-[10px] text-gold">Set-Bonus: {setBonuses(st).map(bonusText).join(', ')}</div>
+                </div>
+                {missing.length === 0 ? (
+                  <Badge>komplett</Badge>
+                ) : (
+                  <Button size="sm" disabled={!open || balance < piece * missing.length} onClick={() => buy(missing, `${st.name} (${missing.length} Teile)`, piece * missing.length, st.idx)}>
+                    <Coins className="h-4 w-4" /> {piece * missing.length}
+                  </Button>
+                )}
+              </div>
+              <div className="mt-1 flex gap-1.5">
+                {ids.map((id) => {
+                  const def = itemById(id)!;
+                  const have = owned.has(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      disabled={have || !open}
+                      onClick={() => buy([id], def.name, piece, st.idx)}
+                      aria-label={have ? `${def.name}: im Inventar` : `${def.name} für ${piece} Denare kaufen`}
+                      className="flex flex-col items-center"
+                    >
+                      <ItemIcon item={def} rarity={have ? 'common' : null} locked={!have} size={46} animate={false} />
+                      <span className="text-[9px] text-muted">{have ? '✓' : piece}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
   );
 }

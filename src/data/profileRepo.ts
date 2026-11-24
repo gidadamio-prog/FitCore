@@ -1,3 +1,4 @@
+import type { BonusLogEntry } from '@/domain/armor';
 import type { Hero, ShareCard } from '@/domain/rpg';
 import { db } from './db';
 import type { GoalType, GoalVersion, MacroStrategy, BmrFormula, Profile, Setting } from '@/domain/types';
@@ -172,6 +173,10 @@ export interface AppSettings {
   backupSnoozeUntil: string | null;
   /** Bereits gesehene Aussehen-Freischaltungen („Neu“-Hinweis) */
   lookSeen: string[];
+  /** Rüstungsteile aus Kampf-Beute (Item-IDs) */
+  armorLoot: string[];
+  /** Ab wann welches komplette Set getragen wurde (Set-Boni) */
+  setBonusLog: BonusLogEntry[];
 }
 
 export type Rival = ShareCard & { importedAt: string };
@@ -193,6 +198,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lastBackupAt: null,
   backupSnoozeUntil: null,
   lookSeen: [],
+  armorLoot: [],
+  setBonusLog: [],
 };
 
 export async function getSettings(): Promise<AppSettings> {

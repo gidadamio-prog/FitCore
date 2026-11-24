@@ -51,10 +51,11 @@ export function useGame(): GameState | undefined {
       heroClass: settings.hero?.classId,
       sex: data.profile?.sex,
       stepGoal: settings.stepGoal,
+      setBonusLog: settings.setBonusLog,
       questPicks: settings.questPicks,
       questBoardStart: QUEST_BOARD_START,
     });
-  }, [data, day, settings.waterGoalMl, settings.homeGym, settings.mealSplit, settings.hero?.classId, settings.stepGoal, settings.questPicks, mealIds]);
+  }, [data, day, settings.waterGoalMl, settings.homeGym, settings.mealSplit, settings.hero?.classId, settings.stepGoal, settings.questPicks, settings.setBonusLog, mealIds]);
 }
 
 /** Grundkörper des Helden aus Messungen und Profil (null, solange kein Gewicht erfasst ist). */

@@ -334,7 +334,7 @@ export function Today() {
           </ul>
           <p className="mt-2 text-[11px] text-muted">Allgemeine Richtwerte – sie ändern deine Ziele nicht automatisch.</p>
         </Card>
-        <StepsCard date={date} goal={settings.stepGoal} />
+        <StepsCard date={date} goal={date === today() && game ? game.stepGoalToday : settings.stepGoal} bonus={date === today() && game && game.stepGoalToday < settings.stepGoal ? settings.stepGoal - game.stepGoalToday : 0} />
         <RecoveryCard date={date} />
       </div>
       <WeightSheet open={weightOpen} onClose={() => setWeightOpen(false)} last={weight.last?.value} />
@@ -420,7 +420,7 @@ function RecoveryCard({ date }: { date: string }) {
 }
 
 /** Schrittzähler: Schritte des Tages von Hand eintragen (z. B. von der Uhr ablesen). */
-function StepsCard({ date, goal }: { date: string; goal: number }) {
+function StepsCard({ date, goal, bonus = 0 }: { date: string; goal: number; bonus?: number }) {
   const week = useLiveQuery(() => db.recovery.where('date').between(addDays(date, -6), date, true, true).toArray(), [date]);
   const steps = week?.find((r) => r.date === date)?.steps;
   const save = async (v: number | undefined) => {
@@ -432,7 +432,7 @@ function StepsCard({ date, goal }: { date: string; goal: number }) {
   const max = Math.max(goal, ...(week ?? []).map((r) => r.steps ?? 0));
   return (
     <Card data-testid="steps-card">
-      <CardTitle action={<span className="text-xs text-muted">Ziel {fmt(goal)}</span>}>
+      <CardTitle action={<span className="text-xs text-muted" data-testid="steps-goal">Ziel {fmt(goal)}{bonus > 0 && <span className="text-gold"> (Set-Bonus −{fmt(bonus)})</span>}</span>}>
         <span className="flex items-center gap-1">
           <Footprints className="h-4 w-4" /> Schritte
         </span>

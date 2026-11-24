@@ -2,15 +2,17 @@
 // Rein kosmetisch – beeinflusst weder Schaden noch EP noch Kampfwert.
 import type { BadgeStatus } from './gamification';
 import type { HeroClassId } from './rpg';
+import { ARMOR_CLASS_RARITY, ARMOR_SETS, ARMOR_SLOTS, START_SET, armorHint, armorIconFile, armorItemId, armorPieceName, ownsArmorPiece, parseArmorId, type ArmorContext } from './armor';
 
-export type SlotId = 'main' | 'off' | 'head' | 'hands' | 'legs' | 'feet';
+export type SlotId = 'main' | 'off' | 'head' | 'chest' | 'hands' | 'legs' | 'feet';
 export const SLOTS: { id: SlotId; label: string; file: string }[] = [
   { id: 'main', label: 'Haupthand', file: 'haupthand' },
   { id: 'off', label: 'Nebenhand', file: 'nebenhand' },
-  { id: 'head', label: 'Helm', file: 'helm' },
-  { id: 'hands', label: 'Hände', file: 'haende' },
+  { id: 'head', label: 'Kopf', file: 'kopf' },
+  { id: 'chest', label: 'Brust', file: 'brust' },
+  { id: 'hands', label: 'Arme', file: 'arme' },
   { id: 'legs', label: 'Hose', file: 'hose' },
-  { id: 'feet', label: 'Schuhe', file: 'schuhe' },
+  { id: 'feet', label: 'Stiefel', file: 'stiefel' },
 ];
 export const slotLabel = (s: SlotId) => SLOTS.find((x) => x.id === s)!.label;
 
@@ -37,7 +39,9 @@ export interface ItemDef {
   twoHanded?: boolean;
   /** Bildmotiv für das Grafik-Briefing */
   motif: string;
-  source: { kind: 'starter'; classId: HeroClassId } | { kind: 'badge'; badgeId: string };
+  source: { kind: 'starter'; classId: HeroClassId } | { kind: 'badge'; badgeId: string } | { kind: 'armor'; setIdx: number };
+  /** eigene Icon-Datei (Rüstungsteile nutzen ihre Figur-Ebene) */
+  icon?: string;
   category?: ItemCategory;
   effect?: EffectId;
   effectText?: string;
@@ -48,31 +52,15 @@ const reward = (badgeId: string, slot: SlotId, key: string, name: string, catego
   id: key, name, slot, twoHanded, motif, source: { kind: 'badge', badgeId }, category, effect, effectText,
 });
 
-export const ITEMS: ItemDef[] = [
+const WEAPONS: ItemDef[] = [
   // Start-Ausrüstung
   starter('legionar', 'main', 'gladius', 'Gladius', 'schlichter Eisen-Gladius'),
   starter('legionar', 'off', 'scutum', 'Scutum', 'roter Langschild mit Goldadler'),
-  starter('legionar', 'head', 'galea', 'Galea', 'Legionärshelm mit Wangenklappen'),
-  starter('legionar', 'hands', 'manicae', 'Manicae', 'Armschienen aus Eisenstreifen'),
-  starter('legionar', 'legs', 'bracae', 'Bracae', 'Legionärshose aus Wolle'),
-  starter('legionar', 'feet', 'caligae', 'Caligae', 'genagelte Ledersandalen'),
   starter('gladiator', 'main', 'dreizack', 'Dreizack', 'Dreizack des Retiarius', true),
-  starter('gladiator', 'head', 'murmillo', 'Murmillo-Helm', 'Murmillo-Helm mit Gitter und Kamm'),
-  starter('gladiator', 'hands', 'manica', 'Manica', 'gepolsterter Armschutz'),
-  starter('gladiator', 'legs', 'subligaculum', 'Subligaculum', 'Lendenschurz mit Ledergürtel'),
-  starter('gladiator', 'feet', 'fasciae', 'Fasciae', 'Wickelbänder für die Beine'),
   starter('cursor', 'main', 'botenstab', 'Botenstab', 'Botenstab mit Bronzekappe'),
   starter('cursor', 'off', 'depeschenrolle', 'Depeschenrolle', 'versiegelte Schriftrolle'),
-  starter('cursor', 'head', 'petasos', 'Petasos', 'breitkrempiger Reisehut'),
-  starter('cursor', 'hands', 'lederhandschuhe', 'Lederhandschuhe', 'leichte Lederhandschuhe'),
-  starter('cursor', 'legs', 'laufhose', 'Laufhose', 'leichte kurze Hose'),
-  starter('cursor', 'feet', 'leichte-sandalen', 'Leichte Sandalen', 'leichte Riemensandalen'),
   starter('strategos', 'main', 'kommandostab', 'Kommandostab', 'Kommandostab (Vitis) mit Goldbeschlag'),
   starter('strategos', 'off', 'wachstafel', 'Wachstafel', 'Wachstafel mit Griffel'),
-  starter('strategos', 'head', 'offiziershelm', 'Offiziershelm', 'Helm mit querstehendem rotem Busch'),
-  starter('strategos', 'hands', 'siegelring-handschuhe', 'Siegelring-Handschuhe', 'feine Handschuhe mit Siegelring'),
-  starter('strategos', 'legs', 'feldherren-beinkleid', 'Feldherren-Beinkleid', 'edles Beinkleid mit Purpurstreifen'),
-  starter('strategos', 'feet', 'calcei', 'Calcei', 'geschnürte Lederstiefel'),
   // Belohnungen aus Achievements
   reward('prs', 'main', 'gladius-bestleistung', 'Gladius der Bestleistung', 'kraft', 'sparks', 'Funken sprühen von der Klinge', 'prunkvoller Gladius mit Goldgriff'),
   reward('volume', 'main', 'hammer-atlas', 'Hammer des Atlas', 'kraft', 'quake', 'Bodenwelle, Steinchen hüpfen', 'riesiger Steinhammer mit Atlas-Relief', true),
@@ -83,21 +71,15 @@ export const ITEMS: ItemDef[] = [
   reward('mealhits', 'off', 'waage-punktlandung', 'Waage der Punktlandung', 'ernaehrung', 'balance', 'Schalen pendeln exakt ein', 'bronzene Balkenwaage'),
   reward('comeback', 'off', 'phoenixfackel', 'Phönixfackel', 'ausdauer', 'fire', 'Flammen und aufsteigende Funken', 'Fackel mit Phönixkopf'),
   reward('studio', 'off', 'hantelscheiben-schild', 'Hantelscheiben-Schild', 'kraft', 'spin', 'Scheibe dreht sich, Metallglanz', 'Hantelscheibe als Schild mit Griff'),
-  reward('quests', 'head', 'galea-feldherr', 'Galea des Feldherrn', 'disziplin', 'plume', 'Roter Helmbusch weht', 'Prunkhelm mit hohem rotem Busch'),
-  reward('seasons', 'head', 'lorbeerkranz-triumphator', 'Lorbeerkranz des Triumphators', 'ruhm', 'leaves', 'Goldene Blätter rieseln', 'goldener Lorbeerkranz'),
-  reward('perfect', 'head', 'traubenkrone', 'Traubenkrone', 'ernaehrung', 'grapes', 'Trauben wippen und kullern', 'Krone aus Weinlaub und Trauben'),
-  reward('milon', 'head', 'diadem-zirkel', 'Diadem des Zirkels', 'ausdauer', 'orbit', 'Lichtpunkte kreisen wie ein Zirkel', 'schlichtes Stirnband mit kleinen Edelsteinen'),
-  reward('protein', 'hands', 'shaker-handschuhe', 'Shaker-Handschuhe', 'ernaehrung', 'powder', 'Proteinpulver-Wölkchen', 'Handschuhe mit Shaker-Motiv'),
-  reward('colosseum', 'hands', 'caesten-champion', 'Caesten des Champions', 'ruhm', 'sand', 'Sandstaub-Einschlag', 'Faustriemen mit Metallbeschlägen'),
-  reward('mastery', 'hands', 'kreidehaende', 'Kreidehände des Meisters', 'kraft', 'chalk', 'Kreidestaub rieselt', 'Handschuhe, mit Kreide bestaubt'),
-  reward('measure', 'legs', 'massband-beinkleider', 'Maßband-Beinkleider', 'disziplin', 'tape', 'Zentimeterzahlen schweben hoch', 'Hose mit Maßband als Gürtel und Saum'),
-  reward('bosses', 'legs', 'beinschienen-eroberer', 'Beinschienen des Eroberers', 'ruhm', 'crests', 'Provinzwappen leuchten auf', 'Beinschienen mit Provinzwappen'),
-  reward('cardio', 'feet', 'caligae-laeufer', 'Caligae des Läufers', 'ausdauer', 'trail', 'Staubspur und Speedlines', 'Sandalen mit Flügel-Motiv'),
-  reward('trainstreak', 'feet', 'marschstiefel-legion', 'Marschstiefel der Legion', 'ausdauer', 'stomp', 'Stampfen im Takt', 'schwere Marschstiefel'),
-  reward('duels', 'feet', 'schattensandalen', 'Schattensandalen', 'ruhm', 'shadow', 'Schattenbild läuft hinterher', 'dunkle Sandalen mit Rauchschleier-Muster'),
 ];
-export const itemById = (id: string | null | undefined) => (id ? ITEMS.find((i) => i.id === id) : undefined);
-export const itemFile = (i: ItemDef) => `${SLOTS.find((s) => s.id === i.slot)!.file}_${i.id}`;
+/** Rüstungsteile aus den 36 Sets */
+const ARMOR_ITEMS: ItemDef[] = ARMOR_SETS.flatMap((set) =>
+  ARMOR_SLOTS.map((slot): ItemDef => ({ id: armorItemId(set.idx, slot), name: armorPieceName(set, slot), slot, motif: '', source: { kind: 'armor', setIdx: set.idx }, icon: armorIconFile(set.idx, slot) })),
+);
+export const ITEMS: ItemDef[] = [...WEAPONS, ...ARMOR_ITEMS];
+const ITEM_MAP = new Map(ITEMS.map((i) => [i.id, i]));
+export const itemById = (id: string | null | undefined) => (id ? ITEM_MAP.get(id) : undefined);
+export const itemFile = (i: ItemDef) => i.icon ?? `${SLOTS.find((s) => s.id === i.slot)!.file}_${i.id}`;
 export const STARTER_PRICE = 150;
 export const starterPurchaseId = (itemId: string) => `item-${itemId}`;
 
@@ -113,9 +95,23 @@ export interface OwnedItem {
   hint?: string;
 }
 
-export function inventory(badges: BadgeStatus[], classId: HeroClassId | undefined, rankLevel: number, purchases: string[]): OwnedItem[] {
+export interface InventoryExtra {
+  defeatedBossIds: string[];
+  loot: string[];
+  rankName?: (lvl: number) => string;
+  bossName?: (id: string) => string;
+}
+
+export function inventory(badges: BadgeStatus[], classId: HeroClassId | undefined, rankLevel: number, purchases: string[], extra: InventoryExtra = { defeatedBossIds: [], loot: [] }): OwnedItem[] {
   const byId = new Map(badges.map((b) => [b.id, b]));
+  const ctx: ArmorContext = { rankLevel, defeatedBossIds: extra.defeatedBossIds, loot: extra.loot, purchases };
   return ITEMS.flatMap((def): OwnedItem[] => {
+    if (def.source.kind === 'armor') {
+      const set = ARMOR_SETS[def.source.setIdx]!;
+      const own = ownsArmorPiece(def.id, ctx);
+      const r = own ? ARMOR_CLASS_RARITY[set.cls] : null;
+      return [{ def, unlocked: r, worn: r, rankLocked: null, hint: own ? undefined : armorHint(set, ctx, extra.rankName ?? ((l) => `${l}`), extra.bossName ?? ((b) => b)) }];
+    }
     if (def.source.kind === 'starter') {
       const own = def.source.classId === classId || purchases.includes(starterPurchaseId(def.id));
       return [{ def, unlocked: own ? 'common' : null, worn: own ? 'common' : null, rankLocked: null, hint: own ? undefined : `Start-Ausrüstung · ${STARTER_PRICE} Denare im Markt` }];
@@ -142,13 +138,18 @@ export type Loadout = Partial<Record<SlotId, string | null>>;
 export function defaultLoadout(classId: HeroClassId): Loadout {
   const l: Loadout = {};
   for (const i of ITEMS) if (i.source.kind === 'starter' && i.source.classId === classId) l[i.slot] = i.id;
+  // Start-Rüstung (ohne Kopf, damit die Frisur sichtbar bleibt)
+  for (const s of ['chest', 'hands', 'legs', 'feet'] as const) l[s] = armorItemId(START_SET, s);
   return l;
 }
 
 /** Gültige Ausrüstung: nur tragbare Teile im richtigen Slot, Zweihand blockiert die Nebenhand. */
 export function normalizeLoadout(loadout: Loadout | undefined, inv: OwnedItem[], classId: HeroClassId): Record<SlotId, string | null> {
   const wearable = new Map(inv.filter((o) => o.worn).map((o) => [o.def.id, o]));
-  const base = { ...defaultLoadout(classId), ...(loadout ?? {}) };
+  const def = defaultLoadout(classId);
+  // Gespeicherte Teile, die es nicht mehr gibt (alte Rüstung), fallen auf die Start-Ausrüstung zurück
+  const stored = Object.fromEntries(Object.entries(loadout ?? {}).filter(([, id]) => id == null || itemById(id))) as Loadout;
+  const base = { ...def, ...stored };
   const out = {} as Record<SlotId, string | null>;
   for (const s of SLOTS) {
     const id = base[s.id];
@@ -187,7 +188,9 @@ export function unequip(current: Record<SlotId, string | null>, slot: SlotId): R
   return { ...current, [slot]: null };
 }
 
-/** Set-Aura: drei getragene Teile derselben Kategorie */
+export { parseArmorId };
+
+/** Waffen-Aura: Haupt- und Nebenhand aus derselben Kategorie */
 export function setAura(loadout: Record<SlotId, string | null>): ItemCategory | null {
   const count = new Map<ItemCategory, number>();
   for (const id of Object.values(loadout)) {
@@ -195,7 +198,7 @@ export function setAura(loadout: Record<SlotId, string | null>): ItemCategory | 
     if (c) count.set(c, (count.get(c) ?? 0) + 1);
   }
   let best: ItemCategory | null = null;
-  for (const [c, n] of count) if (n >= 3 && (!best || n > (count.get(best) ?? 0))) best = c;
+  for (const [c, n] of count) if (n >= 2 && (!best || n > (count.get(best) ?? 0))) best = c;
   return best;
 }
 

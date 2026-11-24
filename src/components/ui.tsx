@@ -119,9 +119,10 @@ export function NumberInput({ value, onValue, step = 'any', onFocus, onBlur, ...
   );
 }
 
-export function Badge({ children, tone = 'neutral', className }: { children: React.ReactNode; tone?: 'neutral' | 'accent' | 'warn' | 'danger' | 'info'; className?: string }) {
+export function Badge({ children, tone = 'neutral', className, ...rest }: { children: React.ReactNode; tone?: 'neutral' | 'accent' | 'warn' | 'danger' | 'info'; className?: string; 'data-testid'?: string }) {
   return (
     <span
+      {...rest}
       className={cn(
         'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
         tone === 'neutral' && 'bg-fg/[0.07] text-muted',

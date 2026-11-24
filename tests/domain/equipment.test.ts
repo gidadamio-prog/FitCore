@@ -15,11 +15,12 @@ const allBadges = (tier: BadgeStatus['tier'] = null) =>
   [...new Set(ITEMS.filter((i) => i.source.kind === 'badge').map((i) => (i.source as { badgeId: string }).badgeId))].map((id) => badge(id, tier));
 
 describe('Katalog', () => {
-  it('23 Start-Teile, 21 Belohnungen, eindeutige IDs und Dateinamen', () => {
-    expect(ITEMS.filter((i) => i.source.kind === 'starter')).toHaveLength(23);
-    expect(ITEMS.filter((i) => i.source.kind === 'badge')).toHaveLength(21);
+  it('7 Start-Waffen, 9 Waffen-Belohnungen, 180 Rüstungsteile, eindeutige IDs und Dateinamen', () => {
+    expect(ITEMS.filter((i) => i.source.kind === 'starter')).toHaveLength(7);
+    expect(ITEMS.filter((i) => i.source.kind === 'badge')).toHaveLength(9);
+    expect(ITEMS.filter((i) => i.source.kind === 'armor')).toHaveLength(180);
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
-    for (const i of ITEMS) expect(itemFile(i)).toMatch(/^(haupthand|nebenhand|helm|haende|hose|schuhe)_[a-z0-9-]+$/);
+    for (const i of ITEMS) expect(itemFile(i)).toMatch(/^(haupthand|nebenhand)_[a-z0-9-]+$|^ruestung_\d\d_(kopf|brust|arm_l|hose|stiefel_l)$/);
     expect(itemFile(itemById('gladius-bestleistung')!)).toBe('haupthand_gladius-bestleistung');
   });
   it('jede Klasse hat ein vollständiges Set; Gladiator mit Zweihandwaffe ohne Nebenhand', () => {
@@ -28,10 +29,10 @@ describe('Katalog', () => {
     expect(g.off).toBeUndefined();
     expect(itemById(g.main)?.twoHanded).toBe(true);
   });
-  it('jede Set-Kategorie lässt sich mit drei Teilen in verschiedenen Slots erreichen', () => {
-    for (const c of ['kraft', 'ausdauer', 'ernaehrung', 'disziplin', 'ruhm']) {
+  it('Waffen-Aura Kraft und Ernährung mit Haupt- und Nebenhand erreichbar', () => {
+    for (const c of ['kraft', 'ernaehrung']) {
       const slots = new Set(ITEMS.filter((i) => i.category === c).map((i) => i.slot));
-      expect(slots.size, c).toBeGreaterThanOrEqual(3);
+      expect(slots, c).toEqual(new Set(['main', 'off']));
     }
   });
 });
@@ -62,8 +63,10 @@ describe('Zweihand-Regel und Ausrüstung', () => {
   const inv = inventory(allBadges('bronze'), 'legionar', 3, []);
   const base = normalizeLoadout(undefined, inv, 'legionar');
   it('Standard = Start-Set, ungültige oder fremde Teile fallen weg', () => {
-    expect(base).toEqual({ main: 'gladius', off: 'scutum', head: 'galea', hands: 'manicae', legs: 'bracae', feet: 'caligae' });
+    expect(base).toEqual({ main: 'gladius', off: 'scutum', head: null, chest: 'armor-00-chest', hands: 'armor-00-hands', legs: 'armor-00-legs', feet: 'armor-00-feet' });
     expect(normalizeLoadout({ main: 'dreizack', head: 'scutum' }, inv, 'legionar')).toMatchObject({ main: null, head: null, off: 'scutum' });
+    // alte, entfernte Rüstungsteile fallen auf die Start-Rüstung zurück
+    expect(normalizeLoadout({ hands: 'manicae', feet: 'caligae' }, inv, 'legionar')).toMatchObject({ hands: 'armor-00-hands', feet: 'armor-00-feet' });
   });
   it('Zweihandwaffe legt die Nebenhand ab', () => {
     const r = equipItem(base, itemById('hammer-atlas')!, inv, 'legionar');
@@ -80,8 +83,8 @@ describe('Zweihand-Regel und Ausrüstung', () => {
     expect(() => equipItem(base, itemById('hammer-atlas')!, none, 'legionar')).toThrow(/nicht freigeschaltet/);
     expect(normalizeLoadout({ main: 'hammer-atlas', off: 'scutum' }, inv, 'legionar')).toMatchObject({ main: 'hammer-atlas', off: null });
   });
-  it('Set-Aura bei drei Teilen einer Kategorie', () => {
-    const l = { ...base, off: 'amphore-aquaedukt', head: 'traubenkrone', hands: 'shaker-handschuhe' };
+  it('Waffen-Aura bei Haupt- und Nebenhand derselben Kategorie', () => {
+    const l = { ...base, main: 'kochloeffel-kaiser', off: 'amphore-aquaedukt' };
     expect(setAura(l)).toBe('ernaehrung');
     expect(setAura(base)).toBeNull();
   });
@@ -163,5 +166,5 @@ describe('Geheime Erfolge', () => {
 });
 
 describe('SLOTS', () => {
-  it('sechs Slots in fester Reihenfolge', () => expect(SLOTS.map((s) => s.id)).toEqual(['main', 'off', 'head', 'hands', 'legs', 'feet']));
+  it('sieben Slots in fester Reihenfolge', () => expect(SLOTS.map((s) => s.id)).toEqual(['main', 'off', 'head', 'chest', 'hands', 'legs', 'feet']));
 });
