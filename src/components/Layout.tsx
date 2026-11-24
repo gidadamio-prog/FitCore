@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, BarChart3, Dumbbell, Home, Settings, Utensils, Timer, WifiOff, Trophy } from 'lucide-react';
+import { Activity, BarChart3, Dumbbell, Home, Settings, Utensils, Timer, WifiOff, Trophy, Map as MapIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn, Button, Sheet } from './ui';
 import { useActiveWorkout } from '@/hooks/data';
@@ -45,6 +45,9 @@ export function Layout() {
           </NavLink>
         ))}
         <div className="flex-1" />
+        <NavLink to="/karte" className={({ isActive }) => cn('flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-fg/5')}>
+          <MapIcon className="h-5 w-5" /> Weltkarte
+        </NavLink>
         <NavLink to="/erfolge" className={({ isActive }) => cn('flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-fg/5')}>
           <Trophy className="h-5 w-5 text-gold" /> Ruhmeshalle
         </NavLink>
@@ -58,6 +61,9 @@ export function Layout() {
             Fit<span className="text-gold">Core</span>
           </span>
           <div className="flex">
+            <Button variant="ghost" size="icon" aria-label="Weltkarte" onClick={() => nav('/karte')}>
+              <MapIcon className="h-5 w-5 text-gold" />
+            </Button>
             <Button variant="ghost" size="icon" aria-label="Ruhmeshalle (Erfolge)" onClick={() => nav('/erfolge')}>
               <Trophy className="h-5 w-5 text-gold" />
             </Button>

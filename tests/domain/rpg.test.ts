@@ -192,7 +192,9 @@ describe('Integration in computeGame', () => {
     expect(g.xpByDay.get('2026-03-01')).toBe(50 + 50);
     expect(g.comebacks).toEqual(['2026-03-20']);
     expect(g.breakdown.comeback.xp).toBe(50);
-    expect(g.campaign.totalDamage).toBe(2 * Math.round((600 / 40) * 1.25));
+    // Bosse gibt es nur noch auf der Weltkarte – Trainingsschaden zählt nur für die Übernahme alter Spielstände
+    expect(g.campaign.defeated).toEqual([]);
+    expect(g.damageByDay.get('2026-03-01')).toBe(Math.round((600 / 40) * 1.25));
   });
   it('EP-Summe entspricht der Summe der Tages-EP (Kampfwert ist konsistent)', () => {
     const ws = Array.from({ length: 10 }, (_, k) => workout('w' + k, addDays('2026-03-01', k * 3), [ex('bench-press', [set(60 + k * 5, 10)])], { startedAt: addDays('2026-03-01', k * 3) + 'T10:00:00Z' }));

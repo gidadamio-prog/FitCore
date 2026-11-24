@@ -1,13 +1,15 @@
 import { bossRewards } from '@/domain/appearance';
 import { traitAvailable } from './LookEditor';
 import { useEffect, useState } from 'react';
-import { Check, Lock, Skull, Swords, Ghost } from 'lucide-react';
+import { Check, Lock, Skull, Swords, Ghost, Map as MapIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { REGIONS, bossOfRegion } from '@/domain/world';
 import { rpgAsset } from '@/components/rpg/Visuals';
 import { useReducedMotion } from '@/hooks/motion';
-import { Badge, Card, CardTitle, Progress, fmt, cn } from '@/components/ui';
-import { CAMPAIGN, DOMAIN_LABEL, bossAt, bossFile, dayDamage, type Domain } from '@/domain/rpg';
+import { Badge, Button, Card, CardTitle, Progress, fmt, cn } from '@/components/ui';
+import { bossFile } from '@/domain/rpg';
 import type { GameState } from '@/domain/gamification';
-import { addDays, formatDate, rangeDates, startOfWeek, today } from '@/domain/dates';
+import { formatDate } from '@/domain/dates';
 import { XP_RULES } from '@/domain/gamification';
 import { useSettings } from '@/hooks/data';
 
@@ -69,7 +71,7 @@ export function BossCard({ game }: { game: GameState }) {
         <span data-testid="boss-hp">
           {fmt(c.remaining)} / {fmt(c.boss.hp)} LP
         </span>
-        <span>{game.campaign.defeated.length} besiegt</span>
+        <span>{game.campaign.defeated.length} erobert</span>
       </div>
       {bossRewards(c.boss.id, traitAvailable).length > 0 && (
         <div className="mt-1 text-[11px] text-gold" data-testid="boss-rewards">
@@ -82,40 +84,25 @@ export function BossCard({ game }: { game: GameState }) {
 
 export function CampaignTab({ game }: { game: GameState }) {
   const { hero } = useSettings();
-  const t = today();
-  const weekDays = rangeDates(startOfWeek(t), t);
-  const domains = Object.keys(DOMAIN_LABEL) as Domain[];
-  const weekSplit = Object.fromEntries(domains.map((d) => [d, 0])) as Record<Domain, number>;
-  for (const d of weekDays) {
-    const f = game.facts.get(d);
-    if (!f) continue;
-    const s = dayDamage(f, hero?.classId);
-    for (const k of domains) weekSplit[k] += s[k];
-  }
-  const weekTotal = domains.reduce((a, k) => a + weekSplit[k], 0);
+  const nav = useNavigate();
   const col = game.colosseum;
   const duel = game.duel;
-  const defeatedIdx = game.campaign.defeated.length;
-  const shown = Math.max(CAMPAIGN.length, defeatedIdx + 1);
   return (
     <div className="stagger grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="space-y-4">
-        <CardTitle>Aktueller Gegner</CardTitle>
+        <CardTitle>Nächster Boss</CardTitle>
         <BossCard game={game} />
-        <div>
-          <div className="mb-1 text-xs text-muted">Dein Schaden diese Woche: {fmt(weekTotal)}</div>
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs" data-testid="week-damage">
-            {domains.map((k) => (
-              <li key={k} className="flex justify-between">
-                <span className="text-muted">{DOMAIN_LABEL[k]}</span>
-                <span className="tabular-nums">{fmt(weekSplit[k])}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-gold/10 p-3 ring-1 ring-gold/30">
+          <div className="text-sm">
+            <b className="tabular-nums">{game.world.ap}</b> Aktionspunkte · heute +{game.world.apToday}
+          </div>
+          <Button size="sm" onClick={() => nav('/karte')} data-testid="open-map">
+            <MapIcon className="h-4 w-4" /> Weltkarte
+          </Button>
         </div>
         <p className="text-[11px] text-muted">
-          Schaden entsteht aus echtem Training und Zielnähe: 1 je 40 kg Volumen, 4 je Ausdauerminute, 40 je Bestleistung, 8 je Mobility-Satz, dazu Protokoll, Protein-/Kalorienziel, Punktlandungen, Wasser und Erholung. Weniger essen bringt keinen Schaden. Je besiegtem Boss +{XP_RULES.boss.xp} EP.
-          {!hero && ' Erschaffe deinen Helden, um den Klassenbonus zu nutzen.'}
+          Bosse bekämpfst du direkt in ihrer Hauptstadt – Reisen, Gegner und Truhen kosten Aktionspunkte aus Training, Ernährung und Quests. Je eroberter Hauptstadt +{XP_RULES.boss.xp} EP.
+          {!hero && ' Erschaffe zuerst deinen Helden.'}
         </p>
       </Card>
 
@@ -175,29 +162,28 @@ export function CampaignTab({ game }: { game: GameState }) {
       </Card>
 
       <Card>
-        <CardTitle>Feldzugskarte</CardTitle>
+        <CardTitle>Regionen</CardTitle>
         <ol className="relative space-y-1 border-l-2 border-gold/30 pl-4" data-testid="campaign-map">
-          {Array.from({ length: shown }, (_, k) => {
-            const b = bossAt(k);
-            const won = game.campaign.defeated[k];
-            const current = k === defeatedIdx;
+          {REGIONS.map((r, k) => {
+            const won = game.world.state.conquered.get(r.id);
+            const current = !won && (k === 0 || game.world.state.conquered.has(REGIONS[k - 1]!.id));
+            const b = bossOfRegion(r);
             return (
-              <li key={b.id} className={cn('relative py-1.5', !won && !current && 'text-muted')} data-testid={won ? 'province-won' : current ? 'province-current' : 'province-locked'}>
+              <li key={r.id} className={cn('relative py-1.5', !won && !current && 'text-muted')} data-testid={won ? 'province-won' : current ? 'province-current' : 'province-locked'}>
                 <span className={cn('absolute -left-[25px] top-2 flex h-4 w-4 items-center justify-center rounded-full', won ? 'bg-gold text-bg' : current ? 'bg-primary' : 'bg-fg/20')}>
                   {won ? <Check className="h-3 w-3" /> : !current ? <Lock className="h-2.5 w-2.5" /> : null}
                 </span>
                 <div className="flex justify-between gap-2 text-sm">
                   <span className={cn(current && 'font-semibold')}>
-                    {b.province} <span className="text-xs text-muted">– {b.name}</span>
+                    {r.name} <span className="text-xs text-muted">– {b.name} in {r.capital}</span>
                   </span>
-                  <span className="shrink-0 text-xs tabular-nums">{won ? formatDate(won.date, { day: '2-digit', month: '2-digit', year: '2-digit' }) : `${fmt(b.hp)} LP`}</span>
+                  <span className="shrink-0 text-xs tabular-nums">{won ? formatDate(won, { day: '2-digit', month: '2-digit', year: '2-digit' }) : `ab Stufe ${r.minLevel}`}</span>
                 </div>
               </li>
             );
           })}
         </ol>
-        <p className="mt-2 text-[11px] text-muted">Nach Maxentius an der Milvischen Brücke geht der Feldzug am Limes endlos weiter. Gesamtschaden bisher: {fmt(game.campaign.totalDamage)}.</p>
-        <p className="mt-1 text-[11px] text-muted">Letzte 7 Tage: {fmt(rangeDates(addDays(t, -6), t).reduce((a, d) => a + (game.damageByDay.get(d) ?? 0), 0))} Schaden.</p>
+        <p className="mt-2 text-[11px] text-muted">Der Endlos-Modus nach der Kaiserstadt folgt später.</p>
       </Card>
     </div>
   );

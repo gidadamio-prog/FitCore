@@ -172,7 +172,7 @@ export function armorHint(set: ArmorSet, ctx: Pick<ArmorContext, 'rankLevel'>, r
 
 export const LOOT_CHANCE = 0.35;
 
-function hash(s: string) {
+export function hash(s: string) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return (h >>> 0) / 4294967296;
@@ -182,8 +182,8 @@ function hash(s: string) {
  * Beute eines Kampfes – reproduzierbar aus dem Kampfschlüssel. Je Kampf 35 % Chance auf ein Teil,
  * je besiegtem Boss ein weiteres sicheres Teil. Nur Teile, die man noch nicht hat, aus Klassen, die der Rang erlaubt.
  */
-export function rollLoot(key: string, kills: number, ctx: ArmorContext, chance = LOOT_CHANCE): string[] {
-  const pool = ARMOR_SETS.filter((s) => s.cls !== 'boss' && ctx.rankLevel >= ARMOR_CLASS_MIN_RANK[s.cls])
+export function rollLoot(key: string, kills: number, ctx: ArmorContext, chance = LOOT_CHANCE, classes?: ArmorClass[]): string[] {
+  const pool = ARMOR_SETS.filter((s) => s.cls !== 'boss' && (classes ? classes.includes(s.cls) : ctx.rankLevel >= ARMOR_CLASS_MIN_RANK[s.cls]))
     .flatMap((s) => ARMOR_SLOTS.map((slot) => armorItemId(s.idx, slot)))
     .filter((id) => !ownsArmorPiece(id, ctx));
   const out: string[] = [];

@@ -11,7 +11,7 @@ async function createHero(page: import('@playwright/test').Page) {
   await dismissCelebrations(page);
 }
 
-test('Kampf nach Training und nach abgeschlossener Mahlzeit', async ({ page }) => {
+test('Bilanz mit Aktionspunkten nach Training und nach abgeschlossener Mahlzeit', async ({ page }) => {
   await onboard(page);
   await createHero(page);
 
@@ -28,19 +28,12 @@ test('Kampf nach Training und nach abgeschlossener Mahlzeit', async ({ page }) =
 
   const battle = page.getByTestId('battle');
   await expect(battle).toBeVisible();
-  await expect(battle.getByTestId('battle-boss')).toHaveText('Vercingetorix');
-  await expect(battle.getByTestId('battle-damage').first()).toBeVisible({ timeout: 6000 }); // Treffer läuft
-  await battle.getByRole('button', { name: 'Überspringen' }).click();
   const result = page.getByTestId('battle-result');
   await expect(result).toContainText('Training beendet');
   await expect(result.getByTestId('battle-summary')).toContainText('1 Sätze');
   await expect(result.getByTestId('battle-summary')).toContainText(/kg Volumen/);
-  const dmg = Number((await result.getByTestId('battle-total').innerText()).replace(/\D/g, ''));
-  expect(dmg).toBeGreaterThan(0);
-  // Vorher 5 Schaden durchs Wiegen beim Onboarding – der Kampf zeigt nur den neuen Schaden
-  await expect(battle.getByTestId('battle-hp')).toHaveText(`${(995 - dmg).toLocaleString('de-DE')} / 1.000 LP`);
-  await expect(result).toContainText(`Vercingetorix: noch ${(995 - dmg).toLocaleString('de-DE')} LP`);
-  await result.getByRole('button', { name: 'Ave!' }).click();
+  await expect(result.getByTestId('battle-ap')).toHaveText('+2 Aktionspunkte');
+  await result.getByRole('button', { name: 'Weiter' }).click();
   await expect(battle).toHaveCount(0);
   await dismissCelebrations(page);
 
@@ -57,8 +50,11 @@ test('Kampf nach Training und nach abgeschlossener Mahlzeit', async ({ page }) =
   await expect(page.getByTestId('meal-breakfast')).toContainText('Haferbrei');
   await page.getByTestId('meal-close-breakfast').click();
   await expect(battle).toBeVisible();
-  await battle.getByRole('button', { name: 'Überspringen' }).click();
   await expect(page.getByTestId('battle-result')).toContainText('Frühstück abgeschlossen');
-  await page.getByTestId('battle-result').getByRole('button', { name: 'Ave!' }).click();
+  await expect(page.getByTestId('battle-ap')).toHaveText('+1 Aktionspunkte'); // Tag protokolliert
+  await page.getByTestId('battle-result').getByRole('button', { name: 'Zur Karte' }).click();
+  await expect(page.getByTestId('world-map')).toBeVisible();
+  await expect(page.getByTestId('ap')).toContainText('8'); // 5 Start + 2 Training + 1 Protokoll
+  await page.goBack();
   await expect(page.getByTestId('meal-closed-breakfast')).toBeVisible();
 });

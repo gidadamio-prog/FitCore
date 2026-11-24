@@ -62,7 +62,7 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   // Feldzug
   await page.getByRole('tab', { name: 'Feldzug' }).click();
   await expect(page.getByTestId('boss-name')).toHaveText('Vercingetorix');
-  await expect(page.getByTestId('boss-hp')).toContainText('995 / 1.000 LP'); // 5 Schaden durch Wiegen
+  await expect(page.getByTestId('boss-hp')).toContainText('256 / 256 LP'); // Bosse nur im direkten Kampf
   await expect(page.getByTestId('province-current')).toHaveCount(1);
   await expect(page.getByTestId('duel')).toBeVisible();
 
