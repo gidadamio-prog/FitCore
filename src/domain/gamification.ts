@@ -1,10 +1,12 @@
 // Gamification – vollständig aus echten Daten abgeleitet (nichts wird separat „gutgeschrieben“).
 // Belohnt werden Regelmäßigkeit, Training und Zielnähe – ausdrücklich NICHT möglichst wenig Kalorien oder schnelles Abnehmen.
+import { REGIONS, apBalance, bossOfRegion, nextRegion, regionIndex, replayWorld, type WorldEvent, type WorldState } from './world';
+import { foeFor } from './combat';
 import { bonusValue, bonusesAt, effectiveStepGoal, type BonusLogEntry, type SetBonus } from './armor';
 import type { CardioSession, DiaryEntry, Exercise, GoalVersion, Measurement, Plan, RecoveryLog, Sex, WaterLog, Workout } from './types';
 import type { MealDayHits } from './mealGame';
 import { secretAchievements, type SecretAchievement } from './achievements';
-import { CLASS_TRAINING, XP_PER_DENAR, battleScore, campaign, colosseum, comebackDates, dayDamage, exerciseMastery, heroLevel, attributes, lifeWork, shadowDuel, type CampaignState, type Duel, type HeroClassId, type MasteryEntry } from './rpg';
+import { CAMPAIGN, CLASS_TRAINING, XP_PER_DENAR, battleScore, campaign, colosseum, comebackDates, dayDamage, exerciseMastery, heroLevel, attributes, lifeWork, shadowDuel, type CampaignState, type Duel, type HeroClassId, type MasteryEntry } from './rpg';
 import { addDays, rangeDates, startOfWeek } from './dates';
 import { goalForDate } from './balance';
 import { isCompletedSet, setVolume, epley1RM } from './training';
@@ -96,6 +98,8 @@ export interface GameInput {
   questBoardStart?: string;
   /** Wann welches komplette Rüstungs-Set getragen wurde (Set-Boni gelten nur an diesen Tagen) */
   setBonusLog?: BonusLogEntry[];
+  /** Ereignisse auf der Weltkarte (Reisen, Kämpfe, Truhen, Belagerungen) */
+  worldLog?: WorldEvent[];
 }
 
 export interface DayFacts {
@@ -452,6 +456,10 @@ export interface GameState {
   secrets: SecretAchievement[];
   /** Denare aus Erfolgen */
   bonusDenare: number;
+  /** Weltkarte: Spielstand und Aktionspunkte */
+  world: { state: WorldState; ap: number; apToday: number; apByDay: Map<string, number> };
+  /** Alter Feldzug aus Trainingsschaden (nur für die Übernahme in die Weltkarte) */
+  legacyDefeated: { bossId: string; date: string }[];
   /** Aktive Set-Boni heute */
   setBonus: SetBonus[];
   /** Schrittziel heute (mit Set-Bonus) */
@@ -459,6 +467,21 @@ export interface GameState {
   facts: Map<string, DayFacts>;
   xpByDay: Map<string, number>;
   damageByDay: Map<string, number>;
+}
+
+/** Aktionspunkte je EP-Ereignis */
+const AP_BY_XP: Partial<Record<XpKey, number>> = { logged: 1, workout: 2, cardio: 1, steps: 1, daily: 1, quest: 1, questAll: 2 };
+
+/** Feldzug aus der Weltkarte: eroberte Hauptstädte und der nächste Boss mit seinen Belagerungs-Lebenspunkten */
+function worldCampaign(w: WorldState): CampaignState {
+  const defeated = REGIONS.filter((r) => w.conquered.has(r.id))
+    .map((r) => ({ boss: bossOfRegion(r), date: w.conquered.get(r.id)! }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const next = nextRegion(w) ?? REGIONS[REGIONS.length - 1]!;
+  const foe = foeFor(next.id, 'hauptstadt', bossOfRegion(next).name);
+  const boss = { ...bossOfRegion(next), province: next.name, hp: foe.hp };
+  const dealt = nextRegion(w) ? Math.min(foe.hp, w.bossDmg.get(next.id) ?? 0) : foe.hp;
+  return { defeated, current: { boss, index: regionIndex(next.id), dealt, remaining: foe.hp - dealt }, totalDamage: 0 };
 }
 
 const TRAINING_XP = new Set<XpKey>(['workout', 'cardio', 'pr']);
@@ -478,8 +501,11 @@ export function computeGame(i: GameInput): GameState {
   const breakdown = Object.fromEntries(Object.keys(XP_RULES).map((k) => [k, { count: 0, xp: 0 }])) as GameState['breakdown'];
   const xpByDay = new Map<string, number>();
   /** EP buchen – immer mit dem Tag, an dem sie verdient wurden (Grundlage des Kampfwerts) */
+  const apByDay = new Map<string, number>();
   const add = (k: XpKey, n: number, date: string) => {
     if (n <= 0 || date > i.today) return;
+    const ap = AP_BY_XP[k];
+    if (ap) apByDay.set(date, (apByDay.get(date) ?? 0) + ap * n);
     const bs = i.setBonusLog?.length ? bonusesAt(i.setBonusLog, date) : [];
     const pct = TRAINING_XP.has(k) ? bonusValue(bs, 'xpTraining') : NUTRITION_XP.has(k) ? bonusValue(bs, 'xpNutrition') : 0;
     const xp = Math.round(n * XP_RULES[k].xp * (1 + pct / 100));
@@ -557,7 +583,9 @@ export function computeGame(i: GameInput): GameState {
   const damageByDay = new Map<string, number>();
   for (const f of facts.values()) if (f.date <= i.today) damageByDay.set(f.date, Math.round(dayDamage(f, i.heroClass).total * (1 + bonusValue(bonusesAt(i.setBonusLog, f.date), 'damage') / 100)));
   const dmgList = [...damageByDay].map(([date, dmg]) => ({ date, dmg }));
-  const camp = campaign(dmgList);
+  const legacy = campaign(dmgList);
+  const world = replayWorld(i.worldLog);
+  const camp = worldCampaign(world);
   for (const d of camp.defeated) add('boss', 1, d.date);
   const colosseumWins: GameState['colosseumWins'] = [];
   for (const m of months) {
@@ -576,6 +604,18 @@ export function computeGame(i: GameInput): GameState {
   for (const m of mastery) for (const r of m.reached) add('mastery', 1, r.date);
 
   const xp = Object.values(breakdown).reduce((a, b) => a + b.xp, 0);
+  // Neuer Rang → +3 AP am Tag des Aufstiegs
+  {
+    let cum = 0;
+    let rank = 1;
+    for (const d of [...xpByDay.keys()].sort()) {
+      cum += xpByDay.get(d)!;
+      const r = rankFor(cum).rank.level;
+      if (r > rank) apByDay.set(d, (apByDay.get(d) ?? 0) + 3 * (r - rank));
+      rank = Math.max(rank, r);
+    }
+  }
+  const ap = apBalance(world.startDate, apByDay, world.spentByDate, i.today);
 
   const logStreak = dayStreak(new Set([...facts.values()].filter((f) => f.logged).map((f) => f.date)), i.today);
   const trainStreak = weekStreak(trainingDates, i.today);
@@ -646,6 +686,8 @@ export function computeGame(i: GameInput): GameState {
     level: heroLevel(xp),
     attributes: attributes({ facts: factList, prCount: prs.filter((p) => p.date <= i.today).length, questsDone: questsCompletedTotal, cardioKm, classId: i.heroClass }),
     campaign: camp,
+    world: { state: world, ap: ap.balance, apToday: ap.earnedToday, apByDay },
+    legacyDefeated: legacy.defeated.filter((d) => CAMPAIGN.some((b) => b.id === d.boss.id)).map((d) => ({ bossId: d.boss.id, date: d.date })),
     colosseum: colosseum(month, dmgList, i.today),
     colosseumWins,
     duel: shadowDuel(startOfWeek(i.today), facts, i.today),
@@ -658,7 +700,7 @@ export function computeGame(i: GameInput): GameState {
     mealHitsTotal,
     perfectDays,
     secrets,
-    bonusDenare: secrets.filter((x) => x.achieved).reduce((a, x) => a + x.reward.denare, 0) + setBonusDenare(xpByDay, i.setBonusLog),
+    bonusDenare: secrets.filter((x) => x.achieved).reduce((a, x) => a + x.reward.denare, 0) + setBonusDenare(xpByDay, i.setBonusLog) + world.denare,
     setBonus: bonusesAt(i.setBonusLog, i.today),
     stepGoalToday: effectiveStepGoal(i.stepGoal ?? 8000, bonusesAt(i.setBonusLog, i.today)),
     facts,

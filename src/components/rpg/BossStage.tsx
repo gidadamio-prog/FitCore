@@ -17,7 +17,7 @@ export function BossStage({ game, onOpen, cta }: { game: GameState; onOpen: () =
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-transparent" aria-hidden />
       <div className="relative flex h-full max-w-[62%] flex-col justify-between p-4">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.2em] text-gold">Feldzug · {c.boss.province}</div>
+          <div className="text-[11px] uppercase tracking-[0.2em] text-gold">{c.boss.province} · Hauptstadt</div>
           <div className="font-brand mt-1 text-3xl font-bold leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]" data-testid="stage-boss-name">
             {c.boss.name}
           </div>
@@ -31,7 +31,7 @@ export function BossStage({ game, onOpen, cta }: { game: GameState; onOpen: () =
             <span className="tabular-nums" data-testid="stage-boss-hp">
               {fmt(c.remaining)} / {fmt(c.boss.hp)} LP
             </span>
-            <span>{game.campaign.defeated.length} besiegt</span>
+            <span>{game.campaign.defeated.length} erobert</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-sm font-semibold text-gold">
             {cta ?? 'Zum Feldzug'} <ChevronRight className="h-4 w-4" />

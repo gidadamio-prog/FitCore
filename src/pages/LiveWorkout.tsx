@@ -98,7 +98,7 @@ export function LiveWorkout() {
     const longHint = elapsed > 150 * 60 ? ` Das Training läuft schon ${formatDuration(elapsed)} – falls du das Abschließen vergessen hast, kannst du die Dauer danach in der Zusammenfassung korrigieren.` : '';
     if (!(await confirmDialog({ title: 'Training abschließen?', text: `${doneSets} abgeschlossene Sätze werden gespeichert. Nicht abgeschlossene Sätze werden verworfen.${longHint}`, confirmLabel: 'Abschließen' }))) return;
     try {
-      const seenTotal = game?.campaign.totalDamage;
+      const seenAp = game?.world.apToday;
       const saved = await finishWorkout();
       const prs = newRecordsIn(saved, history).filter((p) => p.kind === 'weight' || p.kind === 'e1rm');
       const byExercise = new Map([...prs].sort((a) => (a.kind === 'weight' ? 1 : -1)).map((p) => [p.exerciseId, p])); // Gewichts-PR bevorzugt anzeigen
@@ -110,11 +110,11 @@ export function LiveWorkout() {
           lines: [...byExercise.values()].map((p) => `${p.name}: ${p.detail}`),
         });
       } else toast(`Training gespeichert · ${completedSets(saved)} Sätze, ${Math.round(workoutVolume(saved)).toLocaleString('de-DE')} kg · +${XP_RULES.workout.xp} EP`, 'success');
-      // Kampf gegen den Feldzug-Boss mit Trainingszusammenfassung
+      // Trainingsbilanz mit neu verdienten Aktionspunkten
       requestBattle({
         reason: 'workout',
         title: saved.name,
-        seenTotal,
+        seenAp,
         lines: [
           `Dauer ${formatDuration(saved.durationSec)}`,
           `${completedSets(saved)} Sätze`,

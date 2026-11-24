@@ -110,7 +110,7 @@ export function Today() {
           </div>
         </Card>
       )}
-      {game && <BossStage game={game} onOpen={() => nav(settings.hero ? '/erfolge?tab=feldzug' : '/erfolge?tab=held')} cta={settings.hero ? undefined : 'Helden erschaffen und angreifen'} />}
+      {game && <BossStage game={game} onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')} cta={settings.hero ? `Zur Weltkarte · ${game.world.ap} AP` : 'Helden erschaffen und losziehen'} />}
       {game && (
         <Card className="border-gold/25" data-testid="game-card">
           <button className="block w-full text-left" onClick={() => nav('/erfolge')} aria-label="Zur Ruhmeshalle">

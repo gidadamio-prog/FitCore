@@ -18,6 +18,7 @@ import { DAY_TYPE_LABELS } from '@/domain/coach';
 import { db } from '@/data/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { requestBattle } from '@/stores/battle';
+import { useGame } from '@/hooks/game';
 
 type Tab = 'diary' | 'recipes' | 'plan' | 'foods';
 
@@ -54,6 +55,7 @@ function Diary() {
   const s = useDaySummary(date);
   const meals = useMeals();
   const settings = useSettings();
+  const game = useGame();
   const [addMeal, setAddMeal] = useState<MealId | null>(null);
   const [edit, setEdit] = useState<DiaryEntry | null>(null);
   const [copyOpen, setCopyOpen] = useState<{ meal?: MealId } | null>(null);
@@ -214,6 +216,7 @@ function Diary() {
                     onClick={() =>
                       void closeMeal(date, m.id).then(() =>
                         requestBattle({
+                          seenAp: game?.world.apToday,
                           reason: 'meal',
                           title: `${m.label} abgeschlossen`,
                           lines: [

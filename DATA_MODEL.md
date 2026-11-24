@@ -20,7 +20,7 @@ Typdefinitionen: `src/domain/types.ts`. Schema & Migrationen: `src/data/db.ts`.
 | savedMeals | id, name | Gespeicherte Mahlzeiten (Snapshot der Einträge) |
 | mealPlan | id, date | Wochenplanung (Rezept + Portionen) |
 | shopping | id, checked | Einkaufsliste |
-| settings | key | Theme, Trinkziel, eigene Mahlzeiten, USDA-Key, Zustimmung Online-Suche, `lastBackupAt`, `backupSnoozeUntil`, `lookSeen`, `armorLoot` (Rüstungs-Beute), `setBonusLog` ([{from, setIdx}]); `hero.armorHidden`, `hero.armorColor`; Rüstungskäufe als `armor-NN-slot` in `purchases`; `hero.loadout` mit Slot `chest`; `hero.look` = { hair, beard, scar, tattoo, eyes, hairColor, beardColor } |
+| settings | key | Theme, Trinkziel, eigene Mahlzeiten, USDA-Key, Zustimmung Online-Suche, `lastBackupAt`, `backupSnoozeUntil`, `lookSeen`, `armorLoot` (Rüstungs-Beute), `setBonusLog` ([{from, setIdx}]), `worldLog` (Weltkarte: init/move/fight/chest/siege mit Datum, AP, Ergebnis, Beute), `apAck`; `hero.armorHidden`, `hero.armorColor`; Rüstungskäufe als `armor-NN-slot` in `purchases`; `hero.loadout` mit Slot `chest`; `hero.look` = { hair, beard, scar, tattoo, eyes, hairColor, beardColor } |
 | apiCache | key, provider, expiresAt | Cache externer Antworten (nicht im Backup) |
 
 ## Konventionen

@@ -1,30 +1,27 @@
 import { create } from 'zustand';
-import type { BattlePlan } from '@/domain/battle';
+import type { FightOutcome } from '@/data/worldRepo';
 
+/** Nach Training oder abgeschlossener Mahlzeit: kurze Bilanz mit neu verdienten Aktionspunkten. */
 export interface BattleRequest {
   reason: 'workout' | 'meal';
   /** Überschrift der Zusammenfassung, z. B. Workout-Name oder „Frühstück abgeschlossen“ */
   title: string;
   /** Ergebniszeilen (Dauer, Sätze, Volumen …) */
   lines?: string[];
-  /** Gesamtschaden, den der Auslöser vor dem Speichern gesehen hat – der Kampf wartet, bis neue Daten da sind */
-  seenTotal?: number;
+  /** AP heute, die der Auslöser vor dem Speichern gesehen hat – die Bilanz wartet, bis neue Daten da sind */
+  seenAp?: number;
   at: number;
 }
 
-export interface BattleScene {
-  id: number;
-  request: BattleRequest;
-  plan: BattlePlan;
-  /** Rüstungs-Beute dieses Kampfes (Item-IDs) */
-  loot?: string[];
-}
+export type BattleScene =
+  | { id: number; kind: 'summary'; request: BattleRequest; ap: number; balance: number }
+  | { id: number; kind: 'fight'; outcome: FightOutcome };
 
 interface State {
   pending: BattleRequest | null;
   scene: BattleScene | null;
   request: (r: Omit<BattleRequest, 'at'>) => void;
-  open: (s: Omit<BattleScene, 'id'>) => void;
+  open: (s: Omit<Extract<BattleScene, { kind: 'summary' }>, 'id'> | Omit<Extract<BattleScene, { kind: 'fight' }>, 'id'>) => void;
   clearPending: () => void;
   close: () => void;
 }
@@ -34,9 +31,10 @@ export const useBattle = create<State>((set) => ({
   pending: null,
   scene: null,
   request: (r) => set({ pending: { ...r, at: Date.now() } }),
-  open: (s) => set({ scene: { ...s, id: ++n }, pending: null }),
+  open: (s) => set({ scene: { ...s, id: ++n } as BattleScene, pending: null }),
   clearPending: () => set({ pending: null }),
   close: () => set({ scene: null }),
 }));
 
 export const requestBattle = (r: Omit<BattleRequest, 'at'>) => useBattle.getState().request(r);
+export const showFight = (outcome: FightOutcome) => useBattle.getState().open({ kind: 'fight', outcome });

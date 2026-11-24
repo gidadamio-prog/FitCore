@@ -16,6 +16,7 @@ import { Stats } from './pages/Stats';
 import { Coach } from './pages/Coach';
 import { SettingsPage } from './pages/Settings';
 import { Achievements } from './pages/Achievements';
+import { WorldMap } from './pages/WorldMap';
 import { CelebrationHost, GameWatcher } from './components/Celebration';
 import { BattleHost, BattleWatcher } from './components/Battle';
 import { BootScreen } from './components/Boot';
@@ -91,6 +92,7 @@ export function App() {
           <Route path="coach" element={<Coach />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="erfolge" element={<Achievements />} />
+          <Route path="karte" element={<WorldMap />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
