@@ -128,6 +128,8 @@ export interface Hero {
   palette?: PaletteId;
   /** Getragene Ausrüstung je Slot (null = leer) */
   loadout?: Partial<Record<'main' | 'off' | 'head' | 'hands' | 'legs' | 'feet', string | null>>;
+  /** Frisur, Bart und Farben (siehe domain/appearance) */
+  look?: { hair?: string | null; beard?: string | null; scar?: string | null; tattoo?: string | null; eyes?: string | null; hairColor?: string; beardColor?: string };
 }
 
 // ---------------------------------------------------------------------------

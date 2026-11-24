@@ -35,7 +35,7 @@ p('# FitCore – Grafik-Briefing');
 p();
 p('Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.');
 p();
-p(`**Als Nächstes dran: ${TRAITS.length} Merkmale + ${HEAD_ITEMS.length} Helme auf der Figur (Abschnitt 0).** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**`);
+p(`**Als Nächstes dran: ${HEAD_ITEMS.length} Helme auf der Figur (Abschnitt 0); alle Merkmale sind geliefert.** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**`);
 p();
 p('## Regeln für alle Bilder');
 p();
@@ -104,9 +104,15 @@ p('exact same position and scale as on the character, [HINWEIS]. No body, no fac
 p('```');
 p();
 for (const c of TRAIT_CATEGORIES) {
+  const list = TRAITS.filter((x) => x.category === c.id);
+  if (list.every((tr) => have(traitFile(tr)))) {
+    p(`**${c.label}** – geliefert (${list.length}/${list.length}), eingebaut mit Freischaltungen`);
+    p();
+    continue;
+  }
   p(`**${c.label}** – ${c.hint}`);
   p();
-  for (const tr of TRAITS.filter((x) => x.category === c.id)) p(`- [${have(traitFile(tr)) ? 'x' : ' '}] \`${traitFile(tr)}.png\` – ${tr.name}: ${tr.motif}`);
+  for (const tr of list) p(`- [${have(traitFile(tr)) ? 'x' : ' '}] \`${traitFile(tr)}.png\` – ${tr.name}${tr.motif ? `: ${tr.motif}` : ''}`);
   p();
 }
 p('### Helme auf der Figur (Ebene über den Merkmalen)');

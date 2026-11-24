@@ -8,6 +8,10 @@ import type { HeroClassId } from '@/domain/rpg';
 import { bodyFile, bodyTypeLabel, type BodyTypeId } from '@/domain/bodyType';
 import { bossFile, type Boss } from '@/domain/rpg';
 import { useBodyType } from '@/hooks/game';
+import { useSettings } from '@/hooks/data';
+import { DEFAULT_HAIR_COLOR, FACE_BOX, HAIR_COLORS, SCAR_PLACE, TATTOO_TEMPLATE, tintStops, traitById, traitFile, type HeroLook } from '@/domain/appearance';
+import { BODY_PARTS, HEAD_LAYOUT_EXTRA, SCAR_ASPECT } from '@/domain/bodyLayout';
+import { TRAIT_LAYOUT } from '@/domain/traitLayout';
 
 // Alle Bilder, die im Ordner src/assets/rpg liegen – fehlende fallen still auf Platzhalter zurück.
 const FILES = import.meta.glob('../../assets/rpg/*.{png,webp,jpg,jpeg}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -203,10 +207,11 @@ function PlaceholderPortrait({ stage, crest }: { stage: number; crest: string })
 }
 
 // Ausschnitt Kopf und Schultern aus dem Ganzkörperbild (Kopf liegt in allen Körperbildern an derselben Stelle)
-const HEAD_CROP: CSSProperties = { position: 'absolute', width: '379%', maxWidth: 'none', left: '-139.4%', top: '-18.2%' };
+const HEAD_CROP: CSSProperties = { position: 'absolute', width: '379%', maxWidth: 'none', left: '-139.4%', top: '-18.2%', aspectRatio: '2 / 3' };
 
-export function HeroPortrait({ classId, rankLevel, crest, aura, size = 160, className, transform = false }: { classId: HeroClassId; rankLevel: number; crest: string; aura?: string | null; size?: number; className?: string; transform?: boolean }) {
+export function HeroPortrait({ classId, rankLevel, crest, aura, size = 160, className, transform = false, look }: { classId: HeroClassId; rankLevel: number; crest: string; aura?: string | null; size?: number; className?: string; transform?: boolean; look?: HeroLook }) {
   const stage = appearanceStage(rankLevel);
+  const ownLook = useSettings().hero?.look;
   const url = rpgAsset(portraitFile(classId, stage));
   const body = useBodyType();
   const bodyUrl = !url && body ? rpgAsset(bodyFile(body.id)) : undefined;
@@ -217,11 +222,37 @@ export function HeroPortrait({ classId, rankLevel, crest, aura, size = 160, clas
         {url ? (
           <img src={url} alt="" className="h-full w-full object-contain" draggable={false} />
         ) : bodyUrl ? (
-          <img src={bodyUrl} alt="" style={HEAD_CROP} draggable={false} data-testid="portrait-body-crop" />
+          <div style={HEAD_CROP} data-testid="portrait-body-crop">
+            <HeroLayers bodyUrl={bodyUrl} bodyId={body?.id} look={look ?? ownLook} />
+          </div>
         ) : (
           <PlaceholderPortrait stage={stage} crest={crest} />
         )}
       </div>
+    </div>
+  );
+}
+
+/** Kopf-Ausschnitt des eigenen Grundkörpers mit beliebigem Aussehen (Vorschau im Aussehen-Editor). */
+export function HeadPreview({ look, size = 84, className }: { look: HeroLook; size?: number; className?: string }) {
+  const body = useBodyType();
+  const bodyUrl = body ? rpgAsset(bodyFile(body.id)) : undefined;
+  return (
+    <div className={cn('relative shrink-0 overflow-hidden rounded-[22%] bg-black/30', className)} style={{ width: size, height: size * 1.25 }}>
+      <div style={HEAD_CROP}>
+        <HeroLayers bodyUrl={bodyUrl} bodyId={body?.id} look={look} />
+      </div>
+    </div>
+  );
+}
+
+/** Ganzkörper-Vorschau ohne Animation (Aussehen-Editor: Tattoos, Narben). */
+export function BodyPreview({ look, width = 70, className }: { look: HeroLook; width?: number; className?: string }) {
+  const body = useBodyType();
+  const bodyUrl = body ? rpgAsset(bodyFile(body.id)) : undefined;
+  return (
+    <div className={cn('relative shrink-0', className)} style={{ width, height: width * 1.5 }}>
+      <HeroLayers bodyUrl={bodyUrl} bodyId={body?.id} look={look} />
     </div>
   );
 }
@@ -231,13 +262,115 @@ export function HeroPortrait({ classId, rankLevel, crest, aura, size = 160, clas
 // Alle Ebenen liegen auf demselben Raster (2:3, Kopf oben mittig), daher einfach übereinander.
 // ---------------------------------------------------------------------------
 
-export function HeroFigure({ bodyType, aura, width = 140, className, children }: { bodyType: BodyTypeId; aura?: string | null; width?: number; className?: string; children?: ReactNode }) {
+/** Eine einfärbbare Ebene: graues Bild + Verlaufsfilter, darüber optional ungefärbter Schmuck. */
+const HEAD_LAYOUT = { ...TRAIT_LAYOUT, ...HEAD_LAYOUT_EXTRA };
+
+function TraitLayer({ file, color, testId }: { file: string; color?: string; testId: string }) {
+  const url = rpgAsset(file);
+  const pos = HEAD_LAYOUT[file];
+  if (!url || !pos) return null;
+  const [left, top, width, deco] = pos;
+  const style: CSSProperties = { position: 'absolute', left: `${left}%`, top: `${top}%`, width: `${width}%`, maxWidth: 'none' };
+  const decoUrl = deco ? rpgAsset(`${file}_deko`) : undefined;
+  return (
+    <>
+      <img src={url} alt="" style={color ? { ...style, filter: `url(#fc-tint-${color})` } : style} draggable={false} data-testid={testId} data-color={color} />
+      {decoUrl && <img src={decoUrl} alt="" style={style} draggable={false} />}
+    </>
+  );
+}
+
+/** SVG-Filter zum Einfärben der grauen Haar-/Bart-Ebenen (Verlaufsabbildung). */
+function TintDefs({ colors }: { colors: string[] }) {
+  return (
+    <svg width="0" height="0" className="absolute" aria-hidden>
+      <defs>
+        {[...new Set(colors)].map((id) => {
+          const stops = tintStops((HAIR_COLORS.find((c) => c.id === id) ?? HAIR_COLORS[1]!).hex);
+          const ch = (k: number) => stops.map((s) => s[k]!.toFixed(3)).join(' ');
+          return (
+            <filter key={id} id={`fc-tint-${id}`} colorInterpolationFilters="sRGB">
+              <feComponentTransfer>
+                <feFuncR type="table" tableValues={ch(0)} />
+                <feFuncG type="table" tableValues={ch(1)} />
+                <feFuncB type="table" tableValues={ch(2)} />
+              </feComponentTransfer>
+            </filter>
+          );
+        })}
+      </defs>
+    </svg>
+  );
+}
+
+const pct = (b: number[]): CSSProperties => ({ position: 'absolute', left: `${b[0]}%`, top: `${b[1]}%`, width: `${b[2]}%`, height: `${b[3]}%` });
+
+/** Tattoo: Schablonen-Bereiche (Rumpf, Arme, Beine) einzeln auf die Körperbereiche gelegt. */
+function TattooLayer({ file, bodyId }: { file: string; bodyId: string }) {
+  const url = rpgAsset(file);
+  const parts = BODY_PARTS[bodyId];
+  if (!url || !parts) return null;
+  return (
+    <div className="absolute inset-0" data-testid="layer-tattoo" style={{ opacity: 0.92 }}>
+      {(Object.keys(TATTOO_TEMPLATE) as (keyof typeof TATTOO_TEMPLATE)[]).map((k) => {
+        const [x0, y0, x1, y1] = TATTOO_TEMPLATE[k];
+        const tw = x1 - x0;
+        const th = y1 - y0;
+        return (
+          <div key={k} style={{ ...pct(parts[k]), overflow: 'hidden' }}>
+            <img src={url} alt="" draggable={false} style={{ position: 'absolute', maxWidth: 'none', width: `${100 / tw}%`, height: `${100 / th}%`, left: `${(-x0 / tw) * 100}%`, top: `${(-y0 / th) * 100}%` }} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ScarLayer({ id, bodyId }: { id: string; bodyId: string }) {
+  const url = rpgAsset(`narbe_${id}`);
+  const place = SCAR_PLACE[id];
+  const box = place && (place.part === 'face' ? FACE_BOX : BODY_PARTS[bodyId]?.[place.part]);
+  if (!url || !place || !box) return null;
+  const w = place.w * box[2];
+  const h = w * (2 / 3) * (SCAR_ASPECT[id] ?? 1);
+  return <img src={url} alt="" draggable={false} data-testid="layer-scar" style={{ position: 'absolute', maxWidth: 'none', opacity: 0.92, width: `${w}%`, left: `${box[0] + place.u * box[2] - w / 2}%`, top: `${box[1] + place.v * box[3] - h / 2}%` }} />;
+}
+
+/** Grundkörper + Merkmale im 2:3-Raster: Körper → Tattoo → Narbe → Bart → Frisur → Brille. */
+export function HeroLayers({ bodyUrl, bodyId, look }: { bodyUrl?: string; bodyId?: string; look?: HeroLook }) {
+  const hair = traitById('hair', look?.hair);
+  const beard = traitById('beard', look?.beard);
+  const tattoo = traitById('tattoo', look?.tattoo);
+  const scar = traitById('scar', look?.scar);
+  const eyes = traitById('eyes', look?.eyes);
+  const skin: CSSProperties | undefined = bodyUrl ? { maskImage: `url(${bodyUrl})`, WebkitMaskImage: `url(${bodyUrl})`, maskSize: '100% 100%', WebkitMaskSize: '100% 100%' } : undefined;
+  const hairColor = look?.hairColor ?? DEFAULT_HAIR_COLOR;
+  const beardColor = look?.beardColor ?? hairColor;
+  return (
+    <div className="absolute inset-0">
+      {(hair || beard) && <TintDefs colors={[hairColor, beardColor]} />}
+      {bodyUrl && <img src={bodyUrl} alt="" className="absolute inset-0 h-full w-full object-contain" draggable={false} />}
+      {bodyId && (tattoo || scar) && (
+        <div className="absolute inset-0" style={skin}>
+          {tattoo && <TattooLayer file={traitFile(tattoo)} bodyId={bodyId} />}
+          {scar && <ScarLayer id={scar.id} bodyId={bodyId} />}
+        </div>
+      )}
+      {beard && <TraitLayer file={traitFile(beard)} color={beardColor} testId="layer-beard" />}
+      {hair && <TraitLayer file={traitFile(hair)} color={hairColor} testId="layer-hair" />}
+      {eyes && <TraitLayer file={traitFile(eyes)} testId="layer-eyes" />}
+    </div>
+  );
+}
+
+export function HeroFigure({ bodyType, aura, width = 140, className, children, look }: { bodyType: BodyTypeId; aura?: string | null; width?: number; className?: string; children?: ReactNode; look?: HeroLook }) {
   const url = rpgAsset(bodyFile(bodyType));
+  const ownLook = useSettings().hero?.look;
   return (
     <div className={cn('relative shrink-0', className)} style={{ width, height: width * 1.5 }} data-testid="hero-figure" data-body={bodyType} role="img" aria-label={`Held, Körperbau: ${bodyTypeLabel(bodyType)}`}>
       {aura && <div className="aura" style={{ background: aura }} />}
       <div className="portrait-breathe relative h-full w-full">
-        {url && <img src={url} alt="" className="absolute inset-0 h-full w-full object-contain" draggable={false} />}
+        {url && <HeroLayers bodyUrl={url} bodyId={bodyType} look={look ?? ownLook} />}
         {children}
       </div>
     </div>

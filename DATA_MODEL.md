@@ -20,7 +20,7 @@ Typdefinitionen: `src/domain/types.ts`. Schema & Migrationen: `src/data/db.ts`.
 | savedMeals | id, name | Gespeicherte Mahlzeiten (Snapshot der Einträge) |
 | mealPlan | id, date | Wochenplanung (Rezept + Portionen) |
 | shopping | id, checked | Einkaufsliste |
-| settings | key | Theme, Trinkziel, eigene Mahlzeiten, USDA-Key, Zustimmung Online-Suche, `lastBackupAt`, `backupSnoozeUntil` |
+| settings | key | Theme, Trinkziel, eigene Mahlzeiten, USDA-Key, Zustimmung Online-Suche, `lastBackupAt`, `backupSnoozeUntil`, `lookSeen`; `hero.look` = { hair, beard, scar, tattoo, eyes, hairColor, beardColor } |
 | apiCache | key, provider, expiresAt | Cache externer Antworten (nicht im Backup) |
 
 ## Konventionen

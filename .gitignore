@@ -5,3 +5,4 @@ dev-dist
 playwright-report
 test-results
 e2e/.fixtures
+__pycache__/

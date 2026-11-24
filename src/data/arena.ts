@@ -102,6 +102,12 @@ export async function buyItem(itemId: string, xp: number, bonus = 0) {
 }
 
 /** Ausrüstung anlegen – prüft Freischaltung, Rang und Zweihand-Regel. */
+export async function setHeroLook(look: NonNullable<Hero['look']>) {
+  const s = await getSettings();
+  if (!s.hero) throw new Error('Erschaffe zuerst deinen Helden.');
+  await setSetting('hero', { ...s.hero, look });
+}
+
 export async function equipToHero(itemId: string, game: GameState) {
   const s = await getSettings();
   if (!s.hero) throw new Error('Erschaffe zuerst deinen Helden.');
