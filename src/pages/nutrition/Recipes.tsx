@@ -221,7 +221,7 @@ function RecipeEditor({ initial, onClose }: { initial: Partial<Recipe>; onClose:
             {local.map((f) => (
               <li key={f.id}>
                 <button className="w-full p-2 text-left text-sm" onClick={() => addIng(f)}>
-                  {f.name} <span className="text-xs text-muted">{fmt(f.per100.kcal)} kcal/100 {f.unitBase}</span>
+                  {f.name} <span className="text-xs text-muted">{fmt(f.per100.kcal)} kcal/100 {f.unitBase}{f.source === 'basic' ? ' · Grundnahrungsmittel' : ''}</span>
                 </button>
               </li>
             ))}

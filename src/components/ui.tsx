@@ -137,7 +137,7 @@ export function Badge({ children, tone = 'neutral', className }: { children: Rea
   );
 }
 
-export function Sheet({ open, onClose, title, children, footer, wide }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; footer?: React.ReactNode; wide?: boolean }) {
+export function Sheet({ open, onClose, title, children, footer, wide, full, headerExtra }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; footer?: React.ReactNode; wide?: boolean; /** volle Höhe – Inhalt beginnt oben (Suchen) */ full?: boolean; headerExtra?: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -156,12 +156,15 @@ export function Sheet({ open, onClose, title, children, footer, wide }: { open: 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
-      <div ref={ref} className={cn('relative flex max-h-[92dvh] w-full flex-col rounded-t-3xl border bg-card shadow-2xl sm:rounded-3xl', wide ? 'sm:max-w-2xl' : 'sm:max-w-lg')}>
+      <div ref={ref} className={cn('relative flex w-full flex-col rounded-t-3xl border bg-card shadow-2xl sm:rounded-3xl', full ? 'h-[94dvh] sm:h-[85dvh]' : 'max-h-[92dvh]', wide ? 'sm:max-w-2xl' : 'sm:max-w-lg')}>
         <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <Button data-close variant="ghost" size="icon" aria-label="Schließen" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
+          <h2 className="min-w-0 truncate text-base font-semibold">{title}</h2>
+          <div className="flex shrink-0 items-center gap-1">
+            {headerExtra}
+            <Button data-close variant="ghost" size="icon" aria-label="Schließen" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto overscroll-contain p-4">{children}</div>
         {footer && <div className="safe-bottom flex gap-2 border-t p-3">{footer}</div>}

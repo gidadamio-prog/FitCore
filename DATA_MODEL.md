@@ -7,7 +7,7 @@ Typdefinitionen: `src/domain/types.ts`. Schema & Migrationen: `src/data/db.ts`.
 | profile | `id` (= "me") | Name, Geburtsdatum, Geschlecht (für Formeln), Größe, Aktivität, Erfahrung, Equipment, besondere Situation, Zielgewicht, Anrechnungsquote, „Training im Aktivitätsfaktor“ + enthaltene kcal |
 | goals | `++id`, effectiveFrom | **Versionierte** Ziele: Hauptziel, Nebenziele, Rate kg/Woche, Strategie, Formel, BMR, TDEE, Anpassung, kcal-/Makroziele, manuell-Flags, Grund |
 | foods | id, name, barcode, source, favorite, useCount, lastUsedAt | Lebensmittel (OFF/USDA/eigen), `per100` (null = unbekannt), Portionen, Quelle/Lizenz/URL, kcal-Herkunft |
-| diary | id, date, meal, foodId, recipeId, [date+meal] | Einträge mit Menge/Einheit/Gramm, **Snapshot `per100`** und berechneten Nährwerten |
+| diary | id, date, meal, foodId, recipeId, [date+meal] | Einträge mit Menge/Einheit/Gramm, optional Zubereitung `prep` (dann ist `per100` darauf umgerechnet), **Snapshot `per100`** und berechneten Nährwerten |
 | recipes | id, name, category | Zutaten (Snapshot per100 + Gramm), Portionen, Zubereitung, Bild |
 | measurements | id, date, bodyFatMethod | Gewicht, Größe, KF% + Methode (manual/device/navy), Muskelmasse, Umfänge, eigene Werte, Notiz |
 | exercises | id, name, primaryMuscle, isCustom | Übungsbibliothek (60 mitgeliefert) + eigene |

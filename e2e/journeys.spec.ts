@@ -44,6 +44,7 @@ test('E2E-02 Lebensmittel suchen → Portion → buchen → Tageswerte', async (
   await dlg.getByLabel('Menge').fill('200');
   await expect(dlg.getByTestId('nut-kcal')).toHaveText('1.078 kcal');
   await dlg.getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByTestId('add-done').click();
   await expect(page.getByTestId('day-kcal')).toHaveText('1.078');
   await expect(page.getByTestId('day-protein')).toContainText('12,6');
   await nav(page, 'Heute');
@@ -62,6 +63,7 @@ test('E2E-03 Barcode → protokollieren → erneut aufrufen', async ({ page }) =
   await expect(page.getByRole('dialog')).toContainText('EAN 3017624010701');
   await page.getByRole('dialog').getByLabel('Menge').fill('2'); // 2 × 15 g Portion
   await page.getByRole('dialog').getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByTestId('add-done').click();
   await expect(page.getByTestId('meal-breakfast')).toContainText('Nutella');
   await expect(page.getByTestId('day-kcal')).toHaveText('162');
   // Erneut: zuletzt verwendet + lokale Barcode-Suche ohne Netz
@@ -94,9 +96,9 @@ test('E2E-04 Rezept erstellen → Portion berechnen → ins Tagebuch', async ({ 
   await dlg.getByLabel('Name', { exact: true }).fill('Porridge');
   await dlg.getByLabel('Portionen').fill('2');
   await dlg.getByLabel('Zutat suchen').fill('Hafer');
-  await dlg.getByRole('button', { name: /^Haferflocken/ }).click();
+  await dlg.getByRole('button', { name: /^Haferflocken 372/ }).click();
   await dlg.getByLabel('Zutat suchen').fill('Milch');
-  await dlg.getByRole('button', { name: /^Milch/ }).click();
+  await dlg.getByRole('button', { name: /^Milch 64/ }).click();
   await dlg.getByLabel('Menge Milch (g)').fill('300');
   await expect(dlg.getByTestId('recipe-nutrition')).toContainText('564 kcal');
   await expect(dlg.getByTestId('recipe-nutrition')).toContainText('282 kcal');
@@ -203,9 +205,10 @@ test('E2E-09 Daten ändern → Statistiken aktualisieren sich', async ({ page })
   await page.getByRole('tab', { name: 'Tagebuch' }).click();
   await page.getByRole('button', { name: 'Mittagessen: Lebensmittel hinzufügen' }).click();
   await page.getByRole('dialog').getByLabel('Lebensmittel suchen').fill('Reis');
-  await page.getByRole('dialog').getByRole('button', { name: /^Reis/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Reis.*Eigenes/ }).click();
   await page.getByRole('dialog').getByLabel('Menge').fill('1000');
   await page.getByRole('dialog').getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByTestId('add-done').click();
   await nav(page, 'Statistiken');
   await page.getByRole('tab', { name: '7 T' }).click();
   await expect(page.getByTestId('avg-kcal')).toHaveText('1.500');
@@ -303,6 +306,7 @@ test('Barcode mit OFF-Produkt ohne Nährwerte → von der Packung ergänzen → 
   await expect(page.getByTestId('incomplete-hint')).toHaveCount(0);
   await dlg.getByRole('spinbutton', { name: 'Menge' }).fill('30');
   await dlg.getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByTestId('add-done').click();
   await expect(page.getByTestId('day-kcal')).toHaveText('105');
   // nächster Scan: eigene Werte, kein Hinweis
   await page.getByRole('button', { name: 'Snacks: Lebensmittel hinzufügen' }).click();
@@ -331,4 +335,41 @@ test('Studio Vitova Nordenstadt: Heimstudio wählen → Vorlage übernehmen → 
   await page.getByLabel('Gerät / Equipment').selectOption('Technogym Selection');
   await expect(page.getByTestId('exercise-list')).toContainText('Beinpresse (Technogym Selection)');
   await expect(page.getByTestId('exercise-list')).not.toContainText('Kniebeuge (Langhantel)');
+});
+
+test('AK-108 Essen eintragen: Suche oben, Reis gekocht umrechnen, mehrere Einträge am Stück, „wie zuletzt“', async ({ page }) => {
+  await onboard(page);
+  await nav(page, 'Ernährung');
+  await page.getByRole('button', { name: 'Mittagessen: Lebensmittel hinzufügen' }).click();
+  const dlg = page.getByRole('dialog');
+  // Suchfeld sitzt oben im Blatt
+  const box = await dlg.getByLabel('Lebensmittel suchen').boundingBox();
+  const vh = page.viewportSize()!.height;
+  expect(box!.y).toBeLessThan(vh * 0.35);
+  // Grundnahrungsmittel offline: Reis trocken → gekocht gewogen
+  await dlg.getByLabel('Lebensmittel suchen').fill('reis');
+  await dlg.getByTestId('local-results').getByRole('button', { name: /^Reis, weiß/ }).click();
+  await expect(dlg.getByRole('group', { name: 'Zubereitung' }).getByRole('button', { name: 'trocken' })).toHaveAttribute('aria-pressed', 'true');
+  await dlg.getByRole('group', { name: 'Zubereitung' }).getByRole('button', { name: 'gekocht' }).click();
+  await expect(dlg.getByTestId('prep-hint')).toContainText('2,8 ×');
+  await dlg.getByRole('group', { name: 'Schnellauswahl' }).getByRole('button', { name: '250 g' }).click();
+  // 355 kcal trocken / 2,8 = 126,79 kcal pro 100 g gekocht → 250 g = 317 kcal
+  await expect(dlg.getByTestId('nut-kcal')).toHaveText('317 kcal');
+  await dlg.getByRole('button', { name: /Hinzufügen/ }).click();
+  // Blatt bleibt offen für das nächste Lebensmittel
+  await expect(dlg.getByTestId('added-list')).toContainText('1 zu Mittagessen hinzugefügt');
+  await dlg.getByLabel('Lebensmittel suchen').fill('hähnchen');
+  await dlg.getByTestId('local-results').getByRole('button', { name: /^Hähnchenbrust/ }).click();
+  await dlg.getByRole('group', { name: 'Zubereitung' }).getByRole('button', { name: 'gebraten/gegart' }).click();
+  await dlg.getByLabel('Menge').fill('150');
+  await dlg.getByRole('button', { name: /Hinzufügen/ }).click();
+  await expect(dlg.getByTestId('added-list')).toContainText('2 zu Mittagessen hinzugefügt');
+  await dlg.getByTestId('add-done').click();
+  await expect(page.getByTestId('meal-lunch')).toContainText('250 g gekocht');
+  await expect(page.getByTestId('meal-lunch')).toContainText('150 g gebraten/gegart');
+  // Abendessen: Reis „wie zuletzt“ mit einem Tipp
+  await page.getByRole('button', { name: 'Abendessen: Lebensmittel hinzufügen' }).click();
+  await dlg.getByRole('button', { name: /Reis, weiß.*wie zuletzt \(250 g gekocht\)/ }).click();
+  await dlg.getByTestId('add-done').click();
+  await expect(page.getByTestId('meal-dinner')).toContainText('250 g gekocht');
 });

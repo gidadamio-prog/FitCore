@@ -76,7 +76,7 @@ export interface Nutrients {
   satFat?: number | null;
 }
 
-export type FoodSource = 'off' | 'usda' | 'custom';
+export type FoodSource = 'off' | 'usda' | 'custom' | 'basic';
 
 export interface Serving {
   label: string;
@@ -120,6 +120,8 @@ export interface DiaryEntry {
   amount: number;
   unit: 'g' | 'ml' | 'serving';
   servingLabel?: string;
+  /** Zubereitung, in der gewogen wurde (z. B. „gekocht“) – per100 ist darauf umgerechnet */
+  prep?: string;
   grams: number; // effektive Menge in g bzw. ml
   per100: Nutrients; // Snapshot der Bezugswerte zum Buchungszeitpunkt
   nutrients: Nutrients; // berechnete Werte des Eintrags

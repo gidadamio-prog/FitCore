@@ -1,3 +1,4 @@
+import { searchBasicFoods } from './basicFoods';
 import { db } from './db';
 import type { DiaryEntry, FoodItem, MealId, Nutrients, Recipe, SavedMeal } from '@/domain/types';
 import { recipeNutrition, scaleNutrients, kcalFromMacros } from '@/domain/nutrition';
@@ -41,13 +42,43 @@ export async function findLocalByBarcode(code: string): Promise<FoodItem | undef
 }
 
 export async function searchLocalFoods(q: string, limit = 30): Promise<FoodItem[]> {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return [];
+  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
   const all = await db.foods.toArray();
-  return all
-    .filter((f) => (f.name + ' ' + (f.brand ?? '')).toLowerCase().includes(needle))
-    .sort((a, b) => b.useCount - a.useCount)
-    .slice(0, limit);
+  const hit = (f: FoodItem) => {
+    const hay = (f.name + ' ' + (f.brand ?? '')).toLowerCase();
+    return words.every((w) => hay.includes(w));
+  };
+  const local = all.filter(hit);
+  // Grundnahrungsmittel ergänzen (bereits benutzte liegen schon lokal, mit Zähler)
+  const basics = searchBasicFoods(q).filter((b) => !local.some((l) => l.id === b.id));
+  const starts = (f: FoodItem) => (f.name.toLowerCase().startsWith(words[0]!) ? 1 : 0);
+  const rank = (a: FoodItem, b: FoodItem) => b.useCount - a.useCount || starts(b) - starts(a) || a.name.length - b.name.length;
+  // Eigene/gespeicherte zuerst, danach Grundnahrungsmittel
+  return [...local.sort(rank), ...basics.sort(rank)].slice(0, limit);
+}
+
+/** Letzte Buchung je Lebensmittel (für „nochmal wie zuletzt“). */
+export async function lastEntriesByFood(limit = 300): Promise<Map<string, DiaryEntry>> {
+  const recent = await db.diary.orderBy('createdAt').reverse().limit(limit).toArray().catch(async () => (await db.diary.toArray()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit));
+  const m = new Map<string, DiaryEntry>();
+  for (const e of recent) if (e.foodId && !m.has(e.foodId)) m.set(e.foodId, e);
+  return m;
+}
+
+/** Eintrag erneut buchen – gleiche Menge, Einheit und Zubereitung wie zuletzt. */
+export async function repeatEntry(e: DiaryEntry, date: string, meal: MealId): Promise<DiaryEntry> {
+  const ts = nowISO();
+  const copy: DiaryEntry = { ...e, id: uid(), date, meal, createdAt: ts, updatedAt: ts };
+  await db.transaction('rw', db.diary, db.foods, async () => {
+    await db.diary.add(copy);
+    if (e.foodId)
+      await db.foods.where('id').equals(e.foodId).modify((f) => {
+        f.useCount = (f.useCount ?? 0) + 1;
+        f.lastUsedAt = ts;
+      });
+  });
+  return copy;
 }
 
 export async function toggleFavorite(foodId: string) {
@@ -65,6 +96,8 @@ export interface AddEntryInput {
   servingLabel?: string;
   /** Gramm je Portion, wenn unit = serving */
   servingGrams?: number;
+  /** Gewogen in anderer Zubereitung als die Bezugswerte (z. B. Reis gekocht statt trocken) */
+  prep?: { label: string; per100: Nutrients };
 }
 
 export function gramsFor(amount: number, unit: 'g' | 'ml' | 'serving', servingGrams?: number): number {
@@ -90,9 +123,10 @@ export async function addEntry(i: AddEntryInput): Promise<DiaryEntry> {
     amount: i.amount,
     unit: i.unit,
     servingLabel: i.servingLabel,
+    prep: i.prep?.label,
     grams,
-    per100: { ...i.food.per100 },
-    nutrients: scaleNutrients(i.food.per100, grams),
+    per100: { ...(i.prep?.per100 ?? i.food.per100) },
+    nutrients: scaleNutrients(i.prep?.per100 ?? i.food.per100, grams),
     createdAt: ts,
     updatedAt: ts,
   };
