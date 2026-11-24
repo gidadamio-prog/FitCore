@@ -4,7 +4,7 @@ import { useSettings } from '@/hooks/data';
 import { buyArmor, buyItem, equip, equipArmorSet, extraPrices } from '@/data/arena';
 import { denare, SHOP, XP_PER_DENAR, classById, type ShopItem } from '@/domain/rpg';
 import { ITEMS, STARTER_PRICE, inventory, itemById, starterPurchaseId } from '@/domain/equipment';
-import { ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, armorItemId, armorPrice, type ArmorClass } from '@/domain/armor';
+import { ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, armorItemId, armorPrice, bonusText, setBonuses, type ArmorClass } from '@/domain/armor';
 import { gearExtra } from '@/domain/gear';
 import { RANKS } from '@/domain/gamification';
 import { useState } from 'react';
@@ -174,7 +174,10 @@ function ArmorShop({ game, balance }: { game: GameState; balance: number }) {
           return (
             <li key={st.idx} className="py-2" data-testid={`armor-set-${st.idx}`}>
               <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium">{st.name}</div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{st.name}</div>
+                  <div className="text-[10px] text-gold">Set-Bonus: {setBonuses(st).map(bonusText).join(', ')}</div>
+                </div>
                 {missing.length === 0 ? (
                   <Badge>komplett</Badge>
                 ) : (

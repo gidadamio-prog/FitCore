@@ -31,6 +31,26 @@ test('AK-109 Rüstung: Start-Set auf der Figur, Kopfteil verdeckt Frisur, ganzes
   await expect(fig.getByTestId('armor-head')).toBeVisible();
   await expect(fig.getByTestId('layer-hair')).toHaveCount(0);
   await expect(sheet.getByTestId('armor-set-bonus')).toContainText('Set-Bonus: Novize (Stoff)');
+  await expect(sheet.getByTestId('armor-set-effects')).toHaveText('+5 % EP aus Training');
+
+  // Kapuze angelegt lassen, aber auf der Figur ausblenden → Frisur wieder sichtbar, Set-Bonus bleibt
+  await sheet.getByTestId('slot-head').click();
+  await page.getByTestId('toggle-armor-hidden').click();
+  await page.keyboard.press('Escape');
+  await expect(sheet.getByTestId('slot-head')).toHaveAccessibleName('Kopf: Novizen-Kapuze (ausgeblendet)');
+  await expect(fig.getByTestId('armor-head')).toHaveCount(0);
+  await expect(fig.getByTestId('layer-hair')).toBeVisible();
+  await expect(sheet.getByTestId('armor-set-bonus')).toBeVisible();
+
+  // Rüstungsfarbe: 3 zum Start (Original, Nachtblau, Rabenschwarz), Rest gesperrt
+  await sheet.getByRole('button', { name: 'Aussehen' }).click();
+  await page.getByTestId('look-editor').getByRole('tab', { name: 'Farben' }).click();
+  const colors = page.getByRole('group', { name: 'Rüstungsfarbe' });
+  await expect(colors.locator('button:not([aria-label*="gesperrt"])')).toHaveCount(3);
+  await colors.getByTestId('armorcolor-nachtblau').click();
+  await expect(colors.getByTestId('armorcolor-nachtblau')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+  await expect(fig.getByTestId('armor-legs-dye')).toBeVisible();
   await page.waitForTimeout(400);
   await sheet.screenshot({ path: 'test-results/armor-sheet.png' });
 

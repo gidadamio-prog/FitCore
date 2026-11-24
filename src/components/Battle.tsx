@@ -15,7 +15,7 @@ import { today } from '@/domain/dates';
 import { battlePlan, type BattleHit } from '@/domain/battle';
 import { bossAt, dayDamage, type Boss } from '@/domain/rpg';
 import { BossFigure, HeroFigure, HeroPortrait, ItemIcon } from './rpg/Visuals';
-import { rollLoot } from '@/domain/armor';
+import { LOOT_CHANCE, bonusValue, rollLoot } from '@/domain/armor';
 import { itemById } from '@/domain/equipment';
 
 const ACK_KEY = 'battleAck';
@@ -57,7 +57,7 @@ export function BattleWatcher() {
       }
       const facts = game.facts.get(today());
       const plan = battlePlan(from, total, facts ? dayDamage(facts, hero.classId) : null);
-      const loot = rollLoot(`${from}-${total}`, plan.defeated.length, { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: armorLoot, purchases });
+      const loot = rollLoot(`${from}-${total}`, plan.defeated.length, { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: armorLoot, purchases }, LOOT_CHANCE + bonusValue(game.setBonus, 'loot') / 100);
       if (loot.length) await db.settings.put({ key: 'armorLoot', value: [...armorLoot, ...loot] });
       open({ request: pending, plan, loot });
     })().finally(() => {

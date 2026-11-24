@@ -3,7 +3,7 @@ import { addGoalVersion, currentGoal, deriveGoal, getProfile, getSettings, lates
 import { encodeShare, SHOP, classById, denare, pathById, type Hero, type PathId, type ShareCard } from '@/domain/rpg';
 import { STARTER_PRICE, equipItem, inventory, itemById, normalizeLoadout, unequip, type SlotId } from '@/domain/equipment';
 import { gearExtra } from '@/domain/gear';
-import { ARMOR_CLASS_MIN_RANK, ARMOR_SLOTS, armorItemId, armorPrice, parseArmorId } from '@/domain/armor';
+import { ARMOR_CLASS_MIN_RANK, ARMOR_SLOTS, armorItemId, armorPrice, fullArmorSet, parseArmorId, updateBonusLog, type BonusLogEntry } from '@/domain/armor';
 import type { GameState } from '@/domain/gamification';
 import { today, uid } from '@/domain/dates';
 
@@ -141,8 +141,31 @@ export async function equipToHero(itemId: string, game: GameState) {
   const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot));
   const current = normalizeLoadout(s.hero.loadout, inv, s.hero.classId);
   const r = equipItem(current, item, inv, s.hero.classId);
-  await setSetting('hero', { ...s.hero, loadout: r.loadout });
+  await saveLoadout(s.hero, r.loadout, s.setBonusLog);
   return r.notice;
+}
+
+/** Ausrüstung speichern und Set-Bonus-Verlauf fortschreiben. */
+async function saveLoadout(hero: Hero, loadout: Record<SlotId, string | null>, log: BonusLogEntry[]) {
+  await setSetting('hero', { ...hero, loadout });
+  const next = updateBonusLog(log, fullArmorSet(loadout)?.idx ?? null, today());
+  if (next !== log && JSON.stringify(next) !== JSON.stringify(log)) await setSetting('setBonusLog', next);
+}
+
+/** Rüstung auf der eigenen Figur aus-/einblenden (bleibt angelegt, Set-Bonus bleibt). */
+export async function toggleArmorHidden(slot: string) {
+  const s = await getSettings();
+  if (!s.hero) return;
+  const hidden = new Set(s.hero.armorHidden ?? []);
+  if (hidden.has(slot)) hidden.delete(slot);
+  else hidden.add(slot);
+  await setSetting('hero', { ...s.hero, armorHidden: [...hidden] });
+}
+
+export async function setArmorColor(color: string | null) {
+  const s = await getSettings();
+  if (!s.hero) return;
+  await setSetting('hero', { ...s.hero, armorColor: color ?? undefined });
 }
 
 /** Alle eigenen Teile eines Rüstungs-Sets anlegen. */
@@ -159,7 +182,7 @@ export async function equipArmorSet(idx: number, game: GameState) {
       n++;
     }
   }
-  await setSetting('hero', { ...s.hero, loadout });
+  await saveLoadout(s.hero, loadout, s.setBonusLog);
   return n;
 }
 
@@ -167,7 +190,7 @@ export async function unequipFromHero(slot: SlotId, game: GameState) {
   const s = await getSettings();
   if (!s.hero) return;
   const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot));
-  await setSetting('hero', { ...s.hero, loadout: unequip(normalizeLoadout(s.hero.loadout, inv, s.hero.classId), slot) });
+  await saveLoadout(s.hero, unequip(normalizeLoadout(s.hero.loadout, inv, s.hero.classId), slot), s.setBonusLog);
 }
 
 /** Vorschau des Ernährungsziels für einen Lebensweg – gleiche Berechnung und Sicherheitsgrenzen wie im Zielrechner. */

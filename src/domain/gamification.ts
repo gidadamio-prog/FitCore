@@ -1,9 +1,10 @@
 // Gamification – vollständig aus echten Daten abgeleitet (nichts wird separat „gutgeschrieben“).
 // Belohnt werden Regelmäßigkeit, Training und Zielnähe – ausdrücklich NICHT möglichst wenig Kalorien oder schnelles Abnehmen.
+import { bonusValue, bonusesAt, effectiveStepGoal, type BonusLogEntry, type SetBonus } from './armor';
 import type { CardioSession, DiaryEntry, Exercise, GoalVersion, Measurement, Plan, RecoveryLog, Sex, WaterLog, Workout } from './types';
 import type { MealDayHits } from './mealGame';
 import { secretAchievements, type SecretAchievement } from './achievements';
-import { CLASS_TRAINING, battleScore, campaign, colosseum, comebackDates, dayDamage, exerciseMastery, heroLevel, attributes, lifeWork, shadowDuel, type CampaignState, type Duel, type HeroClassId, type MasteryEntry } from './rpg';
+import { CLASS_TRAINING, XP_PER_DENAR, battleScore, campaign, colosseum, comebackDates, dayDamage, exerciseMastery, heroLevel, attributes, lifeWork, shadowDuel, type CampaignState, type Duel, type HeroClassId, type MasteryEntry } from './rpg';
 import { addDays, rangeDates, startOfWeek } from './dates';
 import { goalForDate } from './balance';
 import { isCompletedSet, setVolume, epley1RM } from './training';
@@ -93,6 +94,8 @@ export interface GameInput {
   questPicks?: Record<string, string[]>;
   /** Ab diesem Tag gibt es Tagesaufträge (keine rückwirkenden EP) */
   questBoardStart?: string;
+  /** Wann welches komplette Rüstungs-Set getragen wurde (Set-Boni gelten nur an diesen Tagen) */
+  setBonusLog?: BonusLogEntry[];
 }
 
 export interface DayFacts {
@@ -178,7 +181,7 @@ export function dayFacts(i: GameInput): Map<string, DayFacts> {
     if (r.steps != null && r.steps > 0) {
       const f = get(r.date);
       f.steps = r.steps;
-      f.stepsHit = r.steps >= (i.stepGoal ?? 8000);
+      f.stepsHit = r.steps >= effectiveStepGoal(i.stepGoal ?? 8000, bonusesAt(i.setBonusLog, r.date));
     }
   }
   const exById = new Map(i.exercises.map((e) => [e.id, e]));
@@ -449,9 +452,24 @@ export interface GameState {
   secrets: SecretAchievement[];
   /** Denare aus Erfolgen */
   bonusDenare: number;
+  /** Aktive Set-Boni heute */
+  setBonus: SetBonus[];
+  /** Schrittziel heute (mit Set-Bonus) */
+  stepGoalToday: number;
   facts: Map<string, DayFacts>;
   xpByDay: Map<string, number>;
   damageByDay: Map<string, number>;
+}
+
+const TRAINING_XP = new Set<XpKey>(['workout', 'cardio', 'pr']);
+const NUTRITION_XP = new Set<XpKey>(['logged', 'threeMeals', 'protein', 'calories', 'mealHit', 'perfectDay', 'water']);
+
+/** Zusätzliche Denare aus Set-Bonus: Anteil der an diesen Tagen verdienten EP */
+function setBonusDenare(xpByDay: Map<string, number>, log: BonusLogEntry[] | undefined): number {
+  if (!log?.length) return 0;
+  let extra = 0;
+  for (const [d, xp] of xpByDay) extra += (xp * bonusValue(bonusesAt(log, d), 'denare')) / 100;
+  return Math.floor(extra / XP_PER_DENAR);
 }
 
 export function computeGame(i: GameInput): GameState {
@@ -462,9 +480,12 @@ export function computeGame(i: GameInput): GameState {
   /** EP buchen – immer mit dem Tag, an dem sie verdient wurden (Grundlage des Kampfwerts) */
   const add = (k: XpKey, n: number, date: string) => {
     if (n <= 0 || date > i.today) return;
+    const bs = i.setBonusLog?.length ? bonusesAt(i.setBonusLog, date) : [];
+    const pct = TRAINING_XP.has(k) ? bonusValue(bs, 'xpTraining') : NUTRITION_XP.has(k) ? bonusValue(bs, 'xpNutrition') : 0;
+    const xp = Math.round(n * XP_RULES[k].xp * (1 + pct / 100));
     breakdown[k].count += n;
-    breakdown[k].xp += n * XP_RULES[k].xp;
-    xpByDay.set(date, (xpByDay.get(date) ?? 0) + n * XP_RULES[k].xp);
+    breakdown[k].xp += xp;
+    xpByDay.set(date, (xpByDay.get(date) ?? 0) + xp);
   };
   // Bestleistungen je Tag (max. 5 pro Workout)
   const prsByWorkout = new Map<string, number>();
@@ -534,7 +555,7 @@ export function computeGame(i: GameInput): GameState {
   }
   // Schaden, Feldzug, Kolosseum
   const damageByDay = new Map<string, number>();
-  for (const f of facts.values()) if (f.date <= i.today) damageByDay.set(f.date, dayDamage(f, i.heroClass).total);
+  for (const f of facts.values()) if (f.date <= i.today) damageByDay.set(f.date, Math.round(dayDamage(f, i.heroClass).total * (1 + bonusValue(bonusesAt(i.setBonusLog, f.date), 'damage') / 100)));
   const dmgList = [...damageByDay].map(([date, dmg]) => ({ date, dmg }));
   const camp = campaign(dmgList);
   for (const d of camp.defeated) add('boss', 1, d.date);
@@ -637,7 +658,9 @@ export function computeGame(i: GameInput): GameState {
     mealHitsTotal,
     perfectDays,
     secrets,
-    bonusDenare: secrets.filter((x) => x.achieved).reduce((a, x) => a + x.reward.denare, 0),
+    bonusDenare: secrets.filter((x) => x.achieved).reduce((a, x) => a + x.reward.denare, 0) + setBonusDenare(xpByDay, i.setBonusLog),
+    setBonus: bonusesAt(i.setBonusLog, i.today),
+    stepGoalToday: effectiveStepGoal(i.stepGoal ?? 8000, bonusesAt(i.setBonusLog, i.today)),
     facts,
     xpByDay,
     damageByDay,

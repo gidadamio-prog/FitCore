@@ -150,3 +150,10 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Freischaltung: Start-Set „Novize“ (ohne Kopf angelegt); Ränge 2–10 je ein Set; jeder Feldzug-Boss ein Set (Boss-Sets nur so); Markt pro Teil (Stoff 40–112, Leder 100–208, Schwer 200–398 Denare; Leder ab Rang 3, Schwer ab Rang 5); Beute nach jedem Kampf mit 35 % Chance + je besiegtem Boss ein sicheres Teil (nur nicht Besessenes aus erlaubten Klassen, reproduzierbar aus dem Kampfschlüssel).
 - Platzierung: `scripts/armor/process.py` erkennt je Grundkörper Schulterlinie, Rumpf, Hüfte, Arme (vom Achselansatz bis zu den Fingerspitzen verfolgt), Knie und Füße. Brust: Breite = max(Schulter × 1,14; Rumpf × 1,22), Länge mit Rumpf-Faktor; Hose: Taille bis Knöchel; Arme entlang des Unterarms gedreht; Stiefel je Fuß; Kopfteile wie Frisuren am Gesicht. Kopfteil verdeckt die Frisur.
 - Waffen-Aura: Haupt- und Nebenhand aus derselben Kategorie (vorher drei Teile).
+
+## Set-Boni, Ausblenden, Rüstungsfarben
+- Komplettes Set (alle 5 Teile angelegt, auch ausgeblendete) = Set-Bonus. Stärke je Klasse: Stoff 5 % / −500 Schritte, Leder 10 % / −1.000, Schwer 15 % / −1.500, Boss 20 % / −2.000 (Beute max. +15 Prozentpunkte); Boss-Sets haben zwei Boni.
+- Arten: Schrittziel senken (nie unter 3.000), +% EP aus Training (Workout, Cardio, Bestleistung), +% EP aus Ernährung (Protokoll, 3 Mahlzeiten, Protein, Kalorien, Punktlandung, perfekter Tag, Wasser), +% Schaden gegen Bosse, +Prozentpunkte Beute-Chance, +% Denare (Anteil der EP des Tages / 10).
+- Gilt nur für Tage, an denen das Set getragen wurde: `setBonusLog` speichert, ab welchem Tag welches Set komplett war (Wechsel am selben Tag: letzter Stand zählt). Kein rückwirkender Bonus.
+- Ausblenden: Teil bleibt angelegt (Set-Bonus bleibt), wird aber auf der eigenen Figur nicht gezeichnet – z. B. Kopfteil aus, Frisur sichtbar.
+- Rüstungsfarbe färbt roten/purpurnen Stoff (bei Stoff-/Ledersets ohne Rot den Hauptstoff); Gold, Metall, Haut und Hände bleiben. Start: Original, Nachtblau, Rabenschwarz; weitere über Ränge, Abzeichen und Bosse.

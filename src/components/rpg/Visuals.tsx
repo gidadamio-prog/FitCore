@@ -9,9 +9,9 @@ import { bodyFile, bodyTypeLabel, type BodyTypeId } from '@/domain/bodyType';
 import { bossFile, type Boss } from '@/domain/rpg';
 import { useBodyType } from '@/hooks/game';
 import { useSettings } from '@/hooks/data';
-import { DEFAULT_HAIR_COLOR, FACE_BOX, HAIR_COLORS, SCAR_PLACE, TATTOO_TEMPLATE, tintStops, traitById, traitFile, type HeroLook } from '@/domain/appearance';
+import { DEFAULT_HAIR_COLOR, FACE_BOX, HAIR_COLORS, armorColorById, SCAR_PLACE, TATTOO_TEMPLATE, tintStops, traitById, traitFile, type HeroLook } from '@/domain/appearance';
 import { BODY_PARTS, HEAD_LAYOUT_EXTRA, SCAR_ASPECT } from '@/domain/bodyLayout';
-import { ARMOR_ASPECT, ARMOR_BODY, ARMOR_HEAD } from '@/domain/armorLayout';
+import { ARMOR_ASPECT, ARMOR_BODY, ARMOR_DYE, ARMOR_HEAD } from '@/domain/armorLayout';
 import { armorFile, parseArmorId, type ArmorSlot } from '@/domain/armor';
 import { defaultLoadout } from '@/domain/equipment';
 import { TRAIT_LAYOUT } from '@/domain/traitLayout';
@@ -291,7 +291,7 @@ function TintDefs({ colors }: { colors: string[] }) {
     <svg width="0" height="0" className="absolute" aria-hidden>
       <defs>
         {[...new Set(colors)].map((id) => {
-          const stops = tintStops((HAIR_COLORS.find((c) => c.id === id) ?? HAIR_COLORS[1]!).hex);
+          const stops = tintStops((HAIR_COLORS.find((c) => c.id === id) ?? armorColorById(id) ?? HAIR_COLORS[1]!).hex);
           const ch = (k: number) => stops.map((s) => s[k]!.toFixed(3)).join(' ');
           return (
             <filter key={id} id={`fc-tint-${id}`} colorInterpolationFilters="sRGB">
@@ -341,10 +341,10 @@ function ScarLayer({ id, bodyId }: { id: string; bodyId: string }) {
   return <img src={url} alt="" draggable={false} data-testid="layer-scar" style={{ position: 'absolute', maxWidth: 'none', opacity: 0.92, width: `${w}%`, left: `${box[0] + place.u * box[2] - w / 2}%`, top: `${box[1] + place.v * box[3] - h / 2}%` }} />;
 }
 
-export type WornArmor = Partial<Record<ArmorSlot, number | null>>;
+export type WornArmor = Partial<Record<ArmorSlot, number | null>> & { color?: string | null };
 
 /** Getragene Rüstung aus der gespeicherten Ausrüstung: fehlende Slots = Start-Ausrüstung, null = abgelegt, alte Teile → Start. */
-export function wornArmor(loadout: Partial<Record<string, string | null>> | undefined, classId: string | undefined): WornArmor {
+export function wornArmor(loadout: Partial<Record<string, string | null>> | undefined, classId: string | undefined, hidden: string[] = [], color?: string | null): WornArmor {
   const def = (classId ? defaultLoadout(classId as HeroClassId) : {}) as Record<string, string | null | undefined>;
   const out: WornArmor = {};
   for (const slot of ['head', 'chest', 'hands', 'legs', 'feet'] as ArmorSlot[]) {
@@ -352,20 +352,28 @@ export function wornArmor(loadout: Partial<Record<string, string | null>> | unde
     let id = stored === undefined ? def[slot] : stored;
     if (id && !parseArmorId(id)) id = def[slot] ?? null;
     const p = id ? parseArmorId(id) : null;
-    out[slot] = p && p.slot === slot ? p.set.idx : null;
+    out[slot] = p && p.slot === slot && !hidden.includes(slot) ? p.set.idx : null;
   }
+  out.color = armorColorById(color) ? color : null;
   return out;
 }
 
 function useOwnArmor() {
   const { hero } = useSettings();
-  return useMemo(() => (hero ? wornArmor(hero.loadout, hero.classId) : undefined), [hero]);
+  return useMemo(() => (hero ? wornArmor(hero.loadout, hero.classId, hero.armorHidden, hero.armorColor) : undefined), [hero]);
 }
 
-function ArmorImg({ file, style, testId }: { file: string; style: CSSProperties; testId?: string }) {
+function ArmorImg({ file, style, testId, color }: { file: string; style: CSSProperties; testId?: string; color?: string | null }) {
   const url = rpgAsset(file);
+  const dye = color && ARMOR_DYE.has(file) ? rpgAsset(`${file}_farbe`) : undefined;
   if (!url) return null;
-  return <img src={url} alt="" draggable={false} data-testid={testId} style={{ position: 'absolute', maxWidth: 'none', ...style }} />;
+  const st: CSSProperties = { position: 'absolute', maxWidth: 'none', ...style };
+  return (
+    <>
+      <img src={url} alt="" draggable={false} data-testid={testId} style={st} />
+      {dye && <img src={dye} alt="" draggable={false} data-testid={testId ? `${testId}-dye` : undefined} style={{ ...st, filter: `url(#fc-tint-${color})` }} />}
+    </>
+  );
 }
 
 /** Rüstungsteile auf dem Körper: Hose, Stiefel, Brust, Arme (Kopf separat, ganz oben). */
@@ -376,19 +384,19 @@ function ArmorBody({ bodyId, armor }: { bodyId: string; armor: WornArmor }) {
   const out: ReactNode[] = [];
   if (armor.legs != null) {
     const [l, t, w, h] = a.legs;
-    out.push(<ArmorImg key="legs" file={armorFile(armor.legs, 'hose')} testId="armor-legs" style={{ left: `${l}%`, top: `${t}%`, width: `${w}%`, height: `${h}%` }} />);
+    out.push(<ArmorImg key="legs" color={armor.color} file={armorFile(armor.legs, 'hose')} testId="armor-legs" style={{ left: `${l}%`, top: `${t}%`, width: `${w}%`, height: `${h}%` }} />);
   }
   if (armor.feet != null)
     for (const s of ['L', 'R'] as const) {
       const f = a[`feet${s}`];
       const file = armorFile(armor.feet, s === 'L' ? 'stiefel_l' : 'stiefel_r');
       const h = f.w * (2 / 3) * asp(file);
-      out.push(<ArmorImg key={`feet${s}`} file={file} testId={`armor-feet-${s}`} style={{ left: `${f.cx - f.w / 2}%`, top: `${f.bottom - h}%`, width: `${f.w}%`, height: `${h}%` }} />);
+      out.push(<ArmorImg key={`feet${s}`} color={armor.color} file={file} testId={`armor-feet-${s}`} style={{ left: `${f.cx - f.w / 2}%`, top: `${f.bottom - h}%`, width: `${f.w}%`, height: `${h}%` }} />);
     }
   if (armor.chest != null) {
     const c = a.chest;
     const file = armorFile(armor.chest, 'brust');
-    out.push(<ArmorImg key="chest" file={file} testId="armor-chest" style={{ left: `${c.cx - c.w / 2}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.w * (2 / 3) * asp(file) * c.ky}%` }} />);
+    out.push(<ArmorImg key="chest" color={armor.color} file={file} testId="armor-chest" style={{ left: `${c.cx - c.w / 2}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.w * (2 / 3) * asp(file) * c.ky}%` }} />);
   }
   if (armor.hands != null)
     for (const s of ['L', 'R'] as const) {
@@ -396,6 +404,7 @@ function ArmorBody({ bodyId, armor }: { bodyId: string; armor: WornArmor }) {
       out.push(
         <ArmorImg
           key={`arm${s}`}
+          color={armor.color}
           file={armorFile(armor.hands, s === 'L' ? 'arm_l' : 'arm_r')}
           testId={`armor-hands-${s}`}
           style={{ left: `${r.cx - r.w / 2}%`, top: `${r.cy - r.len / 2}%`, width: `${r.w}%`, height: `${r.len}%`, transform: `rotate(${r.ang}deg)` }}
@@ -405,9 +414,9 @@ function ArmorBody({ bodyId, armor }: { bodyId: string; armor: WornArmor }) {
   return <>{out}</>;
 }
 
-function ArmorHead({ idx }: { idx: number }) {
+function ArmorHead({ idx, color }: { idx: number; color?: string | null }) {
   const [l, t, w] = ARMOR_HEAD[idx] ?? [0, 0, 0];
-  return <ArmorImg file={armorFile(idx, 'kopf')} testId="armor-head" style={{ left: `${l}%`, top: `${t}%`, width: `${w}%` }} />;
+  return <ArmorImg file={armorFile(idx, 'kopf')} color={color} testId="armor-head" style={{ left: `${l}%`, top: `${t}%`, width: `${w}%` }} />;
 }
 
 /** Grundkörper + Merkmale im 2:3-Raster: Körper → Tattoo → Narbe → Rüstung → Bart → Frisur → Brille → Kopfteil. */
@@ -422,7 +431,7 @@ export function HeroLayers({ bodyUrl, bodyId, look, armor }: { bodyUrl?: string;
   const beardColor = look?.beardColor ?? hairColor;
   return (
     <div className="absolute inset-0">
-      {(hair || beard) && <TintDefs colors={[hairColor, beardColor]} />}
+      {(hair || beard || armor?.color) && <TintDefs colors={[hairColor, beardColor, ...(armor?.color ? [armor.color] : [])]} />}
       {bodyUrl && <img src={bodyUrl} alt="" className="absolute inset-0 h-full w-full object-contain" draggable={false} />}
       {bodyId && (tattoo || scar) && (
         <div className="absolute inset-0" style={skin}>
@@ -434,7 +443,7 @@ export function HeroLayers({ bodyUrl, bodyId, look, armor }: { bodyUrl?: string;
       {beard && <TraitLayer file={traitFile(beard)} color={beardColor} testId="layer-beard" />}
       {hair && armor?.head == null && <TraitLayer file={traitFile(hair)} color={hairColor} testId="layer-hair" />}
       {eyes && <TraitLayer file={traitFile(eyes)} testId="layer-eyes" />}
-      {armor?.head != null && <ArmorHead idx={armor.head} />}
+      {armor?.head != null && <ArmorHead idx={armor.head} color={armor.color} />}
     </div>
   );
 }

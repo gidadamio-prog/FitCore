@@ -58,6 +58,8 @@ export default defineConfig({
   ],
   build: {
     chunkSizeWarningLimit: 700,
+    // Spielgrafiken nie als base64 ins JS packen – sie werden bei Bedarf geladen und einzeln gecacht
+    assetsInlineLimit: (file) => (file.includes('/assets/rpg/') ? false : undefined),
     rollupOptions: {
       output: {
         manualChunks: {

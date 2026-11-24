@@ -106,11 +106,53 @@ def clear_collar(a):
             a[..., 3] = np.where(rm, 0, a[..., 3])
     return a
 
+DYE = []
+
+def dye_mask(a):
+    """Färbbarer Stoff: kräftiges Rot/Purpur (Gold, Leder, Metall und Haut bleiben)."""
+    f = a.astype(float) / 255
+    r, g, b, al = f[..., 0], f[..., 1], f[..., 2], f[..., 3]
+    mx = np.maximum(np.maximum(r, g), b); mn = np.minimum(np.minimum(r, g), b)
+    s = (mx - mn) / np.maximum(mx, 1e-6)
+    red = (r > 1.55 * g + 0.02) & (r > 1.35 * b) & (s > 0.3) & (mx > 0.12)
+    purple = (r > 1.3 * g) & (b > 1.3 * g) & (s > 0.25) & (mx > 0.12)
+    m = (red | purple) & (al > 0.3)
+    m = ndimage.binary_closing(ndimage.binary_opening(m, iterations=1), iterations=1)
+    return m
+
+def fabric_mask(a, name):
+    """Fallback ohne roten Stoff: Haupt-Material (Stoff, Leder) – ohne Gold, Stahl, Schwarz und ohne Hände."""
+    f = a.astype(float) / 255
+    r, g, b, al = f[..., 0], f[..., 1], f[..., 2], f[..., 3]
+    mx = np.maximum(np.maximum(r, g), b); mn = np.minimum(np.minimum(r, g), b); d = np.maximum(mx - mn, 1e-6)
+    h = np.where(mx == r, ((g - b) / d) % 6, np.where(mx == g, (b - r) / d + 2, (r - g) / d + 4)) * 60
+    s = (mx - mn) / np.maximum(mx, 1e-6)
+    gold = (h >= 33) & (h <= 60) & (s > 0.38) & (mx > 0.45)
+    steel = s < 0.1
+    m = (al > 0.3) & ~gold & ~steel & (mx > 0.1)
+    if '_arm_' in name:
+        m[int(m.shape[0] * 0.72):] = False  # Hände
+    return ndimage.binary_closing(ndimage.binary_opening(m, iterations=1), iterations=1)
+
 def save(arr, name, width=None, height=None):
     im = Image.fromarray(arr)
     if width: size = (round(width), max(1, round(im.height * width / im.width)))
     else: size = (max(1, round(im.width * height / im.height)), round(height))
-    im.resize(size, Image.LANCZOS).save(f'{OUT}/{name}.webp', quality=70, method=6)
+    small = im.resize(size, Image.LANCZOS)
+    small.save(f'{OUT}/{name}.webp', quality=70, method=6)
+    # Färbe-Ebene: nur der rote/purpurne Stoff, grau (Helligkeit gestreckt) – eingefärbt in der App
+    a = np.array(small.convert('RGBA'))
+    m = dye_mask(a)
+    if m.sum() <= 0.03 * max(1, (a[..., 3] > 60).sum()) and int(name.split('_')[1]) < 24:
+        m = fabric_mask(a, name)  # nur Stoff-/Lederteile – Metallrüstung bleibt Metall
+    if m.sum() > 0.03 * max(1, (a[..., 3] > 60).sum()):
+        lum = a[..., :3].astype(float) @ np.array([0.299, 0.587, 0.114])
+        lo, hi = np.percentile(lum[m], 2), np.percentile(lum[m], 98)
+        t = (np.clip((lum - lo) / max(1, hi - lo), 0, 1) * 255).astype(np.uint8)
+        soft = ndimage.gaussian_filter(m.astype(float), 0.7)
+        alpha = (np.minimum(soft * 1.4, 1) * a[..., 3]).astype(np.uint8)
+        Image.fromarray(np.dstack([t, t, t, alpha])).save(f'{OUT}/{name}_farbe.webp', quality=70, method=6)
+        DYE.append(name)
     return im.height / im.width
 
 def anchors(path):
@@ -186,6 +228,8 @@ if __name__ == '__main__':
     L += [f'  [{", ".join(map(str, headpos[i]))}],' for i in range(36)]
     L += ['];', '', '/** Seitenverhältnis (Höhe/Breite) jeder Ebene */', 'export const ARMOR_ASPECT: Record<string, number> = {']
     L += [f"  '{k}': {round(v, 4)}," for k, v in sorted(aspect.items())]
-    L += ['};']
+    L += ['};', '', '/** Ebenen mit Färbe-Maske (roter/purpurner Stoff) */', 'export const ARMOR_DYE = new Set<string>([']
+    L += [f"  '{k}'," for k in sorted(DYE)]
+    L += [']);']
     open('src/domain/armorLayout.ts', 'w').write('\n'.join(L) + '\n')
     print(len(aspect), 'Ebenen,', len(bodies), 'Körper')

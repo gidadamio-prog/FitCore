@@ -1,79 +1,29 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Lock, Dumbbell, Salad, Check, Scissors } from "lucide-react";
-import { LookEditor, useNewLooks } from "./LookEditor";
-import { gearExtra } from "@/domain/gear";
-import {
-  ARMOR_CLASS_COLOR,
-  ARMOR_CLASS_LABEL,
-  ARMOR_CLASS_MIN_RANK,
-  ARMOR_SETS,
-  fullArmorSet,
-} from "@/domain/armor";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Lock, Dumbbell, Salad, Check, Scissors, Eye, EyeOff } from 'lucide-react';
+import { LookEditor, useNewLooks } from './LookEditor';
+import { gearExtra } from '@/domain/gear';
+import { ARMOR_CLASS_COLOR, ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, bonusText, fullArmorSet, setBonuses, type ArmorSlot } from '@/domain/armor';
 
-const setIdx = (o: OwnedItem) =>
-  o.def.source.kind === "armor" ? o.def.source.setIdx : -1;
-import {
-  Badge,
-  Button,
-  Card,
-  CardTitle,
-  Sheet,
-  fmt,
-  cn,
-} from "@/components/ui";
-import { HeroFigure, HeroPortrait, ItemIcon } from "@/components/rpg/Visuals";
-import { useBodyType } from "@/hooks/game";
-import { bodyTypeLabel } from "@/domain/bodyType";
-import { useCurrentGoalVersion } from "./useGoal";
-import { useSettings } from "@/hooks/data";
-import {
-  applyPath,
-  equipArmorSet,
-  equipToHero,
-  previewPath,
-  unequipFromHero,
-} from "@/data/arena";
-import { toast } from "@/stores/ui";
-import { RANKS, type GameState } from "@/domain/gamification";
-import {
-  APPEARANCE_STAGES,
-  CATEGORY_AURA,
-  CATEGORY_LABEL,
-  RARITY_COLOR,
-  RARITY_LABEL,
-  RARITY_MIN_RANK,
-  SLOTS,
-  appearanceStage,
-  inventory,
-  itemById,
-  normalizeLoadout,
-  setAura,
-  type OwnedItem,
-  type SlotId,
-} from "@/domain/equipment";
-import {
-  CLASS_TRAINING,
-  PATHS,
-  classById,
-  pathById,
-  pathForGoal,
-  type Hero,
-  type PathId,
-} from "@/domain/rpg";
-import { PLAN_TEMPLATES } from "@/data/planTemplates";
+const setIdx = (o: OwnedItem) => (o.def.source.kind === 'armor' ? o.def.source.setIdx : -1);
+import { Badge, Button, Card, CardTitle, Sheet, fmt, cn } from '@/components/ui';
+import { HeroFigure, HeroPortrait, ItemIcon } from '@/components/rpg/Visuals';
+import { useBodyType } from '@/hooks/game';
+import { bodyTypeLabel } from '@/domain/bodyType';
+import { useCurrentGoalVersion } from './useGoal';
+import { useSettings } from '@/hooks/data';
+import { applyPath, equipArmorSet, equipToHero, previewPath, toggleArmorHidden, unequipFromHero } from '@/data/arena';
+import { toast } from '@/stores/ui';
+import { RANKS, type GameState } from '@/domain/gamification';
+import { APPEARANCE_STAGES, CATEGORY_AURA, CATEGORY_LABEL, RARITY_COLOR, RARITY_LABEL, RARITY_MIN_RANK, SLOTS, appearanceStage, inventory, itemById, normalizeLoadout, setAura, type OwnedItem, type SlotId } from '@/domain/equipment';
+import { CLASS_TRAINING, PATHS, classById, pathById, pathForGoal, type Hero, type PathId } from '@/domain/rpg';
+import { PLAN_TEMPLATES } from '@/data/planTemplates';
 
-const rankName = (level: number) => RANKS[level - 1]?.name ?? "";
+const rankName = (level: number) => RANKS[level - 1]?.name ?? '';
 
 export function useHeroGear(hero: Hero, game: GameState) {
   const { purchases, armorLoot } = useSettings();
-  const inv = inventory(
-    game.badges,
-    hero.classId,
-    game.rank.rank.level,
-    purchases,
-    gearExtra(game, armorLoot),
-  );
+  const inv = inventory(game.badges, hero.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot));
   const loadout = normalizeLoadout(hero.loadout, inv, hero.classId);
   return {
     inv,
@@ -83,54 +33,30 @@ export function useHeroGear(hero: Hero, game: GameState) {
   };
 }
 
-function SlotButton({
-  slot,
-  itemId,
-  inv,
-  blocked,
-  onClick,
-  flash,
-}: {
-  slot: SlotId;
-  itemId: string | null;
-  inv: OwnedItem[];
-  blocked: boolean;
-  onClick: () => void;
-  flash: boolean;
-}) {
+function SlotButton({ slot, itemId, inv, blocked, onClick, flash, hidden }: { slot: SlotId; itemId: string | null; inv: OwnedItem[]; blocked: boolean; onClick: () => void; flash: boolean; hidden?: boolean }) {
   const o = itemId ? inv.find((x) => x.def.id === itemId) : undefined;
   const label = SLOTS.find((s) => s.id === slot)!.label;
   return (
     <button
       onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-0.5 rounded-xl p-1",
-        flash && "equip-flash",
-      )}
-      aria-label={`${label}: ${o ? o.def.name : blocked ? "durch Zweihandwaffe belegt" : "leer"}`}
+      className={cn('flex flex-col items-center gap-0.5 rounded-xl p-1', flash && 'equip-flash')}
+      aria-label={`${label}: ${o ? o.def.name : blocked ? 'durch Zweihandwaffe belegt' : 'leer'}${o && hidden ? ' (ausgeblendet)' : ''}`}
       data-testid={`slot-${slot}`}
     >
       {o ? (
-        <span key={o.def.id} className="equip-pop">
+        <span key={o.def.id} className={cn('equip-pop relative', hidden && 'opacity-50')}>
           <ItemIcon item={o.def} rarity={o.worn} size={54} />
+          {hidden && <EyeOff className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-card p-0.5 text-muted" />}
         </span>
       ) : (
-        <span className="flex h-[54px] w-[54px] items-center justify-center rounded-xl border border-dashed text-[10px] text-muted">
-          {blocked ? "Zweihand" : "leer"}
-        </span>
+        <span className="flex h-[54px] w-[54px] items-center justify-center rounded-xl border border-dashed text-[10px] text-muted">{blocked ? 'Zweihand' : 'leer'}</span>
       )}
       <span className="text-[10px] text-muted">{label}</span>
     </button>
   );
 }
 
-export function CharacterSheet({
-  hero,
-  game,
-}: {
-  hero: Hero;
-  game: GameState;
-}) {
+export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) {
   const goal = useCurrentGoalVersion();
   const { inv, loadout, aura, fullSet } = useHeroGear(hero, game);
   const [open, setOpen] = useState<SlotId | null>(null);
@@ -141,75 +67,36 @@ export function CharacterSheet({
   const stage = appearanceStage(game.rank.rank.level);
   const twoHand = !!(loadout.main && itemById(loadout.main)?.twoHanded);
   const body = useBodyType();
-  const heroAura = fullSet
-    ? ARMOR_CLASS_COLOR[fullSet.cls]
-    : aura
-      ? CATEGORY_AURA[aura]
-      : path?.aura;
+  const heroAura = fullSet ? ARMOR_CLASS_COLOR[fullSet.cls] : aura ? CATEGORY_AURA[aura] : path?.aura;
   const col = (slots: SlotId[]) => (
     <div className="flex flex-col justify-around gap-2">
       {slots.map((s) => (
-        <SlotButton
-          key={s}
-          slot={s}
-          itemId={loadout[s]}
-          inv={inv}
-          blocked={s === "off" && twoHand}
-          onClick={() => setOpen(s)}
-          flash={flash === s}
-        />
+        <SlotButton key={s} slot={s} itemId={loadout[s]} inv={inv} blocked={s === 'off' && twoHand} onClick={() => setOpen(s)} flash={flash === s} hidden={hero.armorHidden?.includes(s)} />
       ))}
     </div>
   );
   return (
     <div data-testid="character-sheet">
       <div className="flex items-stretch justify-between gap-1">
-        {col(["head", "chest", "hands", "main"])}
+        {col(['head', 'chest', 'hands', 'main'])}
         <div className="flex flex-col items-center">
-          {body ? (
-            <HeroFigure bodyType={body.id} aura={heroAura} width={128} />
-          ) : (
-            <HeroPortrait
-              classId={hero.classId}
-              rankLevel={game.rank.rank.level}
-              crest={hero.color}
-              aura={heroAura}
-              size={140}
-            />
-          )}
-          <div
-            className="mt-1 text-center text-[11px] text-muted"
-            data-testid="appearance-stage"
-          >
+          {body ? <HeroFigure bodyType={body.id} aura={heroAura} width={128} /> : <HeroPortrait classId={hero.classId} rankLevel={game.rank.rank.level} crest={hero.color} aura={heroAura} size={140} />}
+          <div className="mt-1 text-center text-[11px] text-muted" data-testid="appearance-stage">
             Erscheinung {stage}/5 · {APPEARANCE_STAGES[stage - 1]!.name}
           </div>
           {body ? (
-            <div
-              className="text-center text-[11px] text-muted"
-              data-testid="body-type"
-              title={`KFA ${fmt(body.bodyFatPct, 1)} % · Muskel-Score ${fmt(body.muscleScore, 1)}`}
-            >
+            <div className="text-center text-[11px] text-muted" data-testid="body-type" title={`KFA ${fmt(body.bodyFatPct, 1)} % · Muskel-Score ${fmt(body.muscleScore, 1)}`}>
               Körperbau: {bodyTypeLabel(body.id)}
-              {body.estimated && " (geschätzt)"}
+              {body.estimated && ' (geschätzt)'}
             </div>
           ) : (
-            <div className="max-w-[140px] text-center text-[10px] text-muted">
-              Gewicht eintragen, damit dein Held deinen Körperbau bekommt.
-            </div>
+            <div className="max-w-[140px] text-center text-[10px] text-muted">Gewicht eintragen, damit dein Held deinen Körperbau bekommt.</div>
           )}
           {body && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="relative mt-1.5"
-              onClick={() => setLookOpen(true)}
-            >
+            <Button size="sm" variant="secondary" className="relative mt-1.5" onClick={() => setLookOpen(true)}>
               <Scissors className="h-3.5 w-3.5" /> Aussehen
               {newLooks.length > 0 && (
-                <span
-                  className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white"
-                  data-testid="look-new"
-                >
+                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white" data-testid="look-new">
                   {newLooks.length}
                 </span>
               )}
@@ -220,21 +107,20 @@ export function CharacterSheet({
               Set-Bonus: {fullSet.name} ({ARMOR_CLASS_LABEL[fullSet.cls]})
             </Badge>
           )}
+          {fullSet && (
+            <div className="mt-0.5 max-w-[170px] text-center text-[11px] text-gold" data-testid="armor-set-effects">
+              {setBonuses(fullSet).map(bonusText).join(' · ')}
+            </div>
+          )}
           {aura && (
             <Badge tone="accent" className="mt-1" data-testid="set-aura">
               Aura: {CATEGORY_LABEL[aura]}
             </Badge>
           )}
         </div>
-        {col(["off", "legs", "feet"])}
+        {col(['off', 'legs', 'feet'])}
       </div>
-      {lookOpen && (
-        <LookEditor
-          hero={hero}
-          game={game}
-          onClose={() => setLookOpen(false)}
-        />
-      )}
+      {lookOpen && <LookEditor hero={hero} game={game} onClose={() => setLookOpen(false)} />}
       {open && (
         <SlotSheet
           slot={open}
@@ -253,38 +139,10 @@ export function CharacterSheet({
   );
 }
 
-function SlotSheet({
-  slot,
-  hero,
-  game,
-  inv,
-  current,
-  onClose,
-  onEquipped,
-}: {
-  slot: SlotId;
-  hero: Hero;
-  game: GameState;
-  inv: OwnedItem[];
-  current: string | null;
-  onClose: () => void;
-  onEquipped: (s: SlotId) => void;
-}) {
+function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { slot: SlotId; hero: Hero; game: GameState; inv: OwnedItem[]; current: string | null; onClose: () => void; onEquipped: (s: SlotId) => void }) {
   const nav = useNavigate();
-  const items = inv
-    .filter((o) => o.def.slot === slot)
-    .sort(
-      (a, b) =>
-        Number(!!b.worn) - Number(!!a.worn) ||
-        Number(a.def.source.kind === "badge") -
-          Number(b.def.source.kind === "badge") ||
-        setIdx(a) - setIdx(b),
-    );
-  const ownedOfSet = (idx: number) =>
-    inv.filter(
-      (o) =>
-        o.worn && o.def.source.kind === "armor" && o.def.source.setIdx === idx,
-    ).length;
+  const items = inv.filter((o) => o.def.slot === slot).sort((a, b) => Number(!!b.worn) - Number(!!a.worn) || Number(a.def.source.kind === 'badge') - Number(b.def.source.kind === 'badge') || setIdx(a) - setIdx(b));
+  const ownedOfSet = (idx: number) => inv.filter((o) => o.worn && o.def.source.kind === 'armor' && o.def.source.setIdx === idx).length;
   const label = SLOTS.find((s) => s.id === slot)!.label;
   return (
     <Sheet open onClose={onClose} title={`${label} – Inventar`}>
@@ -292,56 +150,31 @@ function SlotSheet({
         {items.map((o) => {
           const equipped = current === o.def.id;
           return (
-            <li
-              key={o.def.id}
-              className={cn(
-                "flex items-center gap-3 rounded-xl border p-2",
-                equipped && "border-gold/60 bg-gold/5",
-              )}
-              data-testid={`inv-${o.def.id}`}
-            >
-              <ItemIcon
-                item={o.def}
-                rarity={o.worn ?? o.unlocked}
-                locked={!o.worn}
-                size={52}
-              />
+            <li key={o.def.id} className={cn('flex items-center gap-3 rounded-xl border p-2', equipped && 'border-gold/60 bg-gold/5')} data-testid={`inv-${o.def.id}`}>
+              <ItemIcon item={o.def} rarity={o.worn ?? o.unlocked} locked={!o.worn} size={52} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold">
                   {o.def.name}
-                  {o.def.twoHanded && (
-                    <span className="ml-1 text-[10px] font-normal text-muted">
-                      Zweihand
-                    </span>
-                  )}
+                  {o.def.twoHanded && <span className="ml-1 text-[10px] font-normal text-muted">Zweihand</span>}
                 </div>
-                {o.def.source.kind === "armor" && (
+                {o.def.source.kind === 'armor' && (
                   <div className="text-[11px] text-muted">
-                    {ARMOR_CLASS_LABEL[ARMOR_SETS[o.def.source.setIdx]!.cls]}
-                    -Rüstung · Set {ARMOR_SETS[o.def.source.setIdx]!.name}
+                    {`${ARMOR_CLASS_LABEL[ARMOR_SETS[o.def.source.setIdx]!.cls]}-Rüstung · Set ${ARMOR_SETS[o.def.source.setIdx]!.name}`}
+                    <span className="text-gold"> · Set-Bonus: {setBonuses(ARMOR_SETS[o.def.source.setIdx]!).map(bonusText).join(', ')}</span>
                   </div>
                 )}
-                {o.worn && o.def.source.kind !== "armor" && (
-                  <div
-                    className="text-[11px]"
-                    style={{ color: RARITY_COLOR[o.worn] }}
-                  >
+                {o.worn && o.def.source.kind !== 'armor' && (
+                  <div className="text-[11px]" style={{ color: RARITY_COLOR[o.worn] }}>
                     {RARITY_LABEL[o.worn]}
-                    {o.def.effectText && (
-                      <span className="text-muted"> · {o.def.effectText}</span>
-                    )}
+                    {o.def.effectText && <span className="text-muted"> · {o.def.effectText}</span>}
                   </div>
                 )}
                 {o.rankLocked && (
                   <div className="flex items-center gap-1 text-[11px] text-warn">
-                    <Lock className="h-3 w-3" /> {RARITY_LABEL[o.rankLocked]}{" "}
-                    freigeschaltet – tragbar ab{" "}
-                    {rankName(RARITY_MIN_RANK[o.rankLocked])}
+                    <Lock className="h-3 w-3" /> {RARITY_LABEL[o.rankLocked]} freigeschaltet – tragbar ab {rankName(RARITY_MIN_RANK[o.rankLocked])}
                   </div>
                 )}
-                {o.hint && (
-                  <div className="text-[11px] text-muted">{o.hint}</div>
-                )}
+                {o.hint && <div className="text-[11px] text-muted">{o.hint}</div>}
               </div>
               {equipped ? (
                 <Badge tone="accent">
@@ -354,47 +187,33 @@ function SlotSheet({
                     onClick={async () => {
                       try {
                         const notice = await equipToHero(o.def.id, game);
-                        if (notice) toast(notice, "info");
+                        if (notice) toast(notice, 'info');
                         onEquipped(slot);
                         onClose();
                       } catch (e) {
-                        toast((e as Error).message, "error");
+                        toast((e as Error).message, 'error');
                       }
                     }}
                   >
                     Anlegen
                   </Button>
-                  {o.def.source.kind === "armor" &&
-                    ownedOfSet(o.def.source.setIdx) > 1 && (
-                      <button
-                        type="button"
-                        className="text-[10px] text-accent underline"
-                        onClick={async () => {
-                          const n = await equipArmorSet(
-                            (o.def.source as { setIdx: number }).setIdx,
-                            game,
-                          );
-                          toast(`${n} Teile des Sets angelegt`, "success");
-                          onEquipped(slot);
-                          onClose();
-                        }}
-                      >
-                        ganzes Set anlegen
-                      </button>
-                    )}
+                  {o.def.source.kind === 'armor' && ownedOfSet(o.def.source.setIdx) > 1 && (
+                    <button
+                      type="button"
+                      className="text-[10px] text-accent underline"
+                      onClick={async () => {
+                        const n = await equipArmorSet((o.def.source as { setIdx: number }).setIdx, game);
+                        toast(`${n} Teile des Sets angelegt`, 'success');
+                        onEquipped(slot);
+                        onClose();
+                      }}
+                    >
+                      ganzes Set anlegen
+                    </button>
+                  )}
                 </div>
-              ) : o.def.source.kind === "starter" ||
-                (o.def.source.kind === "armor" &&
-                  ARMOR_SETS[o.def.source.setIdx]!.cls !== "boss" &&
-                  game.rank.rank.level >=
-                    ARMOR_CLASS_MIN_RANK[
-                      ARMOR_SETS[o.def.source.setIdx]!.cls
-                    ]) ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => nav("/erfolge?tab=markt")}
-                >
+              ) : o.def.source.kind === 'starter' || (o.def.source.kind === 'armor' && ARMOR_SETS[o.def.source.setIdx]!.cls !== 'boss' && game.rank.rank.level >= ARMOR_CLASS_MIN_RANK[ARMOR_SETS[o.def.source.setIdx]!.cls]) ? (
+                <Button size="sm" variant="secondary" onClick={() => nav('/erfolge?tab=markt')}>
                   Markt
                 </Button>
               ) : null}
@@ -402,6 +221,12 @@ function SlotSheet({
           );
         })}
       </ul>
+      {current && ARMOR_SLOTS.includes(slot as ArmorSlot) && (
+        <Button variant="secondary" className="mt-3 w-full" data-testid="toggle-armor-hidden" onClick={() => void toggleArmorHidden(slot)}>
+          {hero.armorHidden?.includes(slot) ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          {hero.armorHidden?.includes(slot) ? 'Auf der Figur wieder zeigen' : 'Auf der Figur ausblenden (bleibt angelegt)'}
+        </Button>
+      )}
       {current && (
         <Button
           variant="ghost"
@@ -415,15 +240,9 @@ function SlotSheet({
         </Button>
       )}
       <p className="mt-3 text-[11px] text-muted">
-        Ausrüstung ist rein kosmetisch. Rüstung bekommst du als Start-Set, durch
-        Ränge und Bosse, im Markt (Leder ab{" "}
-        {rankName(ARMOR_CLASS_MIN_RANK.leder)}, Schwer ab{" "}
-        {rankName(ARMOR_CLASS_MIN_RANK.schwer)}) und als Beute nach Kämpfen; ein
-        komplettes Set gibt einen Set-Bonus. Seltenheit von Waffen wächst mit
-        der Stufe des Erfolgs (Bronze = Selten, Silber = Episch, Gold =
-        Legendär); Episch ist ab {rankName(RARITY_MIN_RANK.epic)}, Legendär ab{" "}
-        {rankName(RARITY_MIN_RANK.legendary)} tragbar. {hero.name} ist{" "}
-        {game.rank.rank.name}.
+        Ausrüstung ist rein kosmetisch. Rüstung bekommst du als Start-Set, durch Ränge und Bosse, im Markt (Leder ab {rankName(ARMOR_CLASS_MIN_RANK.leder)}, Schwer ab {rankName(ARMOR_CLASS_MIN_RANK.schwer)}) und als Beute nach Kämpfen; ein
+        komplettes Set gibt einen Set-Bonus. Seltenheit von Waffen wächst mit der Stufe des Erfolgs (Bronze = Selten, Silber = Episch, Gold = Legendär); Episch ist ab {rankName(RARITY_MIN_RANK.epic)}, Legendär ab{' '}
+        {rankName(RARITY_MIN_RANK.legendary)} tragbar. {hero.name} ist {game.rank.rank.name}.
       </p>
     </Sheet>
   );
@@ -432,15 +251,12 @@ function SlotSheet({
 export function ClassFocusCard({ hero }: { hero: Hero }) {
   const nav = useNavigate();
   const t = CLASS_TRAINING[hero.classId];
-  const templates = t.templates
-    .map((id) => PLAN_TEMPLATES.find((p) => p.id === id))
-    .filter((x): x is (typeof PLAN_TEMPLATES)[number] => !!x);
+  const templates = t.templates.map((id) => PLAN_TEMPLATES.find((p) => p.id === id)).filter((x): x is (typeof PLAN_TEMPLATES)[number] => !!x);
   return (
     <Card data-testid="class-focus">
       <CardTitle>
         <span className="flex items-center gap-1">
-          <Dumbbell className="h-4 w-4 text-gold" /> Training als{" "}
-          {classById(hero.classId)?.name}
+          <Dumbbell className="h-4 w-4 text-gold" /> Training als {classById(hero.classId)?.name}
         </span>
       </CardTitle>
       <div className="text-sm font-semibold">{t.focus}</div>
@@ -450,8 +266,7 @@ export function ClassFocusCard({ hero }: { hero: Hero }) {
         ))}
       </ul>
       <div className="mt-2 text-xs text-muted">
-        Klassen-Feldzug jede Woche: <b className="text-fg">{t.quest.title}</b> –{" "}
-        {t.quest.description}
+        Klassen-Feldzug jede Woche: <b className="text-fg">{t.quest.title}</b> – {t.quest.description}
       </div>
       <div className="mt-3 text-xs text-muted">Empfohlene Planvorlagen:</div>
       <div className="mt-1 flex flex-wrap gap-1">
@@ -459,12 +274,7 @@ export function ClassFocusCard({ hero }: { hero: Hero }) {
           <Badge key={p.id}>{p.name}</Badge>
         ))}
       </div>
-      <Button
-        size="sm"
-        variant="secondary"
-        className="mt-3"
-        onClick={() => nav("/training?vorlagen=1")}
-      >
+      <Button size="sm" variant="secondary" className="mt-3" onClick={() => nav('/training?vorlagen=1')}>
         Plan aus Vorlage erstellen
       </Button>
     </Card>
@@ -474,14 +284,12 @@ export function ClassFocusCard({ hero }: { hero: Hero }) {
 export function LifePathCard() {
   const goal = useCurrentGoalVersion();
   const current = pathForGoal(goal?.primaryGoal);
-  const [preview, setPreview] = useState<Awaited<
-    ReturnType<typeof previewPath>
-  > | null>(null);
+  const [preview, setPreview] = useState<Awaited<ReturnType<typeof previewPath>> | null>(null);
   const choose = async (id: PathId) => {
     try {
       setPreview(await previewPath(id));
     } catch (e) {
-      toast((e as Error).message, "error");
+      toast((e as Error).message, 'error');
     }
   };
   return (
@@ -491,22 +299,13 @@ export function LifePathCard() {
           <Salad className="h-4 w-4 text-gold" /> Lebensweg (Ernährung)
         </span>
       </CardTitle>
-      <p className="mb-2 text-xs text-muted">
-        Der Lebensweg setzt dein Kalorien- und Makroziel. Berechnet wird wie im
-        Zielrechner, mit denselben Sicherheitsgrenzen; ein Wechsel legt eine
-        neue Zielversion ab heute an.
-      </p>
+      <p className="mb-2 text-xs text-muted">Der Lebensweg setzt dein Kalorien- und Makroziel. Berechnet wird wie im Zielrechner, mit denselben Sicherheitsgrenzen; ein Wechsel legt eine neue Zielversion ab heute an.</p>
       <div className="grid gap-2">
         {PATHS.map((p) => (
           <button
             key={p.id}
             onClick={() => p.id !== current && choose(p.id)}
-            className={cn(
-              "rounded-xl border p-3 text-left transition",
-              p.id === current
-                ? "border-gold bg-gold/10"
-                : "hover:bg-fg/[0.04]",
-            )}
+            className={cn('rounded-xl border p-3 text-left transition', p.id === current ? 'border-gold bg-gold/10' : 'hover:bg-fg/[0.04]')}
             aria-pressed={p.id === current}
             data-testid={`path-${p.id}`}
           >
@@ -519,12 +318,7 @@ export function LifePathCard() {
           </button>
         ))}
       </div>
-      {!current && (
-        <p className="mt-2 text-[11px] text-muted">
-          Dein aktuelles Ziel passt zu keinem Lebensweg genau – wähle einen, um
-          es anzugleichen.
-        </p>
-      )}
+      {!current && <p className="mt-2 text-[11px] text-muted">Dein aktuelles Ziel passt zu keinem Lebensweg genau – wähle einen, um es anzugleichen.</p>}
       {preview && (
         <Sheet
           open
@@ -537,13 +331,10 @@ export function LifePathCard() {
                 onClick={async () => {
                   try {
                     await applyPath(preview.path.id);
-                    toast(
-                      `Lebensweg ${preview.path.name} gewählt – neues Ziel gilt ab heute`,
-                      "success",
-                    );
+                    toast(`Lebensweg ${preview.path.name} gewählt – neues Ziel gilt ab heute`, 'success');
                     setPreview(null);
                   } catch (e) {
-                    toast((e as Error).message, "error");
+                    toast((e as Error).message, 'error');
                   }
                 }}
               >
@@ -568,25 +359,10 @@ export function LifePathCard() {
               <tbody className="tabular-nums">
                 {(
                   [
-                    [
-                      "Kalorien",
-                      preview.goal.calorieTarget,
-                      preview.computed.calorieTarget,
-                      "kcal",
-                    ],
-                    [
-                      "Eiweiß",
-                      preview.goal.proteinG,
-                      preview.computed.proteinG,
-                      "g",
-                    ],
-                    [
-                      "Kohlenhydrate",
-                      preview.goal.carbsG,
-                      preview.computed.carbsG,
-                      "g",
-                    ],
-                    ["Fett", preview.goal.fatG, preview.computed.fatG, "g"],
+                    ['Kalorien', preview.goal.calorieTarget, preview.computed.calorieTarget, 'kcal'],
+                    ['Eiweiß', preview.goal.proteinG, preview.computed.proteinG, 'g'],
+                    ['Kohlenhydrate', preview.goal.carbsG, preview.computed.carbsG, 'g'],
+                    ['Fett', preview.goal.fatG, preview.computed.fatG, 'g'],
                   ] as const
                 ).map(([l, a, b, u]) => (
                   <tr key={l} className="border-t">
@@ -601,10 +377,7 @@ export function LifePathCard() {
                 ))}
               </tbody>
             </table>
-            <p className="text-xs text-muted">
-              Wöchentliche Veränderung: {fmt(preview.computed.weeklyRateKg, 2)}{" "}
-              kg
-            </p>
+            <p className="text-xs text-muted">Wöchentliche Veränderung: {fmt(preview.computed.weeklyRateKg, 2)} kg</p>
             {preview.computed.warnings.length > 0 && (
               <ul className="space-y-1 text-xs text-warn">
                 {preview.computed.warnings.map((w) => (

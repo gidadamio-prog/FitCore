@@ -164,6 +164,22 @@ export const HAIR_COLORS: HairColor[] = [
 ];
 export const DEFAULT_HAIR_COLOR = 'dunkelbraun';
 
+/** Rüstungsfarben (färben den roten/purpurnen Stoff der Rüstung). „Original“ = ungefärbt. */
+export const ARMOR_COLORS: HairColor[] = [
+  { id: 'nachtblau', label: 'Nachtblau', hex: '#24365e', unlock: START },
+  { id: 'rabenschwarz', label: 'Rabenschwarz', hex: '#2a2628', unlock: START },
+  { id: 'waldgruen', label: 'Waldgrün', hex: '#2f5a34', unlock: rank(3) },
+  { id: 'elfenbein', label: 'Elfenbein', hex: '#d8ccb0', unlock: badge('workouts', 'silver') },
+  { id: 'himmelblau', label: 'Himmelblau', hex: '#4f86c0', unlock: badge('water', 'silver') },
+  { id: 'smaragd', label: 'Smaragd', hex: '#1f7a5c', unlock: boss('germania') },
+  { id: 'kupferrot', label: 'Kupferrot', hex: '#a3502a', unlock: boss('hispania') },
+  { id: 'kaiserpurpur', label: 'Kaiserpurpur', hex: '#5b1f55', unlock: rank(6) },
+  { id: 'koenigsblau', label: 'Königsblau', hex: '#2b3f9e', unlock: boss('persia') },
+  { id: 'sonnengold', label: 'Sonnengold', hex: '#a8812f', unlock: rank(9) },
+  { id: 'blutrot', label: 'Blutrot', hex: '#7e1414', unlock: badge('prs', 'gold') },
+];
+export const armorColorById = (id: string | null | undefined) => (id ? ARMOR_COLORS.find((c) => c.id === id) : undefined);
+
 /** Verlaufsstufen (dunkel → Farbton → Glanz) für die SVG-Einfärbung. */
 export function tintStops(hex: string): [number, number, number][] {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
@@ -224,6 +240,7 @@ export function unlockedLookKeys(ctx: UnlockContext, available: (tr: TraitDef) =
   return [
     ...TRAITS.filter((tr) => tr.unlock.kind !== 'start' && available(tr) && unlockStatus(tr.unlock, ctx).unlocked).map((tr) => `${tr.category}:${tr.id}`),
     ...HAIR_COLORS.filter((c) => c.unlock.kind !== 'start' && unlockStatus(c.unlock, ctx).unlocked).map((c) => `color:${c.id}`),
+    ...ARMOR_COLORS.filter((c) => c.unlock.kind !== 'start' && unlockStatus(c.unlock, ctx).unlocked).map((c) => `armorcolor:${c.id}`),
   ];
 }
 
@@ -232,6 +249,7 @@ export function bossRewards(bossId: string, available: (tr: TraitDef) => boolean
   return [
     ...TRAITS.filter((tr) => tr.unlock.kind === 'boss' && tr.unlock.bossId === bossId && available(tr)).map((tr) => `${TRAIT_CATEGORIES.find((c) => c.id === tr.category)!.label} „${tr.name}“`),
     ...HAIR_COLORS.filter((c) => c.unlock.kind === 'boss' && c.unlock.bossId === bossId).map((c) => `Farbe „${c.label}“`),
+    ...ARMOR_COLORS.filter((c) => c.unlock.kind === 'boss' && c.unlock.bossId === bossId).map((c) => `Rüstungsfarbe „${c.label}“`),
     ...(BOSS_SETS[bossId] != null ? [`Rüstung „${ARMOR_SETS[BOSS_SETS[bossId]!]!.name}“`] : []),
   ];
 }

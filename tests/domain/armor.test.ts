@@ -57,3 +57,47 @@ describe('Rüstungs-Sets', () => {
     expect(fullArmorSet({ ...full, feet: 'armor-24-feet' })).toBeNull();
   });
 });
+
+import { bonusText, bonusesAt, effectiveStepGoal, setBonuses, updateBonusLog } from '@/domain/armor';
+import { computeGame, type GameInput } from '@/domain/gamification';
+import { EXERCISE_LIBRARY } from '@/data/exerciseLibrary';
+import { ex, set, workout } from './fixtures';
+
+describe('Set-Boni', () => {
+  it('jedes Set hat 1 Bonus (Boss 2), Stärke wächst mit der Klasse', () => {
+    expect(ARMOR_SETS.every((s) => setBonuses(s).length === (s.cls === 'boss' ? 2 : 1))).toBe(true);
+    expect(setBonuses(ARMOR_SETS[1]!).map(bonusText)).toEqual(['Schrittziel −500']);
+    expect(setBonuses(ARMOR_SETS[13]!).map(bonusText)).toEqual(['Schrittziel −1.000']);
+    expect(setBonuses(ARMOR_SETS[26]!).map(bonusText)).toEqual(['+15 % Schaden gegen Bosse']);
+    expect(effectiveStepGoal(4000, setBonuses(ARMOR_SETS[35]!))).toBe(3000); // nie unter 3.000
+  });
+  it('Verlauf: gleicher Tag überschreibt, Boni gelten erst ab dem Tag des Anlegens', () => {
+    let log = updateBonusLog([], 13, '2026-11-20');
+    log = updateBonusLog(log, null, '2026-11-22');
+    log = updateBonusLog(log, 25, '2026-11-22');
+    expect(log).toEqual([{ from: '2026-11-20', setIdx: 13 }, { from: '2026-11-22', setIdx: 25 }]);
+    expect(bonusesAt(log, '2026-11-19')).toEqual([]);
+    expect(bonusesAt(log, '2026-11-21')[0]).toMatchObject({ kind: 'steps', value: 1000 });
+    expect(updateBonusLog(log, 25, '2026-11-24')).toEqual(log);
+  });
+  it('wirkt im Spielstand: Schrittziel, Trainings-EP, Bossschaden – nur an Tagen mit Set', () => {
+    const base = (over: Partial<GameInput>): GameInput => ({
+      today: '2026-11-24', entries: [], goals: [], workouts: [], cardio: [], measurements: [], water: [], recovery: [], recipesCount: 0,
+      exercises: EXERCISE_LIBRARY, trainingDaysPerWeek: 3, waterGoalMl: 2500, stepGoal: 8000, ...over,
+    });
+    const steps = [{ id: 'a', date: '2026-11-21', steps: 7200 }, { id: 'b', date: '2026-11-23', steps: 7200 }];
+    const log = [{ from: '2026-11-22', setIdx: 13 }]; // Späher: Schrittziel −1.000
+    expect(computeGame(base({ recovery: steps })).breakdown.steps.count).toBe(0);
+    const g = computeGame(base({ recovery: steps, setBonusLog: log }));
+    expect(g.breakdown.steps.count).toBe(1); // nur der 23.
+    expect(g.stepGoalToday).toBe(7000);
+    const ws = [workout('w1', '2026-11-21', [ex('squat', [set(100, 5)])]), workout('w2', '2026-11-23', [ex('squat', [set(100, 5)])])];
+    const plain = computeGame(base({ workouts: ws }));
+    const legion = computeGame(base({ workouts: ws, setBonusLog: [{ from: '2026-11-23', setIdx: 29 }] })); // Adlerträger: +15 % Training
+    expect(legion.xpByDay.get('2026-11-21')).toBe(plain.xpByDay.get('2026-11-21'));
+    expect(legion.xpByDay.get('2026-11-23')).toBeGreaterThan(plain.xpByDay.get('2026-11-23')!);
+    const dmg = computeGame(base({ workouts: ws, setBonusLog: [{ from: '2026-11-23', setIdx: 26 }] })); // Zenturio: +15 % Schaden
+    expect(dmg.damageByDay.get('2026-11-23')).toBe(Math.round(plain.damageByDay.get('2026-11-23')! * 1.15));
+    expect(dmg.damageByDay.get('2026-11-21')).toBe(plain.damageByDay.get('2026-11-21'));
+  });
+});

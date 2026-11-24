@@ -182,12 +182,12 @@ function hash(s: string) {
  * Beute eines Kampfes – reproduzierbar aus dem Kampfschlüssel. Je Kampf 35 % Chance auf ein Teil,
  * je besiegtem Boss ein weiteres sicheres Teil. Nur Teile, die man noch nicht hat, aus Klassen, die der Rang erlaubt.
  */
-export function rollLoot(key: string, kills: number, ctx: ArmorContext): string[] {
+export function rollLoot(key: string, kills: number, ctx: ArmorContext, chance = LOOT_CHANCE): string[] {
   const pool = ARMOR_SETS.filter((s) => s.cls !== 'boss' && ctx.rankLevel >= ARMOR_CLASS_MIN_RANK[s.cls])
     .flatMap((s) => ARMOR_SLOTS.map((slot) => armorItemId(s.idx, slot)))
     .filter((id) => !ownsArmorPiece(id, ctx));
   const out: string[] = [];
-  const rolls = (hash(key) < LOOT_CHANCE ? 1 : 0) + kills;
+  const rolls = (hash(key) < chance ? 1 : 0) + kills;
   for (let i = 0; i < rolls && pool.length; i++) {
     const k = Math.floor(hash(`${key}#${i}`) * pool.length);
     out.push(pool.splice(k, 1)[0]!);
@@ -201,4 +201,86 @@ export function fullArmorSet(loadout: Partial<Record<string, string | null>>): A
   const first = ids[0] ? parseArmorId(ids[0]) : null;
   if (!first) return null;
   return ARMOR_SLOTS.every((s, i) => ids[i] === armorItemId(first.set.idx, s)) ? first.set : null;
+}
+
+// ---------------------------------------------------------------------------
+// Set-Boni: wirken direkt auf die App, solange das komplette Set getragen wird
+// ---------------------------------------------------------------------------
+
+export type BonusKind = 'steps' | 'xpTraining' | 'xpNutrition' | 'damage' | 'loot' | 'denare';
+export interface SetBonus {
+  kind: BonusKind;
+  value: number;
+}
+
+/** Stärke je Klasse: Schritte = weniger Tagesziel, sonst Prozent */
+const STRENGTH: Record<ArmorClass, Record<BonusKind, number>> = {
+  stoff: { steps: 500, xpTraining: 5, xpNutrition: 5, damage: 5, loot: 5, denare: 5 },
+  leder: { steps: 1000, xpTraining: 10, xpNutrition: 10, damage: 10, loot: 10, denare: 10 },
+  schwer: { steps: 1500, xpTraining: 15, xpNutrition: 15, damage: 15, loot: 15, denare: 15 },
+  boss: { steps: 2000, xpTraining: 20, xpNutrition: 20, damage: 20, loot: 15, denare: 20 },
+};
+
+/** Passend zum Set: Wanderer laufen, Gelehrte essen bewusst, Zenturionen schlagen härter … */
+const BONUS_KINDS: BonusKind[][] = [
+  // Stoff
+  ['xpTraining'], ['steps'], ['xpNutrition'], ['xpNutrition'], ['loot'], ['denare'], ['xpNutrition'], ['damage'], ['loot'], ['denare'],
+  // Leder
+  ['loot'], ['xpTraining'], ['denare'], ['steps'], ['loot'], ['damage'], ['xpNutrition'], ['steps'], ['steps'], ['xpTraining'],
+  // Schwer
+  ['steps'], ['loot'], ['xpNutrition'], ['denare'], ['xpTraining'], ['steps'], ['damage'], ['denare'], ['damage'], ['xpTraining'],
+  // Boss (je zwei)
+  ['denare', 'loot'], ['damage', 'xpTraining'], ['denare', 'xpNutrition'], ['damage', 'steps'], ['damage', 'loot'], ['steps', 'xpTraining'],
+];
+
+export function setBonuses(set: ArmorSet): SetBonus[] {
+  return (BONUS_KINDS[set.idx] ?? []).map((kind) => ({ kind, value: STRENGTH[set.cls][kind] }));
+}
+
+export function bonusText(b: SetBonus): string {
+  const n = b.value.toLocaleString('de-DE');
+  switch (b.kind) {
+    case 'steps':
+      return `Schrittziel −${n}`;
+    case 'xpTraining':
+      return `+${n} % EP aus Training`;
+    case 'xpNutrition':
+      return `+${n} % EP aus Ernährung`;
+    case 'damage':
+      return `+${n} % Schaden gegen Bosse`;
+    case 'loot':
+      return `+${n} % Beute-Chance`;
+    case 'denare':
+      return `+${n} % Denare`;
+  }
+}
+
+/** Ab welchem Tag welches komplette Set getragen wurde (null = keins) – Boni gelten nur für diese Tage. */
+export interface BonusLogEntry {
+  from: string;
+  setIdx: number | null;
+}
+
+export function bonusesAt(log: BonusLogEntry[] | undefined, date: string): SetBonus[] {
+  let cur: number | null = null;
+  for (const e of log ?? []) if (e.from <= date) cur = e.setIdx;
+  const set = cur != null ? ARMOR_SETS[cur] : undefined;
+  return set ? setBonuses(set) : [];
+}
+
+export const bonusValue = (bs: SetBonus[], kind: BonusKind) => bs.filter((b) => b.kind === kind).reduce((a, b) => a + b.value, 0);
+
+/** Tagesziel Schritte mit Set-Bonus (nie unter 3.000) */
+export const MIN_STEP_GOAL = 3000;
+export const effectiveStepGoal = (goal: number, bs: SetBonus[]) => Math.max(MIN_STEP_GOAL, goal - bonusValue(bs, 'steps'));
+
+/** Log fortschreiben, wenn sich das komplette Set ändert (gleicher Tag: letzter Stand zählt). */
+export function updateBonusLog(log: BonusLogEntry[] | undefined, setIdx: number | null, date: string): BonusLogEntry[] {
+  const l = [...(log ?? [])];
+  const last = l[l.length - 1];
+  if ((last?.setIdx ?? null) === setIdx) return l;
+  if (last && last.from === date) l.pop();
+  const prev = l[l.length - 1];
+  if ((prev?.setIdx ?? null) !== setIdx) l.push({ from: date, setIdx });
+  return l;
 }
