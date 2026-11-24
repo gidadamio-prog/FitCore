@@ -2,7 +2,7 @@
 
 Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.
 
-**Als Nächstes dran: 8 Helme auf der Figur (Abschnitt 0); alle Merkmale sind geliefert.** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**
+**Geliefert und eingebaut:** alle Merkmale und 36 Rüstungs-Sets (Kopf, Brust, Arme, Hose, Stiefel). **Als Nächstes dran:** Waffen und Schilde als Figur-Ebenen (Haupt-/Nebenhand). Icons: 20 Porträts. **Optional: 12 Gladiatoren-Porträts.**
 
 ## Regeln für alle Bilder
 
@@ -91,27 +91,9 @@ exact same position and scale as on the character, [HINWEIS]. No body, no face, 
 
 **Brille & Augenklappe** – geliefert (12/12), eingebaut mit Freischaltungen
 
-### Helme auf der Figur (Ebene über den Merkmalen)
+### Rüstung auf der Figur
 
-Zusätzlich zum kleinen Item-Icon (Abschnitt 3/4) braucht jeder Helm eine **Figur-Ebene** im selben Raster: nur der Helm, so wie er auf dem Kopf sitzt, frontal, alles andere transparent. Wangenklappen und Nackenschutz dürfen über Gesicht/Hals liegen. Bei echten Helmen blende ich die Frisur aus (Bart bleibt), bei Kränzen und Diademen bleibt die Frisur sichtbar.
-
-```text
-Same character, same canvas (1024x1536), same pose and exact head position as the reference.
-Put [HELM] on the head, front view, sitting naturally on the skull. Nothing else changes.
-Then output ONLY the [HELM] as an isolated layer on a fully transparent background,
-exact same position and scale. No head, no hair, no face, no text, no glow.
-```
-
-- [ ] `helm_galea_figur.png` – Galea: Legionärshelm mit Wangenklappen
-- [ ] `helm_murmillo_figur.png` – Murmillo-Helm: Murmillo-Helm mit Gitter und Kamm
-- [ ] `helm_petasos_figur.png` – Petasos: breitkrempiger Reisehut
-- [ ] `helm_offiziershelm_figur.png` – Offiziershelm: Helm mit querstehendem rotem Busch
-- [ ] `helm_galea-feldherr_figur.png` – Galea des Feldherrn: Prunkhelm mit hohem rotem Busch
-- [ ] `helm_lorbeerkranz-triumphator_figur.png` – Lorbeerkranz des Triumphators: goldener Lorbeerkranz _(Frisur bleibt sichtbar)_
-- [ ] `helm_traubenkrone_figur.png` – Traubenkrone: Krone aus Weinlaub und Trauben _(Frisur bleibt sichtbar)_
-- [ ] `helm_diadem-zirkel_figur.png` – Diadem des Zirkels: schlichtes Stirnband mit kleinen Edelsteinen _(Frisur bleibt sichtbar)_
-
-Tipp: Der Kopf ist bei allen Körpern gleich groß, aber Nacken und Schultern sind unterschiedlich breit. Helme deshalb **nicht unter das Kinn bzw. auf die Schultern** ziehen.
+Geliefert: 36 Sets (10 Stoff, 10 Leder, 10 Schwer, 6 Boss) je Kopf, Brust, Arme (Paar), Hose, Stiefel (Paar). Für weitere Sets genauso: **ein Sammelbild je Teil-Art, 6 × 6 Raster, frontal, transparenter Hintergrund**; Arme als Paar nebeneinander (links/rechts aus Sicht des Betrachters), Stiefel als Paar in einer Zelle. Zerlegt und eingepasst wird automatisch (`scripts/armor/process.py`).
 
 ## 1. Testlauf zuerst (2 Bilder)
 
@@ -172,36 +154,20 @@ Jede Klasse startet mit einem gewöhnlichen Set. Der Gladiator trägt eine Zweih
 
 - [ ] `haupthand_gladius.png` – Gladius: schlichter Eisen-Gladius
 - [ ] `nebenhand_scutum.png` – Scutum: roter Langschild mit Goldadler
-- [ ] `helm_galea.png` – Galea: Legionärshelm mit Wangenklappen
-- [ ] `haende_manicae.png` – Manicae: Armschienen aus Eisenstreifen
-- [ ] `hose_bracae.png` – Bracae: Legionärshose aus Wolle
-- [ ] `schuhe_caligae.png` – Caligae: genagelte Ledersandalen
 
 **Gladiator**
 
 - [ ] `haupthand_dreizack.png` – Dreizack: Dreizack des Retiarius (Zweihand)
-- [ ] `helm_murmillo.png` – Murmillo-Helm: Murmillo-Helm mit Gitter und Kamm
-- [ ] `haende_manica.png` – Manica: gepolsterter Armschutz
-- [ ] `hose_subligaculum.png` – Subligaculum: Lendenschurz mit Ledergürtel
-- [ ] `schuhe_fasciae.png` – Fasciae: Wickelbänder für die Beine
 
 **Cursor**
 
 - [ ] `haupthand_botenstab.png` – Botenstab: Botenstab mit Bronzekappe
 - [ ] `nebenhand_depeschenrolle.png` – Depeschenrolle: versiegelte Schriftrolle
-- [ ] `helm_petasos.png` – Petasos: breitkrempiger Reisehut
-- [ ] `haende_lederhandschuhe.png` – Lederhandschuhe: leichte Lederhandschuhe
-- [ ] `hose_laufhose.png` – Laufhose: leichte kurze Hose
-- [ ] `schuhe_leichte-sandalen.png` – Leichte Sandalen: leichte Riemensandalen
 
 **Stratege**
 
 - [ ] `haupthand_kommandostab.png` – Kommandostab: Kommandostab (Vitis) mit Goldbeschlag
 - [ ] `nebenhand_wachstafel.png` – Wachstafel: Wachstafel mit Griffel
-- [ ] `helm_offiziershelm.png` – Offiziershelm: Helm mit querstehendem rotem Busch
-- [ ] `haende_siegelring-handschuhe.png` – Siegelring-Handschuhe: feine Handschuhe mit Siegelring
-- [ ] `hose_feldherren-beinkleid.png` – Feldherren-Beinkleid: edles Beinkleid mit Purpurstreifen
-- [ ] `schuhe_calcei.png` – Calcei: geschnürte Lederstiefel
 
 ## 4. Achievement-Ausrüstung (21 Bilder, davon 1 im Testlauf)
 
@@ -216,18 +182,6 @@ Wird über Abzeichen freigeschaltet. Bronze/Silber/Gold verwenden dasselbe Bild;
 - [ ] `nebenhand_waage-punktlandung.png` – Waage der Punktlandung: bronzene Balkenwaage _(Effekt: Schalen pendeln exakt ein)_
 - [ ] `nebenhand_phoenixfackel.png` – Phönixfackel: Fackel mit Phönixkopf _(Effekt: Flammen und aufsteigende Funken)_
 - [ ] `nebenhand_hantelscheiben-schild.png` – Hantelscheiben-Schild: Hantelscheibe als Schild mit Griff _(Effekt: Scheibe dreht sich, Metallglanz)_
-- [ ] `helm_galea-feldherr.png` – Galea des Feldherrn: Prunkhelm mit hohem rotem Busch _(Effekt: Roter Helmbusch weht)_
-- [ ] `helm_lorbeerkranz-triumphator.png` – Lorbeerkranz des Triumphators: goldener Lorbeerkranz _(Effekt: Goldene Blätter rieseln)_
-- [ ] `helm_traubenkrone.png` – Traubenkrone: Krone aus Weinlaub und Trauben _(Effekt: Trauben wippen und kullern)_
-- [ ] `helm_diadem-zirkel.png` – Diadem des Zirkels: schlichtes Stirnband mit kleinen Edelsteinen _(Effekt: Lichtpunkte kreisen wie ein Zirkel)_
-- [ ] `haende_shaker-handschuhe.png` – Shaker-Handschuhe: Handschuhe mit Shaker-Motiv _(Effekt: Proteinpulver-Wölkchen)_
-- [ ] `haende_caesten-champion.png` – Caesten des Champions: Faustriemen mit Metallbeschlägen _(Effekt: Sandstaub-Einschlag)_
-- [ ] `haende_kreidehaende.png` – Kreidehände des Meisters: Handschuhe, mit Kreide bestaubt _(Effekt: Kreidestaub rieselt)_
-- [ ] `hose_massband-beinkleider.png` – Maßband-Beinkleider: Hose mit Maßband als Gürtel und Saum _(Effekt: Zentimeterzahlen schweben hoch)_
-- [ ] `hose_beinschienen-eroberer.png` – Beinschienen des Eroberers: Beinschienen mit Provinzwappen _(Effekt: Provinzwappen leuchten auf)_
-- [ ] `schuhe_caligae-laeufer.png` – Caligae des Läufers: Sandalen mit Flügel-Motiv _(Effekt: Staubspur und Speedlines)_
-- [ ] `schuhe_marschstiefel-legion.png` – Marschstiefel der Legion: schwere Marschstiefel _(Effekt: Stampfen im Takt)_
-- [ ] `schuhe_schattensandalen.png` – Schattensandalen: dunkle Sandalen mit Rauchschleier-Muster _(Effekt: Schattenbild läuft hinterher)_
 
 ## 5. Bosse für die Kampfszene (13 Bilder)
 

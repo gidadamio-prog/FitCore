@@ -172,6 +172,8 @@ export interface AppSettings {
   backupSnoozeUntil: string | null;
   /** Bereits gesehene Aussehen-Freischaltungen („Neu“-Hinweis) */
   lookSeen: string[];
+  /** Rüstungsteile aus Kampf-Beute (Item-IDs) */
+  armorLoot: string[];
 }
 
 export type Rival = ShareCard & { importedAt: string };
@@ -193,6 +195,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lastBackupAt: null,
   backupSnoozeUntil: null,
   lookSeen: [],
+  armorLoot: [],
 };
 
 export async function getSettings(): Promise<AppSettings> {

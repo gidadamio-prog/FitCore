@@ -1,7 +1,7 @@
 // Aussehen des Ganzkörper-Helden: Merkmal-Ebenen über dem Grundkörper und Ausrüstungs-Ebenen darüber.
 // Alle Ebenen teilen dasselbe Raster (1024 × 1536, Kopfoberkante y ≈ 90, Kopfmitte x ≈ 511),
 // die Köpfe der 12 Grundkörper liegen pixelgenau übereinander – eine Kopf-Ebene passt auf jeden Körper.
-import { ITEMS, itemFile, type ItemDef } from './equipment';
+import { ARMOR_SETS, BOSS_SETS } from './armor';
 import { RANKS, TIERS, TIER_LABEL, type BadgeStatus, type Tier } from './gamification';
 import { CAMPAIGN, bossAt } from './rpg';
 
@@ -232,16 +232,9 @@ export function bossRewards(bossId: string, available: (tr: TraitDef) => boolean
   return [
     ...TRAITS.filter((tr) => tr.unlock.kind === 'boss' && tr.unlock.bossId === bossId && available(tr)).map((tr) => `${TRAIT_CATEGORIES.find((c) => c.id === tr.category)!.label} „${tr.name}“`),
     ...HAIR_COLORS.filter((c) => c.unlock.kind === 'boss' && c.unlock.bossId === bossId).map((c) => `Farbe „${c.label}“`),
+    ...(BOSS_SETS[bossId] != null ? [`Rüstung „${ARMOR_SETS[BOSS_SETS[bossId]!]!.name}“`] : []),
   ];
 }
-
-/** Kopfbedeckungen, unter denen die Frisur ausgeblendet wird (Kränze, Diademe und Kronen lassen sie sichtbar). */
-const SHOWS_HAIR = new Set(['lorbeerkranz-triumphator', 'traubenkrone', 'diadem-zirkel']);
-export const helmetHidesHair = (i: ItemDef) => i.slot === 'head' && !SHOWS_HAIR.has(i.id);
-
-/** Ausrüstungs-Ebene auf der Figur (zusätzlich zum Item-Icon). */
-export const figureFile = (i: ItemDef) => `${itemFile(i)}_figur`;
-export const HEAD_ITEMS = ITEMS.filter((i) => i.slot === 'head');
 
 // ---------------------------------------------------------------------------
 // Lage von Tattoos und Narben auf dem Körper

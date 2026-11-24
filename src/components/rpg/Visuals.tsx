@@ -11,6 +11,9 @@ import { useBodyType } from '@/hooks/game';
 import { useSettings } from '@/hooks/data';
 import { DEFAULT_HAIR_COLOR, FACE_BOX, HAIR_COLORS, SCAR_PLACE, TATTOO_TEMPLATE, tintStops, traitById, traitFile, type HeroLook } from '@/domain/appearance';
 import { BODY_PARTS, HEAD_LAYOUT_EXTRA, SCAR_ASPECT } from '@/domain/bodyLayout';
+import { ARMOR_ASPECT, ARMOR_BODY, ARMOR_HEAD } from '@/domain/armorLayout';
+import { armorFile, parseArmorId, type ArmorSlot } from '@/domain/armor';
+import { defaultLoadout } from '@/domain/equipment';
 import { TRAIT_LAYOUT } from '@/domain/traitLayout';
 
 // Alle Bilder, die im Ordner src/assets/rpg liegen – fehlende fallen still auf Platzhalter zurück.
@@ -29,6 +32,7 @@ const GLYPHS: Record<SlotId | 'twohand', ReactNode> = {
   off: <path d="M28 6 L48 12 V28 C48 40 39 48 28 52 C17 48 8 40 8 28 V12 Z" />,
   head: <path d="M28 8 C40 8 46 18 46 30 V40 H38 V30 H18 V40 H10 V30 C10 18 16 8 28 8 Z M26 2 h4 v8 h-4 Z" />,
   hands: <path d="M18 22 V10 a3 3 0 0 1 6 0 V22 V8 a3 3 0 0 1 6 0 V22 V10 a3 3 0 0 1 6 0 V26 l4 -6 a3 3 0 0 1 5 3 L38 40 C35 46 30 50 24 50 C18 50 14 45 14 38 V18 a2 2 0 0 1 4 0 Z" />,
+  chest: <path d="M18 6 L28 12 L38 6 L50 14 L44 24 L40 22 V50 H16 V22 L12 24 L6 14 Z" />,
   legs: <path d="M14 6 H42 L46 50 H34 L28 20 L22 50 H10 Z" />,
   feet: <path d="M16 6 H28 V32 L46 38 C50 40 50 48 46 48 H12 C10 48 10 44 12 42 L16 36 Z" />,
 };
@@ -209,9 +213,10 @@ function PlaceholderPortrait({ stage, crest }: { stage: number; crest: string })
 // Ausschnitt Kopf und Schultern aus dem Ganzkörperbild (Kopf liegt in allen Körperbildern an derselben Stelle)
 const HEAD_CROP: CSSProperties = { position: 'absolute', width: '379%', maxWidth: 'none', left: '-139.4%', top: '-18.2%', aspectRatio: '2 / 3' };
 
-export function HeroPortrait({ classId, rankLevel, crest, aura, size = 160, className, transform = false, look }: { classId: HeroClassId; rankLevel: number; crest: string; aura?: string | null; size?: number; className?: string; transform?: boolean; look?: HeroLook }) {
+export function HeroPortrait({ classId, rankLevel, crest, aura, size = 160, className, transform = false, look, armor }: { classId: HeroClassId; rankLevel: number; crest: string; aura?: string | null; size?: number; className?: string; transform?: boolean; look?: HeroLook; armor?: WornArmor }) {
   const stage = appearanceStage(rankLevel);
   const ownLook = useSettings().hero?.look;
+  const ownArmor = useOwnArmor();
   const url = rpgAsset(portraitFile(classId, stage));
   const body = useBodyType();
   const bodyUrl = !url && body ? rpgAsset(bodyFile(body.id)) : undefined;
@@ -223,7 +228,7 @@ export function HeroPortrait({ classId, rankLevel, crest, aura, size = 160, clas
           <img src={url} alt="" className="h-full w-full object-contain" draggable={false} />
         ) : bodyUrl ? (
           <div style={HEAD_CROP} data-testid="portrait-body-crop">
-            <HeroLayers bodyUrl={bodyUrl} bodyId={body?.id} look={look ?? ownLook} />
+            <HeroLayers bodyUrl={bodyUrl} bodyId={body?.id} look={look ?? ownLook} armor={armor ?? ownArmor} />
           </div>
         ) : (
           <PlaceholderPortrait stage={stage} crest={crest} />
@@ -336,8 +341,77 @@ function ScarLayer({ id, bodyId }: { id: string; bodyId: string }) {
   return <img src={url} alt="" draggable={false} data-testid="layer-scar" style={{ position: 'absolute', maxWidth: 'none', opacity: 0.92, width: `${w}%`, left: `${box[0] + place.u * box[2] - w / 2}%`, top: `${box[1] + place.v * box[3] - h / 2}%` }} />;
 }
 
-/** Grundkörper + Merkmale im 2:3-Raster: Körper → Tattoo → Narbe → Bart → Frisur → Brille. */
-export function HeroLayers({ bodyUrl, bodyId, look }: { bodyUrl?: string; bodyId?: string; look?: HeroLook }) {
+export type WornArmor = Partial<Record<ArmorSlot, number | null>>;
+
+/** Getragene Rüstung aus der gespeicherten Ausrüstung: fehlende Slots = Start-Ausrüstung, null = abgelegt, alte Teile → Start. */
+export function wornArmor(loadout: Partial<Record<string, string | null>> | undefined, classId: string | undefined): WornArmor {
+  const def = (classId ? defaultLoadout(classId as HeroClassId) : {}) as Record<string, string | null | undefined>;
+  const out: WornArmor = {};
+  for (const slot of ['head', 'chest', 'hands', 'legs', 'feet'] as ArmorSlot[]) {
+    const stored = loadout?.[slot];
+    let id = stored === undefined ? def[slot] : stored;
+    if (id && !parseArmorId(id)) id = def[slot] ?? null;
+    const p = id ? parseArmorId(id) : null;
+    out[slot] = p && p.slot === slot ? p.set.idx : null;
+  }
+  return out;
+}
+
+function useOwnArmor() {
+  const { hero } = useSettings();
+  return useMemo(() => (hero ? wornArmor(hero.loadout, hero.classId) : undefined), [hero]);
+}
+
+function ArmorImg({ file, style, testId }: { file: string; style: CSSProperties; testId?: string }) {
+  const url = rpgAsset(file);
+  if (!url) return null;
+  return <img src={url} alt="" draggable={false} data-testid={testId} style={{ position: 'absolute', maxWidth: 'none', ...style }} />;
+}
+
+/** Rüstungsteile auf dem Körper: Hose, Stiefel, Brust, Arme (Kopf separat, ganz oben). */
+function ArmorBody({ bodyId, armor }: { bodyId: string; armor: WornArmor }) {
+  const a = ARMOR_BODY[bodyId];
+  if (!a) return null;
+  const asp = (f: string) => ARMOR_ASPECT[f] ?? 1;
+  const out: ReactNode[] = [];
+  if (armor.legs != null) {
+    const [l, t, w, h] = a.legs;
+    out.push(<ArmorImg key="legs" file={armorFile(armor.legs, 'hose')} testId="armor-legs" style={{ left: `${l}%`, top: `${t}%`, width: `${w}%`, height: `${h}%` }} />);
+  }
+  if (armor.feet != null)
+    for (const s of ['L', 'R'] as const) {
+      const f = a[`feet${s}`];
+      const file = armorFile(armor.feet, s === 'L' ? 'stiefel_l' : 'stiefel_r');
+      const h = f.w * (2 / 3) * asp(file);
+      out.push(<ArmorImg key={`feet${s}`} file={file} testId={`armor-feet-${s}`} style={{ left: `${f.cx - f.w / 2}%`, top: `${f.bottom - h}%`, width: `${f.w}%`, height: `${h}%` }} />);
+    }
+  if (armor.chest != null) {
+    const c = a.chest;
+    const file = armorFile(armor.chest, 'brust');
+    out.push(<ArmorImg key="chest" file={file} testId="armor-chest" style={{ left: `${c.cx - c.w / 2}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.w * (2 / 3) * asp(file) * c.ky}%` }} />);
+  }
+  if (armor.hands != null)
+    for (const s of ['L', 'R'] as const) {
+      const r = a[`arm${s}`];
+      out.push(
+        <ArmorImg
+          key={`arm${s}`}
+          file={armorFile(armor.hands, s === 'L' ? 'arm_l' : 'arm_r')}
+          testId={`armor-hands-${s}`}
+          style={{ left: `${r.cx - r.w / 2}%`, top: `${r.cy - r.len / 2}%`, width: `${r.w}%`, height: `${r.len}%`, transform: `rotate(${r.ang}deg)` }}
+        />,
+      );
+    }
+  return <>{out}</>;
+}
+
+function ArmorHead({ idx }: { idx: number }) {
+  const [l, t, w] = ARMOR_HEAD[idx] ?? [0, 0, 0];
+  return <ArmorImg file={armorFile(idx, 'kopf')} testId="armor-head" style={{ left: `${l}%`, top: `${t}%`, width: `${w}%` }} />;
+}
+
+/** Grundkörper + Merkmale im 2:3-Raster: Körper → Tattoo → Narbe → Rüstung → Bart → Frisur → Brille → Kopfteil. */
+export function HeroLayers({ bodyUrl, bodyId, look, armor }: { bodyUrl?: string; bodyId?: string; look?: HeroLook; armor?: WornArmor }) {
   const hair = traitById('hair', look?.hair);
   const beard = traitById('beard', look?.beard);
   const tattoo = traitById('tattoo', look?.tattoo);
@@ -356,21 +430,24 @@ export function HeroLayers({ bodyUrl, bodyId, look }: { bodyUrl?: string; bodyId
           {scar && <ScarLayer id={scar.id} bodyId={bodyId} />}
         </div>
       )}
+      {bodyId && armor && <ArmorBody bodyId={bodyId} armor={armor} />}
       {beard && <TraitLayer file={traitFile(beard)} color={beardColor} testId="layer-beard" />}
-      {hair && <TraitLayer file={traitFile(hair)} color={hairColor} testId="layer-hair" />}
+      {hair && armor?.head == null && <TraitLayer file={traitFile(hair)} color={hairColor} testId="layer-hair" />}
       {eyes && <TraitLayer file={traitFile(eyes)} testId="layer-eyes" />}
+      {armor?.head != null && <ArmorHead idx={armor.head} />}
     </div>
   );
 }
 
-export function HeroFigure({ bodyType, aura, width = 140, className, children, look }: { bodyType: BodyTypeId; aura?: string | null; width?: number; className?: string; children?: ReactNode; look?: HeroLook }) {
+export function HeroFigure({ bodyType, aura, width = 140, className, children, look, armor }: { bodyType: BodyTypeId; aura?: string | null; width?: number; className?: string; children?: ReactNode; look?: HeroLook; armor?: WornArmor }) {
   const url = rpgAsset(bodyFile(bodyType));
   const ownLook = useSettings().hero?.look;
+  const ownArmor = useOwnArmor();
   return (
     <div className={cn('relative shrink-0', className)} style={{ width, height: width * 1.5 }} data-testid="hero-figure" data-body={bodyType} role="img" aria-label={`Held, Körperbau: ${bodyTypeLabel(bodyType)}`}>
       {aura && <div className="aura" style={{ background: aura }} />}
       <div className="portrait-breathe relative h-full w-full">
-        {url && <HeroLayers bodyUrl={url} bodyId={bodyType} look={look ?? ownLook} />}
+        {url && <HeroLayers bodyUrl={url} bodyId={bodyType} look={look ?? ownLook} armor={armor ?? ownArmor} />}
         {children}
       </div>
     </div>

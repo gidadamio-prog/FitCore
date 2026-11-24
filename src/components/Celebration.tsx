@@ -1,4 +1,6 @@
 // Feier-Overlay (Bestleistung, Rangaufstieg, Abzeichen, Feldzug) und Beobachter für neue Erfolge.
+import { gearExtra } from '@/domain/gear';
+import { ARMOR_CLASS_LABEL, ARMOR_CLASS_RARITY, ARMOR_SETS, START_SET, armorItemId, setSource } from '@/domain/armor';
 import { useEffect, useRef } from 'react';
 import { Trophy } from 'lucide-react';
 import { Button } from './ui';
@@ -77,12 +79,13 @@ interface Ack {
   triumph?: string | null;
   items?: string[];
   stage?: number;
+  armorSets?: number[];
 }
 
 /** Erkennt neue Ränge, Abzeichen, Feldzüge und Saisonsiege und feiert sie einmalig. Beim ersten Start wird still initialisiert. */
 export function GameWatcher() {
   const game = useGame();
-  const { hero, purchases } = useSettings();
+  const { hero, purchases, armorLoot } = useSettings();
   const busy = useRef(false);
   useEffect(() => {
     if (!game || busy.current) return;
@@ -102,10 +105,11 @@ export function GameWatcher() {
         comebacks: game.comebacks,
         duels: game.duelWeeksWon,
         triumph: null,
-        items: inventory(game.badges, hero?.classId, game.rank.rank.level, purchases)
+        items: inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot))
           .filter((o) => o.def.source.kind === 'badge' && o.unlocked)
           .map((o) => `${o.def.id}:${o.unlocked}`),
         stage: appearanceStage(game.rank.rank.level),
+        armorSets: ARMOR_SETS.filter((st) => st.idx !== START_SET && setSource(st, { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: [], purchases: [] })).map((st) => st.idx),
       };
       const row = await db.settings.get('gameAck');
       const ack = row?.value as Ack | undefined;
@@ -122,6 +126,7 @@ export function GameWatcher() {
       const prevDuels = ack.duels ?? now.duels;
       const prevItems = ack.items ?? now.items;
       const prevStage = ack.stage ?? now.stage;
+      const prevSets = ack.armorSets ?? now.armorSets;
 
       if (now.rankLevel > ack.rankLevel) celebrate({ kind: 'rank', title: `${game.rank.rank.name}`, subtitle: `Du bist jetzt ${game.rank.rank.title} (Rang ${game.rank.rank.level} von 10).`, lines: [`${game.xp.toLocaleString('de-DE')} Erfahrungspunkte`] });
       for (const k of now.badges.filter((b) => !ack.badges.includes(b))) {
@@ -166,6 +171,10 @@ export function GameWatcher() {
           item: { id, rarity },
         });
       }
+      for (const idx of now.armorSets.filter((x) => !prevSets.includes(x))) {
+        const st = ARMOR_SETS[idx]!;
+        celebrate({ kind: 'item', title: `Rüstung: ${st.name}`, subtitle: `${ARMOR_CLASS_LABEL[st.cls]} · komplettes Set (5 Teile)`, lines: ['Im Inventar – jetzt anlegen unter Held'], item: { id: armorItemId(idx, 'chest'), rarity: ARMOR_CLASS_RARITY[st.cls] } });
+      }
       if (hero && now.stage > prevStage) {
         const st = APPEARANCE_STAGES[now.stage - 1]!;
         celebrate({ kind: 'transform', title: `${hero.name} wird ${st.name}`, subtitle: `Erscheinungsbild ${now.stage} von 5`, portrait: { classId: hero.classId, rankLevel: game.rank.rank.level, crest: hero.color } });
@@ -201,6 +210,6 @@ export function GameWatcher() {
     })().finally(() => {
       busy.current = false;
     });
-  }, [game, hero, purchases]);
+  }, [game, hero, purchases, armorLoot]);
   return null;
 }

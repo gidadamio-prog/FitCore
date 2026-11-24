@@ -14,14 +14,16 @@ import { toast } from '@/stores/ui';
 import { today } from '@/domain/dates';
 import { battlePlan, type BattleHit } from '@/domain/battle';
 import { bossAt, dayDamage, type Boss } from '@/domain/rpg';
-import { BossFigure, HeroFigure, HeroPortrait } from './rpg/Visuals';
+import { BossFigure, HeroFigure, HeroPortrait, ItemIcon } from './rpg/Visuals';
+import { rollLoot } from '@/domain/armor';
+import { itemById } from '@/domain/equipment';
 
 const ACK_KEY = 'battleAck';
 
 /** Startet einen angeforderten Kampf, sobald die neuen Daten im Spielstand angekommen sind. */
 export function BattleWatcher() {
   const game = useGame();
-  const { hero } = useSettings();
+  const { hero, purchases, armorLoot } = useSettings();
   const pending = useBattle((s) => s.pending);
   const [tick, setTick] = useState(0);
   const busy = useRef(false);
@@ -54,11 +56,14 @@ export function BattleWatcher() {
         return;
       }
       const facts = game.facts.get(today());
-      open({ request: pending, plan: battlePlan(from, total, facts ? dayDamage(facts, hero.classId) : null) });
+      const plan = battlePlan(from, total, facts ? dayDamage(facts, hero.classId) : null);
+      const loot = rollLoot(`${from}-${total}`, plan.defeated.length, { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: armorLoot, purchases });
+      if (loot.length) await db.settings.put({ key: 'armorLoot', value: [...armorLoot, ...loot] });
+      open({ request: pending, plan, loot });
     })().finally(() => {
       busy.current = false;
     });
-  }, [pending, game, hero, tick]);
+  }, [pending, game, hero, tick, purchases, armorLoot]);
   return null;
 }
 
@@ -229,6 +234,22 @@ function BattleStage({ scene }: { scene: Scene }) {
             <p className="mt-1 text-sm text-gold" data-testid="battle-rewards">
               Freigeschaltet: {plan.defeated.flatMap((b) => bossRewards(b.id, traitAvailable)).join(' · ')}
             </p>
+          )}
+          {scene.loot && scene.loot.length > 0 && (
+            <div className="mt-3" data-testid="battle-loot">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gold">Beute</div>
+              <div className="mt-1 flex flex-wrap justify-center gap-2">
+                {scene.loot.map((id) => {
+                  const def = itemById(id);
+                  return def ? (
+                    <div key={id} className="flex w-20 flex-col items-center gap-0.5">
+                      <ItemIcon item={def} rarity="rare" size={52} />
+                      <span className="text-center text-[10px] leading-tight">{def.name}</span>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            </div>
           )}
           <Button className="mt-4 w-full" onClick={close}>
             Ave!

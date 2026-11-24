@@ -35,9 +35,14 @@ export default defineConfig({
       workbox: {
         navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,webp,jpg,woff2}'],
-        // Boss-Bilder nicht vorab laden (nur der aktuelle Boss wird gebraucht) – beim ersten Anzeigen offline gespeichert
-        globIgnores: ['**/boss_*'],
+        // Boss- und Rüstungsbilder nicht vorab laden (nur Getragenes/Aktuelles wird gebraucht) – beim ersten Anzeigen offline gespeichert
+        globIgnores: ['**/boss_*', '**/ruestung_*'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/assets\/ruestung_[^/]+\.webp$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'fitcore-ruestung', expiration: { maxEntries: 300 } },
+          },
           {
             urlPattern: ({ url }) => /\/assets\/boss_[^/]+\.(webp|png|jpe?g)$/.test(url.pathname),
             handler: 'CacheFirst',

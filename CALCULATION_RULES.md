@@ -144,3 +144,9 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Erkennung über den Namen (mit Ausschlüssen wie Reiswaffeln, Chips, Tortellini). Bezugszustand: „gekocht/cooked“ im Namen oder kcal unter einer Schwelle (z. B. Reis < 230 kcal/100 g) = bereits gegart, sonst Rohware.
 - Der Eintrag speichert die umgerechneten Bezugswerte und die Zubereitung (`prep`); Mengenänderung und „wie zuletzt“ behalten sie.
 - 28 Grundnahrungsmittel mit Durchschnittswerten (offline, Quelle „Grundnahrungsmittel“); in der Suche nach eigenen/gespeicherten Lebensmitteln gelistet.
+
+## Rüstung
+- 36 Sets (Reihenfolge der Lieferung: 10 Stoff, 10 Leder, 10 Schwer, 6 Boss) mit je Kopf, Brust, Arme, Hose, Stiefel – frei kombinierbar; alle 5 Teile eines Sets = Set-Bonus (Leuchten in Klassenfarbe). Neuer Slot „Brust“; die alten bildlosen Rüstungsteile (Kopf/Hände/Hose/Schuhe) sind ersetzt, Waffen und Schilde bleiben.
+- Freischaltung: Start-Set „Novize“ (ohne Kopf angelegt); Ränge 2–10 je ein Set; jeder Feldzug-Boss ein Set (Boss-Sets nur so); Markt pro Teil (Stoff 40–112, Leder 100–208, Schwer 200–398 Denare; Leder ab Rang 3, Schwer ab Rang 5); Beute nach jedem Kampf mit 35 % Chance + je besiegtem Boss ein sicheres Teil (nur nicht Besessenes aus erlaubten Klassen, reproduzierbar aus dem Kampfschlüssel).
+- Platzierung: `scripts/armor/process.py` erkennt je Grundkörper Schulterlinie, Rumpf, Hüfte, Arme (vom Achselansatz bis zu den Fingerspitzen verfolgt), Knie und Füße. Brust: Breite = max(Schulter × 1,14; Rumpf × 1,22), Länge mit Rumpf-Faktor; Hose: Taille bis Knöchel; Arme entlang des Unterarms gedreht; Stiefel je Fuß; Kopfteile wie Frisuren am Gesicht. Kopfteil verdeckt die Frisur.
+- Waffen-Aura: Haupt- und Nebenhand aus derselben Kategorie (vorher drei Teile).

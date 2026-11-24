@@ -16,6 +16,8 @@ export interface BattleScene {
   id: number;
   request: BattleRequest;
   plan: BattlePlan;
+  /** Rüstungs-Beute dieses Kampfes (Item-IDs) */
+  loot?: string[];
 }
 
 interface State {

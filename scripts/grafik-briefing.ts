@@ -19,7 +19,7 @@ const BOSS_LOOK: Record<string, string> = {
   limes: 'bulliger Barbarenkrieger, Bärenfell, Hörnerhelm, zweihändige Axt, Narben',
 };
 import { BODY_TYPES, bodyFile } from '../src/domain/bodyType';
-import { HEAD_ITEMS, TRAITS, TRAIT_CATEGORIES, figureFile, helmetHidesHair, traitFile } from '../src/domain/appearance';
+import { TRAITS, TRAIT_CATEGORIES, traitFile } from '../src/domain/appearance';
 const have = (f: string) => ['webp', 'png'].some((x) => existsSync(`src/assets/rpg/${f}.${x}`));
 
 const LOOK: Record<string, string> = {
@@ -35,7 +35,7 @@ p('# FitCore – Grafik-Briefing');
 p();
 p('Alle Grafiken für Held, Ausrüstung und Gegner. Die App läuft schon komplett mit gezeichneten Platzhaltern; jedes gelieferte Bild ersetzt automatisch seinen Platzhalter. Schick die Bilder einfach paketweise als ZIP in den Chat.');
 p();
-p(`**Als Nächstes dran: ${HEAD_ITEMS.length} Helme auf der Figur (Abschnitt 0); alle Merkmale sind geliefert.** Danach Waffen, Schilde und Rüstung auf der Figur (folgt). Icons: 20 Porträts, 23 Start-Ausrüstung, 21 Achievement-Ausrüstung. **Optional: 12 Gladiatoren-Porträts.**`);
+p('**Geliefert und eingebaut:** alle Merkmale und 36 Rüstungs-Sets (Kopf, Brust, Arme, Hose, Stiefel). **Als Nächstes dran:** Waffen und Schilde als Figur-Ebenen (Haupt-/Nebenhand). Icons: 20 Porträts. **Optional: 12 Gladiatoren-Porträts.**');
 p();
 p('## Regeln für alle Bilder');
 p();
@@ -115,20 +115,9 @@ for (const c of TRAIT_CATEGORIES) {
   for (const tr of list) p(`- [${have(traitFile(tr)) ? 'x' : ' '}] \`${traitFile(tr)}.png\` – ${tr.name}${tr.motif ? `: ${tr.motif}` : ''}`);
   p();
 }
-p('### Helme auf der Figur (Ebene über den Merkmalen)');
+p('### Rüstung auf der Figur');
 p();
-p('Zusätzlich zum kleinen Item-Icon (Abschnitt 3/4) braucht jeder Helm eine **Figur-Ebene** im selben Raster: nur der Helm, so wie er auf dem Kopf sitzt, frontal, alles andere transparent. Wangenklappen und Nackenschutz dürfen über Gesicht/Hals liegen. Bei echten Helmen blende ich die Frisur aus (Bart bleibt), bei Kränzen und Diademen bleibt die Frisur sichtbar.');
-p();
-p('```text');
-p('Same character, same canvas (1024x1536), same pose and exact head position as the reference.');
-p('Put [HELM] on the head, front view, sitting naturally on the skull. Nothing else changes.');
-p('Then output ONLY the [HELM] as an isolated layer on a fully transparent background,');
-p('exact same position and scale. No head, no hair, no face, no text, no glow.');
-p('```');
-p();
-for (const i of HEAD_ITEMS) p(`- [${have(figureFile(i)) ? 'x' : ' '}] \`${figureFile(i)}.png\` – ${i.name}: ${i.motif}${helmetHidesHair(i) ? '' : ' _(Frisur bleibt sichtbar)_'}`);
-p();
-p('Tipp: Der Kopf ist bei allen Körpern gleich groß, aber Nacken und Schultern sind unterschiedlich breit. Helme deshalb **nicht unter das Kinn bzw. auf die Schultern** ziehen.');
+p('Geliefert: 36 Sets (10 Stoff, 10 Leder, 10 Schwer, 6 Boss) je Kopf, Brust, Arme (Paar), Hose, Stiefel (Paar). Für weitere Sets genauso: **ein Sammelbild je Teil-Art, 6 × 6 Raster, frontal, transparenter Hintergrund**; Arme als Paar nebeneinander (links/rechts aus Sicht des Betrachters), Stiefel als Paar in einer Zelle. Zerlegt und eingepasst wird automatisch (`scripts/armor/process.py`).');
 p();
 p('## 1. Testlauf zuerst (2 Bilder)');
 p();
