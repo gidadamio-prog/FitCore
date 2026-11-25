@@ -387,7 +387,7 @@ export const AP_RULES: { label: string; ap: number }[] = [
   { label: 'Ausdauer ≥ 20 min', ap: 1 },
   { label: 'Schrittziel erreicht', ap: 1 },
   { label: 'Tagesauftrag erfüllt', ap: 1 },
-  { label: 'Wochen-Feldzug erfüllt', ap: 1 },
+  { label: 'Wochen-Auftrag erfüllt', ap: 1 },
   { label: 'Alle drei Feldzüge der Woche', ap: 2 },
   { label: 'Neuer Rang', ap: 3 },
 ];

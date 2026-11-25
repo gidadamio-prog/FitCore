@@ -233,3 +233,12 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Stationen als kleine Bildkacheln (2 Spalten, am Rechner 3): Titel, wichtigster Wert, Ausbaustufe (I–IV) und eine Schnellaktion (Lebensmittel, Training starten, +1.000 Schritte, +250 ml, Gewicht, Zur Karte).
 - Antippen (am Rechner: Hover vergrößert leicht, Klick öffnet) vergrößert die Station über die volle Breite mit allen Eingaben; immer nur eine offen, schließen über das Symbol oben rechts.
 - Rang als eine Zeile unter dem Helden (Name, EP, Fortschritt), Serien als kompakte Chips, Boss-Banner niedriger, Wochen-Feldzüge eingeklappt, „Rat des Lagers“ mit einem Hinweis und aufklappbarem Rest.
+
+## Navigation und Begriffe (1.30.0)
+- Untere Leiste: Heute, Ernährung, Training, Körper, **Held**, Statistik. „Held“ bündelt Charakter, Inventar, Aufträge, Arena und Markt; oben ein Zugang zur Weltkarte. Das Pokal-Symbol im Kopf entfällt.
+- **Aufträge** (vorher „Feldzug“): die 3 gewählten Wochenaufgaben (+ Tagesauftrag). „Feldzug“ meint nur noch Regionen und Bosse; deren Übersicht liegt in der Weltkarte (Symbol „Regionen und Bosse“).
+- **Ruhm** (Abzeichen, geheime Erfolge, Ehrenhalle, EP-Tabelle) liegt in den Statistiken (`#/stats?section=ruhm`).
+- Alte Links `#/erfolge?tab=…` leiten weiter: ruhm → Statistiken, feldzug → Aufträge, alles andere (auch Arena-Teilen-Links mit `rivale=`) → Held.
+- **Stufe** (1–99) = Kampfkraft: steigt oft, erhöht Angriff/Verteidigung/Leben und öffnet Regionen. **Rang** (10 Ränge) = Freischaltungen: neue Rüstungs-/Waffenklassen im Markt, Lagerausbau, +3 AP je Beförderung. Beides aus denselben EP; Erklärung über das Info-Symbol neben dem Rang. Lager-Stationen sprechen von „Ausbau I–IV“, damit „Stufe“ eindeutig bleibt.
+- Kartentisch und Boss sind eine Kachel: aktueller Hauptstadt-Boss mit Lebenspunkten vor dem Kartentisch-Bild, AP und eroberte Regionen; Antippen öffnet die Weltkarte.
+- Proviant (aufgeklappt) führt direkt zum Wochenplan (`#/nutrition?tab=plan`).

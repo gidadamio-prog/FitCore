@@ -119,7 +119,7 @@ function ArmorShop({ game, balance }: { game: GameState; balance: number }) {
   return (
     <Card data-testid="armor-shop">
       <CardTitle>Rüstung</CardTitle>
-      <p className="mb-2 text-[11px] text-muted">Einzelteile oder ganze Sets. Boss-Rüstung gibt es nur im Feldzug. Teile bekommst du auch als Beute nach Kämpfen.</p>
+      <p className="mb-2 text-[11px] text-muted">Einzelteile oder ganze Sets. Boss-Rüstung gibt es nur von den Bossen auf der Weltkarte. Teile bekommst du auch als Beute nach Kämpfen.</p>
       <Tabs
         value={cls}
         onChange={setCls}

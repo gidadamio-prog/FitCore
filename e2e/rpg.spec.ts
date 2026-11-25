@@ -59,14 +59,24 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   await page.goto('/#/settings');
   await page.getByRole('tab', { name: 'Ziele' }).click();
   await expect(page.getByText('Lebensweg: Epikureer').first()).toBeVisible();
+  // Alter Link leitet in den Bereich „Held“ weiter
   await page.goto('/#/erfolge?tab=held');
+  await expect(page).toHaveURL(/#\/held\?tab=held/);
 
-  // Feldzug
-  await page.getByRole('tab', { name: 'Feldzug' }).click();
-  await expect(page.getByTestId('boss-name')).toHaveText('Vercingetorix');
-  await expect(page.getByTestId('boss-hp')).toContainText('224 / 224 LP'); // Bosse nur im direkten Kampf
-  await expect(page.getByTestId('province-current')).toHaveCount(1);
-  await expect(page.getByTestId('duel')).toBeVisible();
+  // Aufträge der Woche
+  await page.getByRole('tab', { name: 'Aufträge' }).click();
+  await expect(page.getByTestId('week-quests')).toBeVisible();
+
+  // Regionen und Bosse: in der Weltkarte
+  await page.getByTestId('hall-map').click();
+  await page.getByTestId('open-regions').click();
+  const regions = page.getByRole('dialog', { name: 'Regionen und Bosse' });
+  await expect(regions.getByTestId('boss-name')).toHaveText('Vercingetorix');
+  await expect(regions.getByTestId('boss-hp')).toContainText('224 / 224 LP'); // Bosse nur im direkten Kampf
+  await expect(regions.getByTestId('province-current')).toHaveCount(1);
+  await expect(regions.getByTestId('duel')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.goto('/#/held?tab=held');
 
   // Teilen
   await page.getByRole('tab', { name: 'Arena' }).click();
@@ -110,13 +120,15 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   await expect(ws.getByTestId('shop-weapon-waffe-dolch-00').getByRole('button')).toBeDisabled();
   await expect(ws.getByTestId('shop-weapon-waffe-dolch-01')).toContainText('ab Rang');
 
-  // Ruhm: geheime Erfolge verdeckt, Abzeichen mit Belohnung
-  await page.getByRole('tab', { name: 'Ruhm' }).click();
+  // Ruhm (jetzt in den Statistiken): geheime Erfolge verdeckt, Abzeichen mit Belohnung
+  await page.goto('/#/erfolge?tab=ruhm');
+  await expect(page).toHaveURL(/#\/stats\?section=ruhm/);
   await expect(page.getByTestId('secret-fruehaufsteher')).toContainText('???');
   await expect(page.getByTestId('reward-prs')).toContainText('Legionärsschwert');
   await dismissCelebrations(page);
   // Kein horizontales Überlaufen auf dem Handy
-  for (const t of ['Held', 'Inventar', 'Feldzug', 'Arena', 'Ruhm', 'Markt']) {
+  await page.goto('/#/held');
+  for (const t of ['Held', 'Inventar', 'Aufträge', 'Arena', 'Markt']) {
     await page.getByRole('tab', { name: t, exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   }

@@ -26,7 +26,7 @@ export const XP_RULES = {
   workout: { xp: 50, label: 'Krafttraining abgeschlossen' },
   cardio: { xp: 30, label: 'Ausdauer ≥ 20 min' },
   pr: { xp: 25, label: 'Neue Bestleistung' },
-  quest: { xp: 100, label: 'Wochen-Feldzug erfüllt' },
+  quest: { xp: 100, label: 'Wochen-Auftrag erfüllt' },
   questAll: { xp: 100, label: 'Alle drei gewählten Feldzüge der Woche erfüllt' },
   daily: { xp: 40, label: 'Tagesauftrag erfüllt' },
   steps: { xp: 10, label: 'Schrittziel erreicht' },
@@ -448,7 +448,7 @@ export interface GameState {
   weekStart: string;
   /** Angebote der laufenden Woche, solange noch nicht gewählt (sonst leer) */
   questOffers: QuestOffer[];
-  /** Feldzug der Woche gewählt */
+  /** Aufträge der Woche gewählt */
   questsPicked: boolean;
   /** Tagesauftrag für heute (null = heute keiner) */
   dailyQuest: Quest | null;

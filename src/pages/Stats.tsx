@@ -1,4 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useGame } from '@/hooks/game';
+import { FameTab } from './Achievements';
 import { Badge, Card, CardTitle, Field, Input, Select, Stat, Tabs, fmt } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { useAllEntries, useCardio, useGoals, useMeasurements, useWorkouts } from '@/hooks/data';
@@ -11,18 +14,30 @@ import { KCAL_PER_KG_BODY_MASS } from '@/domain/energy';
 import { BarSeriesChart, LineSeriesChart, SERIES } from '@/components/charts';
 
 type Range = '7' | '30' | '90' | '365' | 'custom';
-type Section = 'nutrition' | 'training' | 'body' | 'combined' | 'report';
+type Section = 'ruhm' | 'nutrition' | 'training' | 'body' | 'combined' | 'report';
+const SECTIONS: Section[] = ['ruhm', 'nutrition', 'training', 'body', 'combined', 'report'];
 
 export function Stats() {
   const [range, setRange] = useState<Range>('30');
   const [custom, setCustom] = useState({ from: addDays(today(), -60), to: today() });
-  const [section, setSection] = useState<Section>('nutrition');
+  const [params] = useSearchParams();
+  const wanted = params.get('section') as Section | null;
+  const [section, setSection] = useState<Section>(wanted && SECTIONS.includes(wanted) ? wanted : 'nutrition');
+  useEffect(() => {
+    if (wanted && SECTIONS.includes(wanted)) setSection(wanted);
+  }, [wanted]);
+  const game = useGame();
   const from = range === 'custom' ? custom.from : addDays(today(), -(Number(range) - 1));
   const to = range === 'custom' ? custom.to : today();
   return (
     <div className="space-y-4">
-      <PageHeader title="Statistiken" subtitle={`${formatDate(from, { day: '2-digit', month: '2-digit', year: 'numeric' })} – ${formatDate(to, { day: '2-digit', month: '2-digit', year: 'numeric' })}`} />
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <PageHeader title="Statistiken" subtitle={section === 'ruhm' ? 'Rang, Abzeichen und geheime Erfolge – aus deinen echten Einträgen.' : `${formatDate(from, { day: '2-digit', month: '2-digit', year: 'numeric' })} – ${formatDate(to, { day: '2-digit', month: '2-digit', year: 'numeric' })}`} />
+      <Tabs value={section} onChange={setSection} items={[{ value: 'ruhm', label: 'Ruhm' }, { value: 'nutrition', label: 'Ernährung' }, { value: 'training', label: 'Training' }, { value: 'body', label: 'Körper' }, { value: 'combined', label: 'Kombiniert' }, { value: 'report', label: 'Wochenbericht' }]} />
+      {section === 'ruhm' ? (
+        game ? <FameTab game={game} /> : null
+      ) : (
+        <>
+          <div className="flex flex-col gap-2 sm:flex-row">
         <Tabs value={range} onChange={setRange} items={[{ value: '7', label: '7 T' }, { value: '30', label: '30 T' }, { value: '90', label: '90 T' }, { value: '365', label: '1 Jahr' }, { value: 'custom', label: 'Eigene' }]} className="sm:w-96" />
         {range === 'custom' && (
           <div className="flex gap-2">
@@ -31,7 +46,6 @@ export function Stats() {
           </div>
         )}
       </div>
-      <Tabs value={section} onChange={setSection} items={[{ value: 'nutrition', label: 'Ernährung' }, { value: 'training', label: 'Training' }, { value: 'body', label: 'Körper' }, { value: 'combined', label: 'Kombiniert' }, { value: 'report', label: 'Wochenbericht' }]} />
       {from > to ? (
         <p className="text-sm text-danger">Startdatum liegt nach dem Enddatum.</p>
       ) : (
@@ -41,6 +55,8 @@ export function Stats() {
           {section === 'body' && <BodyStats from={from} to={to} />}
           {section === 'combined' && <Combined from={from} to={to} />}
           {section === 'report' && <WeeklyReportView />}
+        </>
+      )}
         </>
       )}
     </div>

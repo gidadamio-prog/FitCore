@@ -17,7 +17,7 @@ test('AK-111 Weltkarte: Start mit 5 AP, Reisen kostet AP, Gegner blockiert bis b
   await onboard(page);
   await createHero(page);
   await expect(page.locator('[aria-live="polite"] button')).toHaveCount(0, { timeout: 12000 });
-  await page.getByRole('button', { name: 'Weltkarte' }).click();
+  await page.getByRole('button', { name: 'Weltkarte', exact: true }).click();
   const map = page.getByTestId('world-map');
   await expect(map.getByTestId('ap')).toContainText('5');
   await page.waitForTimeout(800);

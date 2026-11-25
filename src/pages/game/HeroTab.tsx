@@ -24,7 +24,7 @@ export function HeroForm({ initial, onDone }: { initial?: Hero | null; onDone?: 
   return (
     <Card className="space-y-4" data-testid="hero-form">
       <CardTitle>{initial ? 'Held bearbeiten' : 'Erschaffe deinen Helden'}</CardTitle>
-      {!initial && <p className="text-sm text-muted">Dein Held wächst mit jedem Training, jeder Punktlandung und jedem erfüllten Feldzug. Mit ihm ziehst du gegen die Bosse des Reiches und misst dich in der Arena mit Freunden.</p>}
+      {!initial && <p className="text-sm text-muted">Dein Held wächst mit jedem Training, jeder Punktlandung und jedem erfüllten Auftrag. Mit ihm ziehst du gegen die Bosse des Reiches und misst dich in der Arena mit Freunden.</p>}
       <div className="flex items-center gap-4">
         <HeroCrest emblem={emblem} color={color} size={84} label="Vorschau Wappen" />
         <Field label="Name des Helden" className="flex-1" error={error}>

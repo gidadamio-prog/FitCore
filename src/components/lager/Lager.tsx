@@ -21,7 +21,7 @@ export function TierLine({ st }: { st: StationState }) {
   return (
     <div className="mt-auto" data-testid={`tier-${st.id}`}>
       <div className="text-[10px] uppercase tracking-wider text-gold/90">
-        Stufe {ROMAN[st.tier]} · {st.name}
+        Ausbau {ROMAN[st.tier]} · {st.name}
       </div>
       <div className="mt-1 h-1 w-full max-w-[9rem] overflow-hidden rounded-full bg-black/40">
         <div className="h-full rounded-full bg-gold/80" style={{ width: `${Math.round(st.progress * 100)}%` }} />
@@ -82,7 +82,7 @@ export function StationTile({ st, value, sub, action, onOpen, testId }: { st: St
         {url ? <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover object-right" draggable={false} loading="lazy" /> : <div className="absolute inset-0 bg-gradient-to-br from-[#3a2c1e] to-[#1c140d]" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
         <div className="absolute left-2 top-1.5 font-brand text-sm font-bold drop-shadow">{st.title}</div>
-        <div className="absolute right-1.5 top-1.5 rounded-full bg-black/50 px-1.5 text-[10px] font-semibold text-gold" title={`Stufe ${ROMAN[st.tier]} · ${st.name}`}>
+        <div className="absolute right-1.5 top-1.5 rounded-full bg-black/50 px-1.5 text-[10px] font-semibold text-gold" title={`Ausbau ${ROMAN[st.tier]} · ${st.name}`}>
           {ROMAN[st.tier]}
         </div>
         <div className="absolute inset-x-2 bottom-1.5">
@@ -152,7 +152,7 @@ export function HeroCamp({ game, onHero }: { game: GameState; onHero: () => void
           <div className="min-w-0">
             <div className="font-brand truncate text-xl font-bold drop-shadow">{hero.name}</div>
             <div className="text-xs text-white/80">
-              Stufe {lv.level} · {game.rank.rank.name}
+              <span data-testid="camp-level">Stufe {lv.level}</span> · Kampfkraft
             </div>
             <div className="mt-1 h-1.5 w-32 overflow-hidden rounded-full bg-black/40" role="progressbar" aria-label="Erfahrung bis zur nächsten Stufe" aria-valuenow={Math.round(lv.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
               <div className="h-full rounded-full bg-gold" style={{ width: `${Math.round(lv.progress * 100)}%` }} />
