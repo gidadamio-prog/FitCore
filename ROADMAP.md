@@ -15,5 +15,5 @@
 13. Ganzkörper-Held: Frisuren/Bärte (1.17.0), Tattoos/Narben/Brillen (1.18.0) sind drin; Rüstung (36 Sets, 1.20.0) ist drin; danach Waffen/Schilde (Handanker je Körper) und Rüstung (4 Silhouettenklassen) und eine Anpassen-Seite.
 14. Weltkarte Phase 2: Kampfwerte je Teil mit Aufwertung +0 … +10 (Schmiede), Materialien Eisen/Silber/Gold/Reliquien, Drop-Tabellen je Region und Aktion mit Pech-Sicherung, Zerlegen, AP-Set-Boni (z. B. +1 AP je Wochen-Feldzug).
 15. Weltkarte Phase 3: Story-Kapitel je Region (Szenen mit Porträt), Prolog als Einstieg, Dashboard „Lager“; danach Endlos-Modus.
-16. Lager-Bilder: Lager-Szene (Hochformat) und Stufen II–IV je Station nachliefern.
+16. Lager-Bilder: Stufen II–IV je Station (und fürs Lager selbst) nachliefern.
 

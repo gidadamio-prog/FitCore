@@ -115,7 +115,7 @@ export function HeroCamp({ game, onHero }: { game: GameState; onHero: () => void
   const lv = game.level;
   return (
     <div className="relative aspect-square max-h-[26rem] w-full overflow-hidden rounded-xl" data-testid="hero-camp">
-      {url ? <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} /> : <CampBackdrop />}
+      {url ? <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_70%]" draggable={false} /> : <CampBackdrop />}
       <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/70 to-transparent" />
       {hero && (
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 text-white">
