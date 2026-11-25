@@ -2,6 +2,7 @@ import type { BonusLogEntry } from '@/domain/armor';
 import type { WorldEvent } from '@/domain/world';
 import type { Hero, ShareCard } from '@/domain/rpg';
 import { db } from './db';
+import { addDays } from '@/domain/dates';
 import type { GoalType, GoalVersion, MacroStrategy, BmrFormula, Profile, Setting } from '@/domain/types';
 import { ageFromBirthDate, computeTargets, defaultWeeklyRate } from '@/domain/energy';
 import { profileSchema, type ProfileForm } from '@/domain/schemas';
@@ -180,6 +181,8 @@ export interface AppSettings {
   setBonusLog: BonusLogEntry[];
   /** Weltkarte: Ereignis-Log */
   worldLog: WorldEvent[];
+  /** Krankentage (YYYY-MM-DD) – pausieren Serien */
+  sickDays: string[];
 }
 
 export type Rival = ShareCard & { importedAt: string };
@@ -204,6 +207,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   armorLoot: [],
   setBonusLog: [],
   worldLog: [],
+  sickDays: [],
 };
 
 export async function getSettings(): Promise<AppSettings> {
@@ -215,4 +219,16 @@ export async function getSettings(): Promise<AppSettings> {
 
 export async function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
   await db.settings.put({ key, value });
+}
+
+/** Krankentag an- oder abmelden (nur heute oder gestern). Gibt zurück, ob der Tag danach krank ist. */
+export async function toggleSickDay(date: string, todayDate: string): Promise<boolean> {
+  if (date !== todayDate && date !== addDays(todayDate, -1)) throw new Error('Nur heute oder gestern kann als Krankentag gemeldet werden.');
+  const s = await getSettings();
+  const set = new Set(s.sickDays ?? []);
+  const sick = !set.has(date);
+  if (sick) set.add(date);
+  else set.delete(date);
+  await setSetting('sickDays', [...set].sort());
+  return sick;
 }

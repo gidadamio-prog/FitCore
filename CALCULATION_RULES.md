@@ -168,3 +168,10 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Beute: Trupp 40 % Rüstungsteil, Elite sicher ein Teil, Truhe 65 % Teil sonst Denare, Boss sicher ein Teil + Boss-Set (wie bisher) + 100 + 40 × Regionsnummer Denare. Rüstungsklassen nach Region (1–3 Stoff, 4–6 Stoff/Leder, ab 7 Leder/Schwer).
 - Kartenbild (1.22.1): gemalte Weltkarte `weltkarte.webp` (1060 × 1484, Weltkoordinaten × 1600/1060). Alle 121 Orte sind von Hand auf das Bild gesetzt: Hauptstädte auf den Burgen, gemalte Orte als Dörfer/Lager mit ihrem Namen (Hügelfurt, Finsterhain, Nebelhafen, Weidmark, Drachenpass, Löwenrast, Deltahafen, Felswacht, Dünenrast, Steppenlager, Kaiservorstadt; Kronenwacht trägt die Elite des Throns der Könige). Abzweige je Region anpassbar (z. B. Finsterhain hinter Teutoburg als Weg zu den Nebelinseln). Wege dezent als Tinte, Beschriftung der Hauptstädte kommt vom Bild.
 - Übernahme: Bosse, die im alten Feldzug bereits besiegt waren, gelten als eroberte Regionen (aufgedeckt, Gegner frei); der Held startet in der letzten eroberten Hauptstadt.
+
+## Krankentage
+- Auf „Heute“ unter den Serien: „Krank?“ meldet heute (und auf Wunsch gestern) als Krankentag; nur diese beiden Tage, nachträglich nicht. Zurücknehmen jederzeit („Doch fit“).
+- Ernährungs-Serie: ein Krankentag ohne Protokoll zählt nicht mit, bricht die Serie aber nicht und verbraucht kein Schild. Gleiches gilt für den Stoiker (Kalorienziel-Serie).
+- Trainings-Serie: eine Woche mit mindestens 2 Krankentagen und ohne Training zählt nicht, bricht die Serie aber nicht (1 Krankentag reicht nicht).
+- Tagesauftrag am Krankentag: „Heiltrank“ – Trinkziel erreichen (40 EP, 1 AP wie jeder Tagesauftrag). Schritt- und Trainingsziel sind keine Pflicht (es gab dort ohnehin keine Abzüge).
+- Rüstung ausblenden: Knopf „Rüstung anzeigen“ direkt unter der Figur (je Teil oder alle), zusätzlich oben im Inventar des Platzes.

@@ -21,7 +21,7 @@ export const LEG_MUSCLES = new Set(['Quadrizeps', 'Rückseite Oberschenkel', 'Ge
 /** Lokale Stunde eines ISO-Zeitstempels */
 const localHour = (iso: string) => new Date(iso).getHours();
 
-export function secretAchievements(i: { workouts: Workout[]; facts: Map<string, DayFacts>; prs: PrEvent[]; comebacks: string[]; today: string }): SecretAchievement[] {
+export function secretAchievements(i: { workouts: Workout[]; facts: Map<string, DayFacts>; prs: PrEvent[]; comebacks: string[]; today: string; sickDays?: Set<string> }): SecretAchievement[] {
   const workouts = i.workouts.filter((w) => w.date <= i.today).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   const facts = [...i.facts.values()].filter((f) => f.date <= i.today).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -46,14 +46,21 @@ export function secretAchievements(i: { workouts: Workout[]; facts: Map<string, 
   // Wiedersehen: Bestleistung innerhalb von 7 Tagen nach einem Comeback
   const reunion = i.prs.filter((p) => p.date <= i.today).find((p) => i.comebacks.some((c) => p.date >= c && p.date <= addDays(c, 6)));
 
-  // Stoiker: 30 Tage in Folge Kalorienziel ± 10 % getroffen
+  // Stoiker: 30 Tage in Folge Kalorienziel ± 10 % getroffen (Krankentage dazwischen werden übersprungen)
+  const sick = i.sickDays ?? new Set<string>();
+  const follows = (prev: string, d: string) => {
+    let x = addDays(prev, 1);
+    while (x < d && sick.has(x)) x = addDays(x, 1);
+    return x === d;
+  };
   let streak = 0;
   let bestStreak = 0;
   let stoicDate: string | null = null;
   let prev: string | null = null;
   for (const f of facts) {
+    if (sick.has(f.date) && !f.caloriesHit) continue;
     if (f.caloriesHit) {
-      streak = prev && addDays(prev, 1) === f.date ? streak + 1 : 1;
+      streak = prev && follows(prev, f.date) ? streak + 1 : 1;
       prev = f.date;
       bestStreak = Math.max(bestStreak, streak);
       if (streak >= 30 && !stoicDate) stoicDate = f.date;

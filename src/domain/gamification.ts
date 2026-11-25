@@ -100,6 +100,8 @@ export interface GameInput {
   setBonusLog?: BonusLogEntry[];
   /** Ereignisse auf der Weltkarte (Reisen, Kämpfe, Truhen, Belagerungen) */
   worldLog?: WorldEvent[];
+  /** Krankentage (pausieren Serien, Tagesauftrag wird zum Heiltrank) */
+  sickDays?: string[];
 }
 
 export interface DayFacts {
@@ -259,11 +261,15 @@ export interface StreakInfo {
   activeToday: boolean;
 }
 
+/** Eine Woche gilt als „krank pausiert“, wenn sie mindestens so viele Krankentage hat. */
+export const SICK_WEEK_MIN = 2;
+
 /**
  * Tages-Serie mit „Schild“: pro Kalenderwoche (Mo–So) darf ein Tag fehlen, ohne dass die Serie reißt.
  * Der heutige Tag zählt erst, wenn er erfüllt ist – ein noch leerer heutiger Tag bricht nichts.
+ * Krankentage (`paused`) zählen nicht mit, brechen die Serie aber auch nicht.
  */
-export function dayStreak(activeDays: Set<string>, today: string): StreakInfo {
+export function dayStreak(activeDays: Set<string>, today: string, paused: Set<string> = new Set()): StreakInfo {
   const days = [...activeDays].filter((d) => d <= today).sort();
   const run = (from: string, limitToStart?: string) => {
     let count = 0;
@@ -272,12 +278,14 @@ export function dayStreak(activeDays: Set<string>, today: string): StreakInfo {
     for (let i = 0; i < 1000; i++) {
       if (limitToStart && d < limitToStart) break;
       if (activeDays.has(d)) count++;
-      else {
+      else if (paused.has(d)) {
+        // krank: überspringen
+      } else {
         const wk = startOfWeek(d);
         if (shieldWeeks.has(wk)) break;
         // ein Schild darf nur genutzt werden, wenn davor noch etwas kommt
         const prev = addDays(d, -1);
-        if (!activeDays.has(prev)) break;
+        if (!activeDays.has(prev) && !paused.has(prev)) break;
         shieldWeeks.add(wk);
       }
       d = addDays(d, -1);
@@ -297,26 +305,34 @@ export function dayStreak(activeDays: Set<string>, today: string): StreakInfo {
   return { current: cur.count, best, shieldUsedThisWeek: cur.shieldWeeks.has(startOfWeek(today)), activeToday };
 }
 
-/** Wochen-Serie: aufeinanderfolgende Kalenderwochen mit mind. einer Trainingseinheit (laufende Woche zählt, sobald erfüllt). */
-export function weekStreak(trainingDates: string[], today: string) {
+/**
+ * Wochen-Serie: aufeinanderfolgende Kalenderwochen mit mind. einer Trainingseinheit (laufende Woche zählt, sobald erfüllt).
+ * Wochen mit mindestens {@link SICK_WEEK_MIN} Krankentagen ohne Training zählen nicht, brechen die Serie aber auch nicht.
+ */
+export function weekStreak(trainingDates: string[], today: string, sickDays: string[] = []) {
   const weeks = new Set(trainingDates.filter((d) => d <= today).map(startOfWeek));
+  const sickCount = new Map<string, number>();
+  for (const d of sickDays) if (d <= today) sickCount.set(startOfWeek(d), (sickCount.get(startOfWeek(d)) ?? 0) + 1);
+  const paused = (w: string) => !weeks.has(w) && (sickCount.get(w) ?? 0) >= SICK_WEEK_MIN;
   const thisWeek = startOfWeek(today);
   let w = weeks.has(thisWeek) ? thisWeek : addDays(thisWeek, -7);
   let current = 0;
-  while (weeks.has(w)) {
-    current++;
+  for (let i = 0; i < 520; i++) {
+    if (weeks.has(w)) current++;
+    else if (!paused(w)) break;
     w = addDays(w, -7);
   }
   let best = 0;
   const sorted = [...weeks].sort();
   let run = 0;
-  let prev: string | null = null;
-  for (const k of sorted) {
-    run = prev && addDays(prev, 7) === k ? run + 1 : 1;
-    best = Math.max(best, run);
-    prev = k;
+  if (sorted.length) {
+    for (let k = sorted[0]!; k <= thisWeek; k = addDays(k, 7)) {
+      if (weeks.has(k)) run++;
+      else if (!paused(k)) run = 0;
+      best = Math.max(best, run);
+    }
   }
-  return { current, best, activeThisWeek: weeks.has(thisWeek) };
+  return { current, best, activeThisWeek: weeks.has(thisWeek), pausedThisWeek: (sickCount.get(thisWeek) ?? 0) > 0 };
 }
 
 // ---------- Wochen-Feldzüge ----------
@@ -423,6 +439,8 @@ export interface GameState {
   xpLast7: { date: string; xp: number }[];
   rank: ReturnType<typeof rankFor>;
   logStreak: StreakInfo;
+  /** Heute als krank gemeldet */
+  sickToday: boolean;
   trainStreak: ReturnType<typeof weekStreak>;
   quests: Quest[];
   /** Montag der laufenden Woche */
@@ -543,7 +561,7 @@ export function computeGame(i: GameInput): GameState {
   const allDates = [...facts.keys()].filter((d) => d <= i.today).sort();
   const minDate = (a: string, b: string) => (a < b ? a : b);
   // Feldzüge aller Wochen seit Beginn: gewählte Feldzüge (Quest-Brett), ältere Wochen nach altem Schema
-  const qctx: QuestCtx = { facts, prs, today: i.today, stepGoal: i.stepGoal ?? 8000, heroClass: i.heroClass, planWeekdays: i.activePlan ? [...new Set(i.activePlan.days.flatMap((d) => d.weekdays))] : undefined };
+  const qctx: QuestCtx = { facts, prs, today: i.today, stepGoal: i.stepGoal ?? 8000, heroClass: i.heroClass, planWeekdays: i.activePlan ? [...new Set(i.activePlan.days.flatMap((d) => d.weekdays))] : undefined, sickDays: new Set(i.sickDays ?? []) };
   const currentWeek = startOfWeek(i.today);
   const weekQuests = (w: string): Quest[] => {
     const picks = i.questPicks?.[w];
@@ -617,8 +635,9 @@ export function computeGame(i: GameInput): GameState {
   }
   const ap = apBalance(world.startDate, apByDay, world.spentByDate, i.today);
 
-  const logStreak = dayStreak(new Set([...facts.values()].filter((f) => f.logged).map((f) => f.date)), i.today);
-  const trainStreak = weekStreak(trainingDates, i.today);
+  const sick = new Set(i.sickDays ?? []);
+  const logStreak = dayStreak(new Set([...facts.values()].filter((f) => f.logged).map((f) => f.date)), i.today, sick);
+  const trainStreak = weekStreak(trainingDates, i.today, i.sickDays);
   const month = i.today.slice(0, 7);
   const challenges = seasonFor(month, facts, i.today);
 
@@ -663,7 +682,7 @@ export function computeGame(i: GameInput): GameState {
   }
   const badges = defs.map(badgeStatus);
 
-  const secrets = secretAchievements({ workouts: i.workouts, facts, prs, comebacks, today: i.today });
+  const secrets = secretAchievements({ workouts: i.workouts, facts, prs, comebacks, today: i.today, sickDays: new Set(i.sickDays ?? []) });
 
   const xpLast7 = rangeDates(addDays(i.today, -6), i.today).map((d) => ({ date: d, xp: xpByDay.get(d) ?? 0 }));
   return {
@@ -672,6 +691,7 @@ export function computeGame(i: GameInput): GameState {
     xpLast7,
     rank: rankFor(xp),
     logStreak,
+    sickToday: (i.sickDays ?? []).includes(i.today),
     trainStreak,
     quests: weekQuests(currentWeek),
     weekStart: currentWeek,
