@@ -87,8 +87,12 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
     <div data-testid="character-sheet">
       <div className="flex items-stretch justify-between gap-1">
         {col(['head', 'chest', 'hands', 'main'])}
-        <div className="flex flex-col items-center">
-          {body ? <HeroFigure bodyType={body.id} aura={heroAura} width={128} /> : <HeroPortrait classId={hero.classId} rankLevel={game.rank.rank.level} crest={hero.color} aura={heroAura} size={140} />}
+        <div className="flex min-w-0 flex-1 flex-col items-center">
+          {body ? (
+            <div className="-mx-2 w-[calc(100%+1rem)] max-w-[260px]">
+              <HeroFigure bodyType={body.id} aura={heroAura} width="fill" />
+            </div>
+          ) : <HeroPortrait classId={hero.classId} rankLevel={game.rank.rank.level} crest={hero.color} aura={heroAura} size={140} />}
           <div className="mt-1 text-center text-[11px] text-muted" data-testid="appearance-stage">
             Erscheinung {stage}/5 · {APPEARANCE_STAGES[stage - 1]!.name}
           </div>
@@ -112,7 +116,7 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
           )}
           {ARMOR_SLOTS.some((s) => loadout[s]) && (
             <Button size="sm" variant="secondary" className="mt-1.5" data-testid="armor-visibility" onClick={() => setVisOpen(true)}>
-              <Palette className="h-3.5 w-3.5" /> Rüstung: Farbe & Anzeige
+              <Palette className="h-3.5 w-3.5" /> Farbe & Anzeige
             </Button>
           )}
           <Button size="sm" variant="ghost" className="mt-1" data-testid="open-inventory" onClick={() => nav('/held?tab=inventar')}>

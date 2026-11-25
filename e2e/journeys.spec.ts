@@ -107,7 +107,8 @@ test('E2E-04 Rezept erstellen → Portion berechnen → ins Tagebuch', async ({ 
   await dlg.getByText('Alle Nährwerte').click();
   await expect(dlg.getByTestId('recipe-nutrition')).toContainText('564 kcal');
   await dlg.getByRole('button', { name: 'Rezept speichern' }).click();
-  await dismissCelebrations(page); // Abzeichen „Koch des Kaisers“
+  await page.getByTestId('celebration-title').first().waitFor({ timeout: 15000 }); // Abzeichen „Koch des Kaisers“ + Küchenjunge
+  await dismissCelebrations(page);
   await expect(page.getByTestId('recipe-card')).toContainText('282 kcal');
   await page.getByRole('button', { name: 'Ins Tagebuch' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Buchen' }).click();
@@ -143,6 +144,7 @@ test('AK-118 Rezept: Eier per Stück (S/M/L), Mehl gefunden, Fertiggewicht, Buch
   await page.waitForTimeout(300);
   await dlg.screenshot({ path: 'test-results/rezept-editor.png' });
   await dlg.getByRole('button', { name: /Rezept speichern/ }).click();
+  await page.getByTestId('celebration-title').first().waitFor({ timeout: 15000 });
   await dismissCelebrations(page);
   // Buchen in Gramm
   await page.getByRole('button', { name: 'Ins Tagebuch' }).click();
@@ -435,7 +437,7 @@ test('AK-121 Küchen-Rüstung: erstes eigenes Rezept → Küchenjunge, Verwendun
   await dlg.getByLabel('Zutat suchen').fill('Ei');
   await dlg.getByRole('button', { name: /^Ei \(Hühnerei\)/ }).click();
   await dlg.getByRole('button', { name: /Rezept speichern/ }).click();
-  await expect(page.getByText('Rüstung: Küchenjunge')).toBeVisible({ timeout: 8000 }).catch(() => undefined);
+  await page.getByTestId('celebration-title').first().waitFor({ timeout: 15000 });
   await dismissCelebrations(page);
   await expect(prog).toContainText('Küchen-Rüstung 1/3');
   await expect(prog).toContainText('„Koch“: 1/5 Rezepte angelegt · 0/10× eigenes Rezept gegessen (max. 4 pro Tag)');

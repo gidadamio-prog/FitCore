@@ -504,12 +504,13 @@ export function HeroLayers({ bodyUrl, bodyId, look, armor }: { bodyUrl?: string;
   );
 }
 
-export function HeroFigure({ bodyType, aura, width = 140, className, children, look, armor }: { bodyType: BodyTypeId; aura?: string | null; width?: number; className?: string; children?: ReactNode; look?: HeroLook; armor?: WornArmor }) {
+/** `width: 'fill'` = so breit wie der Platz (Höhe 3:2), sonst feste Breite in px */
+export function HeroFigure({ bodyType, aura, width = 140, className, children, look, armor }: { bodyType: BodyTypeId; aura?: string | null; width?: number | 'fill'; className?: string; children?: ReactNode; look?: HeroLook; armor?: WornArmor }) {
   const url = rpgAsset(bodyFile(bodyType));
   const ownLook = useSettings().hero?.look;
   const ownArmor = useOwnArmor();
   return (
-    <div className={cn('relative shrink-0', className)} style={{ width, height: width * 1.5 }} data-testid="hero-figure" data-body={bodyType} role="img" aria-label={`Held, Körperbau: ${bodyTypeLabel(bodyType)}`}>
+    <div className={cn('relative shrink-0', className)} style={width === 'fill' ? { width: '100%', aspectRatio: '2 / 3' } : { width, height: width * 1.5 }} data-testid="hero-figure" data-body={bodyType} role="img" aria-label={`Held, Körperbau: ${bodyTypeLabel(bodyType)}`}>
       {aura && <div className="aura" style={{ background: aura }} />}
       <div className="portrait-breathe relative h-full w-full">
         {url && <HeroLayers bodyUrl={url} bodyId={bodyType} look={look ?? ownLook} armor={armor ?? ownArmor} />}

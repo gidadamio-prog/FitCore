@@ -3,6 +3,7 @@
 # Aufruf: python3 scripts/armor/process_extra.py <bild.png> <erster Set-Index> <Spalten> [--stoff 36,…] [--ohne-baender 36,…]
 #   --stoff: Sets ohne roten Stoff bekommen das Haupt-Material als Färbe-Ebene
 #   --ohne-baender: herabhängende Bänder/Knoten unter der Kopfbedeckung abschneiden (sie fielen übers Gesicht)
+#   --kopf-tiefer 36:40,…: Kopfbedeckung um so viele Pixel (von 1152) tiefer setzen, damit sie bis zur Stirn sitzt
 # Nach scripts/armor/process.py (schreibt armorLayout.ts neu) dieses Skript erneut ausführen.
 import sys, os, re, importlib.util
 import numpy as np
@@ -108,6 +109,7 @@ if __name__ == '__main__':
     path, first, cols = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
     opt = lambda flag: {int(x) for a, b in zip(sys.argv, sys.argv[1:]) if a == flag for x in b.split(',')}
     fabric, tails = opt('--stoff'), opt('--ohne-baender')
+    head_dy = {int(k): float(v) for a, b in zip(sys.argv, sys.argv[1:]) if a == '--kopf-tiefer' for k, v in (x.split(':') for x in b.split(','))}
     aspect, headpos, dye, scale = {}, {}, [], {}
     for k, p in enumerate(parts(P.load(path), cols)):
         i = first + k; fab = i in fabric
@@ -120,7 +122,7 @@ if __name__ == '__main__':
         if k: scale[f'ruestung_{i:02d}_brust'] = k
         f = hair_fit(p['head']); s = f['s'] * 1.12; h, w = p['head'].shape[:2]
         put(p['head'], 'kopf', width=w * s * 1.15)
-        headpos[i] = [round((384 - f['ax'] * s) / 768 * 100, 2), round((f['ty'] - f['ay'] * s - 4) / 1152 * 100, 2), round(w * s / 768 * 100, 2)]
+        headpos[i] = [round((384 - f['ax'] * s) / 768 * 100, 2), round((f['ty'] - f['ay'] * s - 4 + head_dy.get(i, 0)) / 1152 * 100, 2), round(w * s / 768 * 100, 2)]
         put(P.clear_collar(p['chest']), 'brust', width=240)
         put(p['hose'], 'hose', width=190)
         for side in 'lr':
