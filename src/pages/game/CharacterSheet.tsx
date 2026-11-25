@@ -12,7 +12,7 @@ import { useBodyType } from '@/hooks/game';
 import { bodyTypeLabel } from '@/domain/bodyType';
 import { useCurrentGoalVersion } from './useGoal';
 import { useSettings } from '@/hooks/data';
-import { applyPath, equipArmorSet, equipToHero, previewPath, toggleArmorHidden, unequipFromHero } from '@/data/arena';
+import { applyPath, equipArmorSet, equipToHero, previewPath, setArmorHidden, toggleArmorHidden, unequipFromHero } from '@/data/arena';
 import { toast } from '@/stores/ui';
 import { RANKS, type GameState } from '@/domain/gamification';
 import { APPEARANCE_STAGES, CATEGORY_AURA, CATEGORY_LABEL, RARITY_COLOR, RARITY_LABEL, RARITY_MIN_RANK, SLOTS, appearanceStage, inventory, itemById, normalizeLoadout, setAura, type OwnedItem, type SlotId } from '@/domain/equipment';
@@ -62,6 +62,7 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
   const [open, setOpen] = useState<SlotId | null>(null);
   const [flash, setFlash] = useState<SlotId | null>(null);
   const [lookOpen, setLookOpen] = useState(false);
+  const [visOpen, setVisOpen] = useState(false);
   const newLooks = useNewLooks(game);
   const path = pathById(pathForGoal(goal?.primaryGoal) ?? undefined);
   const stage = appearanceStage(game.rank.rank.level);
@@ -102,6 +103,11 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
               )}
             </Button>
           )}
+          {ARMOR_SLOTS.some((s) => loadout[s]) && (
+            <Button size="sm" variant="secondary" className="mt-1.5" data-testid="armor-visibility" onClick={() => setVisOpen(true)}>
+              {hero.armorHidden?.length ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />} Rüstung anzeigen
+            </Button>
+          )}
           {fullSet && (
             <Badge tone="accent" className="mt-1" data-testid="armor-set-bonus">
               Set-Bonus: {fullSet.name} ({ARMOR_CLASS_LABEL[fullSet.cls]})
@@ -121,6 +127,38 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
         {col(['off', 'legs', 'feet'])}
       </div>
       {lookOpen && <LookEditor hero={hero} game={game} onClose={() => setLookOpen(false)} />}
+      <Sheet open={visOpen} onClose={() => setVisOpen(false)} title="Rüstung auf der Figur">
+        <p className="mb-3 text-xs text-muted">Ausgeblendete Teile bleiben angelegt – Kampfwerte und Set-Bonus gelten weiter. Nur deine Figur zeigt sie nicht (z. B. Helm aus, damit die Frisur zu sehen ist).</p>
+        <ul className="space-y-2">
+          {ARMOR_SLOTS.filter((s) => loadout[s]).map((s) => {
+            const off = !!hero.armorHidden?.includes(s);
+            return (
+              <li key={s}>
+                <button
+                  type="button"
+                  className={cn('flex w-full items-center justify-between rounded-xl border p-3 text-left text-sm', off ? 'border-fg/10 text-muted' : 'border-gold/40')}
+                  onClick={() => void toggleArmorHidden(s)}
+                  data-testid={`vis-${s}`}
+                  aria-pressed={!off}
+                >
+                  <span>
+                    <span className="font-medium text-fg">{SLOTS.find((x) => x.id === s)!.label}</span> · {itemById(loadout[s]!)?.name}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs">{off ? <><EyeOff className="h-4 w-4" /> ausgeblendet</> : <><Eye className="h-4 w-4" /> sichtbar</>}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Button variant="secondary" data-testid="vis-all-on" onClick={() => void setArmorHidden([...ARMOR_SLOTS], false)}>
+            Alle zeigen
+          </Button>
+          <Button variant="secondary" data-testid="vis-all-off" onClick={() => void setArmorHidden([...ARMOR_SLOTS], true)}>
+            Alle ausblenden
+          </Button>
+        </div>
+      </Sheet>
       {open && (
         <SlotSheet
           slot={open}
@@ -146,6 +184,12 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
   const label = SLOTS.find((s) => s.id === slot)!.label;
   return (
     <Sheet open onClose={onClose} title={`${label} – Inventar`}>
+      {current && ARMOR_SLOTS.includes(slot as ArmorSlot) && (
+        <Button variant="secondary" className="mb-3 w-full" data-testid="toggle-armor-hidden" onClick={() => void toggleArmorHidden(slot)}>
+          {hero.armorHidden?.includes(slot) ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          {hero.armorHidden?.includes(slot) ? 'Auf der Figur wieder zeigen' : 'Auf der Figur ausblenden (bleibt angelegt)'}
+        </Button>
+      )}
       <ul className="space-y-2" data-testid="inventory">
         {items.map((o) => {
           const equipped = current === o.def.id;
@@ -221,12 +265,6 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
           );
         })}
       </ul>
-      {current && ARMOR_SLOTS.includes(slot as ArmorSlot) && (
-        <Button variant="secondary" className="mt-3 w-full" data-testid="toggle-armor-hidden" onClick={() => void toggleArmorHidden(slot)}>
-          {hero.armorHidden?.includes(slot) ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          {hero.armorHidden?.includes(slot) ? 'Auf der Figur wieder zeigen' : 'Auf der Figur ausblenden (bleibt angelegt)'}
-        </Button>
-      )}
       {current && (
         <Button
           variant="ghost"

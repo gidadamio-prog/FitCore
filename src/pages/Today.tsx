@@ -22,6 +22,7 @@ import { backupDue, saveBackupToCloud } from '@/data/backup';
 import { setSetting } from '@/data/profileRepo';
 import { useGame } from '@/hooks/game';
 import { RankHeader, StreakChips } from './Achievements';
+import { SickBanner, SickButton } from '@/components/SickDay';
 import { DailyQuestBanner, QuestBoard } from '@/components/QuestBoard';
 import { db } from '@/data/db';
 import type { RecoveryLog } from '@/domain/types';
@@ -110,14 +111,16 @@ export function Today() {
           </div>
         </Card>
       )}
+      <SickBanner />
       {game && <BossStage game={game} onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')} cta={settings.hero ? `Zur Weltkarte · ${game.world.ap} AP` : 'Helden erschaffen und losziehen'} />}
       {game && (
         <Card className="border-gold/25" data-testid="game-card">
           <button className="block w-full text-left" onClick={() => nav('/erfolge')} aria-label="Zur Ruhmeshalle">
             <RankHeader game={game} compact />
           </button>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <StreakChips game={game} />
+            <SickButton />
           </div>
           <button className="mt-3 block w-full rounded-xl bg-fg/[0.04] p-3 text-left" onClick={() => nav('/erfolge?tab=held')} data-testid="today-hero">
             {settings.hero ? (
@@ -222,6 +225,7 @@ export function Today() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardTitle action={<Badge>{DAY_TYPE_LABELS[dayType]}</Badge>}>Geplantes Training</CardTitle>
+          {settings.sickDays?.includes(date) && <p className="mb-2 text-xs text-sky-300" data-testid="sick-training">Krankentag – Training ist heute keine Pflicht.</p>}
           {plan ? (
             todaysDays.length ? (
               <ul className="space-y-2">

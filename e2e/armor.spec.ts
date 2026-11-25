@@ -42,6 +42,19 @@ test('AK-109 Rüstung: Start-Set auf der Figur, Kopfteil verdeckt Frisur, ganzes
   await expect(fig.getByTestId('layer-hair')).toBeVisible();
   await expect(sheet.getByTestId('armor-set-bonus')).toBeVisible();
 
+  // Sichtbarkeit direkt unter der Figur: alle ausblenden → Figur ohne Rüstung, Bonus bleibt; alle zeigen
+  await sheet.getByTestId('armor-visibility').click();
+  await page.getByTestId('vis-all-off').click();
+  await expect(fig.getByTestId('armor-chest')).toHaveCount(0);
+  await expect(page.getByTestId('vis-chest')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByTestId('vis-all-on').click();
+  await expect(fig.getByTestId('armor-chest')).toBeVisible();
+  await expect(fig.getByTestId('armor-head')).toBeVisible();
+  await page.getByTestId('vis-head').click();
+  await page.keyboard.press('Escape');
+  await expect(fig.getByTestId('armor-head')).toHaveCount(0);
+  await expect(sheet.getByTestId('armor-set-bonus')).toBeVisible();
+
   // Rüstungsfarbe: 3 zum Start (Original, Nachtblau, Rabenschwarz), Rest gesperrt
   await sheet.getByRole('button', { name: 'Aussehen' }).click();
   await page.getByTestId('look-editor').getByRole('tab', { name: 'Farben' }).click();

@@ -55,8 +55,9 @@ export function useGame(): GameState | undefined {
       worldLog: settings.worldLog,
       questPicks: settings.questPicks,
       questBoardStart: QUEST_BOARD_START,
+      sickDays: settings.sickDays,
     });
-  }, [data, day, settings.waterGoalMl, settings.homeGym, settings.mealSplit, settings.hero?.classId, settings.stepGoal, settings.questPicks, settings.setBonusLog, settings.worldLog, mealIds]);
+  }, [data, day, settings.waterGoalMl, settings.homeGym, settings.mealSplit, settings.hero?.classId, settings.stepGoal, settings.questPicks, settings.setBonusLog, settings.worldLog, settings.sickDays, mealIds]);
 }
 
 /** Grundkörper des Helden aus Messungen und Profil (null, solange kein Gewicht erfasst ist). */

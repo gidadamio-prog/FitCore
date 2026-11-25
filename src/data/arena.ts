@@ -162,6 +162,18 @@ export async function toggleArmorHidden(slot: string) {
   await setSetting('hero', { ...s.hero, armorHidden: [...hidden] });
 }
 
+/** Mehrere Rüstungsplätze auf einmal ein- oder ausblenden (bleiben angelegt, Boni gelten weiter). */
+export async function setArmorHidden(slots: string[], hidden: boolean) {
+  const s = await getSettings();
+  if (!s.hero) return;
+  const set = new Set(s.hero.armorHidden ?? []);
+  for (const slot of slots) {
+    if (hidden) set.add(slot);
+    else set.delete(slot);
+  }
+  await setSetting('hero', { ...s.hero, armorHidden: [...set] });
+}
+
 export async function setArmorColor(color: string | null) {
   const s = await getSettings();
   if (!s.hero) return;

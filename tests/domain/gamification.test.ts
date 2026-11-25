@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { badgeStatus, computeGame, dayStreak, earnedBadgeKeys, prEvents, questsForWeek, rankFor, RANKS, weekStreak, XP_RULES, dayFacts, type GameInput } from '@/domain/gamification';
+import { badgeStatus, computeGame, dayStreak, SICK_WEEK_MIN, earnedBadgeKeys, prEvents, questsForWeek, rankFor, RANKS, weekStreak, XP_RULES, dayFacts, type GameInput } from '@/domain/gamification';
 import { addDays } from '@/domain/dates';
 import type { DiaryEntry, GoalVersion } from '@/domain/types';
 import { EXERCISE_LIBRARY, VITOVA_NORDENSTADT } from '@/data/exerciseLibrary';
@@ -85,6 +85,35 @@ describe('Serien', () => {
     expect(w.current).toBe(3);
     expect(w.best).toBe(3);
     expect(weekStreak(['2026-01-06'], '2026-01-14').current).toBe(1); // laufende Woche noch offen
+  });
+});
+
+describe('Krankentage', () => {
+  const days = (from: string, n: number, skip: number[] = []) => new Set(Array.from({ length: n }, (_, i) => addDays(from, i)).filter((_, i) => !skip.includes(i)));
+  it('Krankentage zählen nicht, brechen die Tages-Serie aber nicht', () => {
+    // 05.–14.01., krank 09.–11.01. (3 Tage in Folge, ohne Krankmeldung wäre die Serie weg)
+    const active = days('2026-01-05', 10, [4, 5, 6]);
+    expect(dayStreak(active, '2026-01-14').current).toBe(3);
+    const s = dayStreak(active, '2026-01-14', new Set(['2026-01-09', '2026-01-10', '2026-01-11']));
+    expect(s.current).toBe(7);
+    expect(s.shieldUsedThisWeek).toBe(false);
+    // heute krank und noch nichts eingetragen: Serie bleibt stehen
+    expect(dayStreak(days('2026-01-05', 9), '2026-01-14', new Set(['2026-01-14'])).current).toBe(9);
+  });
+  it('Trainings-Serie: Woche mit mind. 2 Krankentagen ohne Training pausiert, 1 Tag reicht nicht', () => {
+    const train = ['2025-12-30', '2026-01-13']; // Wochen 29.12. und 12.01., Woche 05.01. ohne Training
+    expect(weekStreak(train, '2026-01-14').current).toBe(1);
+    expect(weekStreak(train, '2026-01-14', ['2026-01-07']).current).toBe(1);
+    const w = weekStreak(train, '2026-01-14', ['2026-01-07', '2026-01-08']);
+    expect(w.current).toBe(2);
+    expect(w.best).toBe(2);
+    expect(SICK_WEEK_MIN).toBe(2);
+  });
+  it('Tagesauftrag am Krankentag: Heiltrank (Trinkziel)', () => {
+    const input = base({ sickDays: ['2026-01-14'], questBoardStart: '2026-01-01' });
+    const g = computeGame(input);
+    expect(g.sickToday).toBe(true);
+    expect(g.dailyQuest?.id).toBe('d-heal');
   });
 });
 

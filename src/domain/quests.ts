@@ -22,6 +22,8 @@ export interface QuestCtx {
   heroClass?: HeroClassId;
   /** Wochentage (1=Mo … 7=So), an denen der aktive Plan Training vorsieht */
   planWeekdays?: number[];
+  /** Krankentage: Tagesauftrag wird zum Heiltrank (Trinkziel) */
+  sickDays?: Set<string>;
 }
 
 // ---------- Zufall, an Woche/Tag gebunden ----------
@@ -381,6 +383,11 @@ const DAILY_POOL: DailyTpl[] = [
 
 /** An etwa 3 von 5 Tagen erscheint ein Tagesauftrag – stabil je Datum. */
 export function dailyQuest(date: string, ctx: QuestCtx): Quest | null {
+  if (ctx.sickDays?.has(date)) {
+    const f = ctx.facts.get(date);
+    const progress = f?.waterHit ? 1 : 0;
+    return { id: 'd-heal', title: 'Heiltrank: Trinkziel erreichen', description: 'Krankentag – ruh dich aus und trink genug.', target: 1, unit: 'Ziel', progress, done: progress >= 1 };
+  }
   const r = rng('tagesauftrag:' + date);
   if (r() >= 0.6) return null;
   const weights = DAILY_POOL.map((t) => t.weight?.(date, ctx) ?? 1);
