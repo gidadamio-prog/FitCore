@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Flame, Shield, Swords, Trophy, Info } from 'lucide-react';
 import { Card, CardTitle, Progress, Badge, Tabs, fmt, cn } from '@/components/ui';
@@ -16,10 +16,12 @@ import { DailyQuestBanner, QuestBoard } from '@/components/QuestBoard';
 import { CampaignTab } from './game/CampaignTab';
 import { ArenaTab } from './game/ArenaTab';
 import { MarketTab } from './game/MarketTab';
+import { InventoryTab } from './game/InventoryTab';
 
-type GameTab = 'held' | 'feldzug' | 'arena' | 'ruhm' | 'markt';
+type GameTab = 'held' | 'inventar' | 'feldzug' | 'arena' | 'ruhm' | 'markt';
 const GAME_TABS: { value: GameTab; label: string }[] = [
   { value: 'held', label: 'Held' },
+  { value: 'inventar', label: 'Inventar' },
   { value: 'feldzug', label: 'Feldzug' },
   { value: 'arena', label: 'Arena' },
   { value: 'ruhm', label: 'Ruhm' },
@@ -31,10 +33,15 @@ export function Achievements() {
   const [params, setParams] = useSearchParams();
   const initial = (params.get('tab') as GameTab) || 'held';
   const [tab, setTab] = useState<GameTab>(GAME_TABS.some((t) => t.value === initial) ? initial : 'held');
+  // Links innerhalb der Ruhmeshalle (z. B. „Inventar“ am Charakterbogen) wechseln den Reiter
+  useEffect(() => {
+    if (GAME_TABS.some((t) => t.value === initial) && initial !== tab) setTab(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial]);
   if (!game) return null;
   return (
     <div className="space-y-4">
-      <PageHeader title="Ruhmeshalle" subtitle="Dein Held, Feldzug, Arena und Abzeichen – berechnet aus deinen echten Einträgen." />
+      <PageHeader title="Ruhmeshalle" subtitle="Dein Held, Inventar, Feldzug, Arena und Abzeichen – berechnet aus deinen echten Einträgen." />
       <Tabs
         value={tab}
         onChange={(t) => {
@@ -63,6 +70,7 @@ export function Achievements() {
       {tab === 'arena' && <ArenaTab game={game} />}
       {tab === 'ruhm' && <FameTab game={game} />}
       {tab === 'markt' && <MarketTab game={game} />}
+      {tab === 'inventar' && <InventoryTab game={game} />}
     </div>
   );
 }

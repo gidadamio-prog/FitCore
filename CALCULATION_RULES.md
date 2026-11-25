@@ -205,3 +205,9 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Boss-Waffen: Nebelinseln Nebelklingen, Hirtenland Kettensichel, Drachenberge Falx, Löwensteppe Löwenkreis, Sobeks Delta Klingenfächer, Gipfelreich Adlerflegel, Reiterwüste Parthische Armbrust, Hunnensteppe Horn des Etzel, Thron der Könige Siegel der Könige, Kaiserstadt Zepter des Palatiums.
 - Gegner richten sich nach einem Referenz-Helden mit Einhandwaffe + Schild der unteren Stufe des Regionsfensters.
 - Figur: Haupthand links im Bild, Nebenhand rechts; Griffpunkt, Länge und Neigung je Art (`src/domain/weaponHold.ts`), Handpunkt aus der Arm-Ebene jedes Grundkörpers. Waffen lassen sich wie Rüstung ausblenden. Prüfansicht aller Körper: `#/vorschau?main=…&off=…&set=…`.
+
+## Inventar (1.26.0)
+- Neuer Reiter „Inventar“ in der Ruhmeshalle (auch über „Inventar“ am Charakterbogen): alle gesammelten Waffen und Rüstungsteile als Raster.
+- Zähler: Waffen x/100, Rüstungsteile x/180, komplette Sets x/36 und Anteil der ganzen Sammlung.
+- Filter Alle/Waffen/Rüstung und nach Platz; Sortierung: Angelegtes zuerst, dann nach Seltenheit und Stufe. „Auch noch fehlende zeigen“ blendet Gesperrtes grau ein.
+- Antippen: Details mit Art/Stufe bzw. Set, Seltenheit, Angriff/Abwehr, Set-Fortschritt und Set-Bonus; bei fehlenden Teilen der Weg zur Freischaltung; Anlegen bzw. ganzes Set anlegen.
