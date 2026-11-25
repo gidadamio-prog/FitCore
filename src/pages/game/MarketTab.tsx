@@ -1,9 +1,10 @@
 import { Coins } from 'lucide-react';
 import { Badge, Button, Card, CardTitle, Tabs, fmt, cn } from '@/components/ui';
 import { useSettings } from '@/hooks/data';
-import { buyArmor, buyItem, equip, equipArmorSet, extraPrices } from '@/data/arena';
-import { denare, SHOP, XP_PER_DENAR, classById, type ShopItem } from '@/domain/rpg';
-import { ITEMS, STARTER_PRICE, inventory, itemById, starterPurchaseId } from '@/domain/equipment';
+import { buyArmor, buyItem, buyWeapon, equip, equipArmorSet, equipToHero, extraPrices } from '@/data/arena';
+import { denare, SHOP, XP_PER_DENAR, type ShopItem } from '@/domain/rpg';
+import { inventory, itemById } from '@/domain/equipment';
+import { WEAPON_ARTS, WEAPONS, isBuyable, minRankForQuality, weaponPrice, weaponStats, type WeaponArt } from '@/domain/weapons';
 import { ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, armorItemId, armorPrice, bonusText, setBonuses, type ArmorClass } from '@/domain/armor';
 import { gearExtra } from '@/domain/gear';
 import { RANKS } from '@/domain/gamification';
@@ -92,48 +93,7 @@ export function MarketTab({ game }: { game: GameState }) {
         </Card>
       ))}
       {hero && <ArmorShop game={game} balance={coins.balance} />}
-      {hero && (
-        <Card>
-          <CardTitle>Start-Ausrüstung anderer Klassen</CardTitle>
-          <ul className="divide-y">
-            {ITEMS.filter((i) => i.source.kind === 'starter' && i.source.classId !== hero.classId).map((i) => {
-              const pid = starterPurchaseId(i.id);
-              const owned = purchases.includes(pid);
-              return (
-                <li key={i.id} className="flex items-center gap-3 py-2" data-testid={`shop-${pid}`}>
-                  <ItemIcon item={i} rarity="common" size={40} animate={false} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{i.name}</div>
-                    <div className="text-[11px] text-muted">
-                      {i.source.kind === 'starter' && classById(i.source.classId)?.name}
-                      {i.twoHanded && ' · Zweihand'}
-                    </div>
-                  </div>
-                  {owned ? (
-                    <Badge>im Inventar</Badge>
-                  ) : (
-                    <Button
-                      size="sm"
-                      disabled={coins.balance < STARTER_PRICE}
-                      onClick={async () => {
-                        if (!(await confirmDialog({ title: `${i.name} kaufen?`, text: `Kostet ${STARTER_PRICE} Denare. Danach im Inventar des passenden Slots anlegbar.`, confirmLabel: 'Kaufen' }))) return;
-                        try {
-                          await buyItem(pid, game.xp, game.bonusDenare);
-                          toast(`${i.name} liegt im Inventar`, 'success');
-                        } catch (e) {
-                          toast((e as Error).message, 'error');
-                        }
-                      }}
-                    >
-                      <Coins className="h-4 w-4" /> {STARTER_PRICE}
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      )}
+      {hero && <WeaponShop game={game} balance={coins.balance} />}
       <p className="text-[11px] text-muted">Werden EP durch gelöschte Einträge weniger, kann dein Kontostand negativ werden. Gekauftes behältst du; neue Käufe gehen erst wieder mit positivem Stand.</p>
     </div>
   );
@@ -205,6 +165,74 @@ function ArmorShop({ game, balance }: { game: GameState; balance: number }) {
                   );
                 })}
               </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
+const ROM = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+function WeaponShop({ game, balance }: { game: GameState; balance: number }) {
+  const { hero, purchases, armorLoot } = useSettings();
+  const [art, setArt] = useState<WeaponArt>('schwert');
+  const inv = inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot));
+  const owned = new Set(inv.filter((o) => o.unlocked).map((o) => o.def.id));
+  const rank = game.rank.rank.level;
+  const list = WEAPONS.filter((w) => w.art === art && isBuyable(w));
+  const buy = async (id: string) => {
+    const w = WEAPONS.find((x) => x.id === id)!;
+    if (!(await confirmDialog({ title: `${w.name} kaufen?`, text: `Kostet ${weaponPrice(w)} Denare. Danach im Inventar anlegbar.`, confirmLabel: 'Kaufen' }))) return;
+    try {
+      await buyWeapon(id, game);
+      if (await confirmDialog({ title: 'Gleich anlegen?', text: `${w.name} jetzt in die ${w.slot === 'main' ? 'Haupthand' : 'Nebenhand'} nehmen?`, confirmLabel: 'Anlegen' })) {
+        const notice = await equipToHero(id, game);
+        if (notice) toast(notice, 'info');
+      }
+      toast(`${w.name} gehört dir`, 'success');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  };
+  return (
+    <Card data-testid="weapon-shop">
+      <CardTitle>Waffen</CardTitle>
+      <p className="mb-2 text-[11px] text-muted">Im Markt gibt es die Stufen I–V, je nach Rang. Stärkere Waffen bekommst du als Beute, über Abzeichen und von den Bossen.</p>
+      <div className="-mx-1 flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Waffenart">
+        {WEAPON_ARTS.map((a) => (
+          <button key={a.id} type="button" role="tab" aria-selected={a.id === art} onClick={() => setArt(a.id)} className={cn('shrink-0 rounded-full px-3 py-1 text-xs', a.id === art ? 'bg-gold/20 text-gold' : 'bg-fg/[0.06] text-muted')}>
+            {a.label}
+          </button>
+        ))}
+      </div>
+      <ul className="mt-2 divide-y">
+        {list.map((w) => {
+          const def = itemById(w.id)!;
+          const have = owned.has(w.id);
+          const open = rank >= minRankForQuality(w.q);
+          const st = weaponStats(w);
+          return (
+            <li key={w.id} className="flex items-center gap-3 py-2" data-testid={`shop-weapon-${w.id}`}>
+              <ItemIcon item={def} rarity={have ? 'common' : null} locked={!have && !open} size={46} animate={false} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{w.name}</div>
+                <div className="text-[11px] text-muted">
+                  Stufe {ROM[w.q]}
+                  {w.twoHanded && ' · Zweihand'}
+                  {st.atk != null && ` · Angriff +${st.atk}`}
+                  {st.def != null && ` · Abwehr +${st.def}`}
+                </div>
+                {!open && <div className="text-[11px] text-warn">ab Rang {RANKS[minRankForQuality(w.q) - 1]?.name}</div>}
+              </div>
+              {have ? (
+                <Badge>im Inventar</Badge>
+              ) : (
+                <Button size="sm" disabled={!open || balance < weaponPrice(w)} onClick={() => buy(w.id)}>
+                  <Coins className="h-4 w-4" /> {weaponPrice(w)}
+                </Button>
+              )}
             </li>
           );
         })}

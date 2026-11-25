@@ -1,7 +1,8 @@
 // Kampfwerte und Kampfsimulation auf der Weltkarte. Stärke kommt aus Heldenstufe und Ausrüstung –
 // Schaden am Boss entsteht nur im direkten Kampf (Belagerung über mehrere Tage).
 import { ARMOR_SETS, parseArmorId, type ArmorClass, type ArmorSlot } from './armor';
-import { itemById, type Rarity, type SlotId } from './equipment';
+import type { Rarity, SlotId } from './equipment';
+import { WEAPON_WINDOWS, weaponById, weaponStats } from './weapons';
 import { REGIONS, regionIndex, type NodeType } from './world';
 
 export interface Stats {
@@ -12,8 +13,6 @@ export interface Stats {
 
 export const ARMOR_DEF: Record<ArmorClass, number> = { stoff: 2, leder: 4, schwer: 7, boss: 10 };
 export const SLOT_WEIGHT: Record<ArmorSlot, number> = { head: 1, chest: 1.6, hands: 0.8, legs: 1.2, feet: 0.8 };
-export const WEAPON_ATK: Record<Rarity, number> = { common: 6, rare: 10, epic: 15, legendary: 22 };
-export const OFFHAND_DEF: Record<Rarity, number> = { common: 4, rare: 6, epic: 9, legendary: 13 };
 
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
@@ -21,11 +20,9 @@ const round1 = (x: number) => Math.round(x * 10) / 10;
 export function itemStats(id: string, rarity: Rarity | null): Partial<Stats> {
   const a = parseArmorId(id);
   if (a) return { def: round1(ARMOR_DEF[a.set.cls] * SLOT_WEIGHT[a.slot]) };
-  const def = itemById(id);
-  if (!def || !rarity) return {};
-  if (def.slot === 'main') return { atk: Math.round(WEAPON_ATK[rarity] * (def.twoHanded ? 1.35 : 1)) };
-  if (def.slot === 'off') return { def: OFFHAND_DEF[rarity] };
-  return {};
+  const w = weaponById(id);
+  if (!w || !rarity) return {};
+  return weaponStats(w);
 }
 
 /** Heldenwerte aus Stufe und getragener Ausrüstung (`worn` = Item-ID → getragene Seltenheit). */
@@ -58,10 +55,11 @@ export const KAMPFGEIST = 0.15;
 export function referenceHero(regionIdx: number): Stats {
   const r = REGIONS[Math.max(0, Math.min(REGIONS.length - 1, regionIdx))]!;
   const cls: ArmorClass = regionIdx < 3 ? 'stoff' : regionIdx < 6 ? 'leder' : regionIdx < 9 ? 'schwer' : 'boss';
-  const weapon: Rarity = regionIdx < 3 ? 'common' : regionIdx < 6 ? 'rare' : regionIdx < 9 ? 'epic' : 'legendary';
+  // übliche Bewaffnung: Einhandwaffe + Schild der unteren Stufe des Beutefensters
+  const q = WEAPON_WINDOWS[Math.max(0, Math.min(WEAPON_WINDOWS.length - 1, regionIdx))]![0];
   const level = r.minLevel + 1;
   const armor = (Object.keys(SLOT_WEIGHT) as ArmorSlot[]).reduce((a, s) => a + ARMOR_DEF[cls] * SLOT_WEIGHT[s], 0);
-  return { atk: Math.round(6 + 1.6 * level + WEAPON_ATK[weapon]), def: Math.round(0.6 * level + armor + OFFHAND_DEF[weapon]), hp: Math.round(60 + 10 * level + 2 * armor) };
+  return { atk: Math.round(6 + 1.6 * level + (5 + 2.2 * q)), def: Math.round(0.6 * level + armor + (4 + 1.3 * q)), hp: Math.round(60 + 10 * level + 2 * armor) };
 }
 
 export interface Foe extends Stats {

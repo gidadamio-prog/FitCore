@@ -1,5 +1,6 @@
 // Weltkarte: Wegenetz mit Nebel, Held, Gegnertrupps, Truhen und Hauptstädten. Bewegung und Aktionen kosten Aktionspunkte.
 import { lootLabel } from '@/domain/armor';
+import { weaponLootLabel } from '@/domain/weapons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Info, Swords, Shield, Heart, Lock, Flame, ChevronLeft } from 'lucide-react';
@@ -284,7 +285,7 @@ function NodeSheet({
         </div>
         {region && ['gegner', 'elite', 'truhe', 'hauptstadt'].includes(n.type) && (
           <p className="text-xs text-muted" data-testid="loot-table">
-            Mögliche Beute: Rüstung {lootLabel(regionIndex(region.id))}
+            Mögliche Beute: Rüstung {lootLabel(regionIndex(region.id))} · {weaponLootLabel(regionIndex(region.id))}
             {n.type === 'gegner' ? ' (die höchste Stufe nur bei Elite, Truhe und Boss)' : ''}
           </p>
         )}

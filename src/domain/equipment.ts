@@ -1,7 +1,9 @@
-// Ausrüstung: Slots, Gegenstände, Seltenheit, Rangbindung, Zweihand-Regel und Erscheinungsbild.
-// Rein kosmetisch – beeinflusst weder Schaden noch EP noch Kampfwert.
+// Ausrüstung: Slots, Gegenstände (Waffen und Rüstung), Seltenheit, Zweihand-Regel und Erscheinungsbild.
 import type { BadgeStatus } from './gamification';
 import type { HeroClassId } from './rpg';
+import { CAMPAIGN } from './rpg';
+import { BADGE_WEAPONS, START_WEAPONS, WEAPONS, firstLootRegion, isBuyable, minRankForQuality, ownsWeapon, weaponById, weaponPrice, weaponRarity, type WeaponContext } from './weapons';
+import { REGIONS } from './world';
 import { ARMOR_CLASS_RARITY, ARMOR_SETS, ARMOR_SLOTS, START_SET, armorHint, armorIconFile, armorItemId, armorPieceName, ownsArmorPiece, parseArmorId, type ArmorContext } from './armor';
 
 export type SlotId = 'main' | 'off' | 'head' | 'chest' | 'hands' | 'legs' | 'feet';
@@ -22,7 +24,6 @@ export const RARITY_LABEL: Record<Rarity, string> = { common: 'Gewöhnlich', rar
 export const RARITY_COLOR: Record<Rarity, string> = { common: '#9a9a9a', rare: '#3b8fe0', epic: '#a35bea', legendary: '#f08a24' };
 /** Mindestrang (1–10), ab dem eine Seltenheit getragen werden darf */
 export const RARITY_MIN_RANK: Record<Rarity, number> = { common: 1, rare: 1, epic: 5, legendary: 7 };
-const TIER_TO_RARITY = { bronze: 'rare', silver: 'epic', gold: 'legendary' } as const;
 
 export type ItemCategory = 'kraft' | 'ausdauer' | 'ernaehrung' | 'disziplin' | 'ruhm';
 export const CATEGORY_LABEL: Record<ItemCategory, string> = { kraft: 'Kraft', ausdauer: 'Ausdauer', ernaehrung: 'Ernährung', disziplin: 'Disziplin', ruhm: 'Ruhm' };
@@ -39,7 +40,7 @@ export interface ItemDef {
   twoHanded?: boolean;
   /** Bildmotiv für das Grafik-Briefing */
   motif: string;
-  source: { kind: 'starter'; classId: HeroClassId } | { kind: 'badge'; badgeId: string } | { kind: 'armor'; setIdx: number };
+  source: { kind: 'weapon'; weaponId: string } | { kind: 'armor'; setIdx: number };
   /** eigene Icon-Datei (Rüstungsteile nutzen ihre Figur-Ebene) */
   icon?: string;
   category?: ItemCategory;
@@ -47,41 +48,23 @@ export interface ItemDef {
   effectText?: string;
 }
 
-const starter = (classId: HeroClassId, slot: SlotId, key: string, name: string, motif: string, twoHanded = false): ItemDef => ({ id: key, name, slot, twoHanded, motif, source: { kind: 'starter', classId } });
-const reward = (badgeId: string, slot: SlotId, key: string, name: string, category: ItemCategory, effect: EffectId, effectText: string, motif: string, twoHanded = false): ItemDef => ({
-  id: key, name, slot, twoHanded, motif, source: { kind: 'badge', badgeId }, category, effect, effectText,
-});
-
-const WEAPONS: ItemDef[] = [
-  // Start-Ausrüstung
-  starter('legionar', 'main', 'gladius', 'Gladius', 'schlichter Eisen-Gladius'),
-  starter('legionar', 'off', 'scutum', 'Scutum', 'roter Langschild mit Goldadler'),
-  starter('gladiator', 'main', 'dreizack', 'Dreizack', 'Dreizack des Retiarius', true),
-  starter('cursor', 'main', 'botenstab', 'Botenstab', 'Botenstab mit Bronzekappe'),
-  starter('cursor', 'off', 'depeschenrolle', 'Depeschenrolle', 'versiegelte Schriftrolle'),
-  starter('strategos', 'main', 'kommandostab', 'Kommandostab', 'Kommandostab (Vitis) mit Goldbeschlag'),
-  starter('strategos', 'off', 'wachstafel', 'Wachstafel', 'Wachstafel mit Griffel'),
-  // Belohnungen aus Achievements
-  reward('prs', 'main', 'gladius-bestleistung', 'Gladius der Bestleistung', 'kraft', 'sparks', 'Funken sprühen von der Klinge', 'prunkvoller Gladius mit Goldgriff'),
-  reward('volume', 'main', 'hammer-atlas', 'Hammer des Atlas', 'kraft', 'quake', 'Bodenwelle, Steinchen hüpfen', 'riesiger Steinhammer mit Atlas-Relief', true),
-  reward('logstreak', 'main', 'feder-chronist', 'Feder des Chronisten', 'disziplin', 'ink', 'Tintenkleckse tropfen', 'übergroße Schreibfeder als Waffe'),
-  reward('recipes', 'main', 'kochloeffel-kaiser', 'Kochlöffel des Kaisers', 'ernaehrung', 'steam', 'Dampf und fliegende Kräuter', 'goldener Kochlöffel mit Lorbeergravur'),
-  reward('workouts', 'off', 'veteranenschild', 'Veteranenschild', 'kraft', 'shine', 'Glanzlicht wandert übers Metall', 'zerkratzter, geflügelter Rundschild'),
-  reward('water', 'off', 'amphore-aquaedukt', 'Amphore des Aquädukts', 'ernaehrung', 'water', 'Wasser schwappt, Tropfen fallen', 'bauchige Amphore mit Wellenmuster'),
-  reward('mealhits', 'off', 'waage-punktlandung', 'Waage der Punktlandung', 'ernaehrung', 'balance', 'Schalen pendeln exakt ein', 'bronzene Balkenwaage'),
-  reward('comeback', 'off', 'phoenixfackel', 'Phönixfackel', 'ausdauer', 'fire', 'Flammen und aufsteigende Funken', 'Fackel mit Phönixkopf'),
-  reward('studio', 'off', 'hantelscheiben-schild', 'Hantelscheiben-Schild', 'kraft', 'spin', 'Scheibe dreht sich, Metallglanz', 'Hantelscheibe als Schild mit Griff'),
-];
+/** Waffen aus den Waffen-Blättern (12 Arten in Stufen + 10 Boss-Unikate) */
+const WEAPON_ITEMS: ItemDef[] = WEAPONS.map((w) => ({ id: w.id, name: w.name, slot: w.slot, twoHanded: w.twoHanded, motif: '', source: { kind: 'weapon', weaponId: w.id }, icon: w.file }));
 /** Rüstungsteile aus den 36 Sets */
 const ARMOR_ITEMS: ItemDef[] = ARMOR_SETS.flatMap((set) =>
   ARMOR_SLOTS.map((slot): ItemDef => ({ id: armorItemId(set.idx, slot), name: armorPieceName(set, slot), slot, motif: '', source: { kind: 'armor', setIdx: set.idx }, icon: armorIconFile(set.idx, slot) })),
 );
-export const ITEMS: ItemDef[] = [...WEAPONS, ...ARMOR_ITEMS];
+export const ITEMS: ItemDef[] = [...WEAPON_ITEMS, ...ARMOR_ITEMS];
 const ITEM_MAP = new Map(ITEMS.map((i) => [i.id, i]));
 export const itemById = (id: string | null | undefined) => (id ? ITEM_MAP.get(id) : undefined);
 export const itemFile = (i: ItemDef) => i.icon ?? `${SLOTS.find((s) => s.id === i.slot)!.file}_${i.id}`;
-export const STARTER_PRICE = 150;
-export const starterPurchaseId = (itemId: string) => `item-${itemId}`;
+/** Abzeichen → freigeschaltete Waffen (bis zur erreichten Stufe) */
+export const badgeTiers = (badges: BadgeStatus[]) => Object.fromEntries(badges.map((b) => [b.id, b.tier ? ['bronze', 'silver', 'gold'].indexOf(b.tier) + 1 : 0]));
+export const badgeWeaponIds = (badges: BadgeStatus[]) => {
+  const t = badgeTiers(badges);
+  return Object.entries(BADGE_WEAPONS).flatMap(([id, ws]) => ws.slice(0, t[id] ?? 0));
+};
+export const bossOfRegionId = (regionId: string) => REGIONS.find((r) => r.id === regionId)?.bossId ?? regionId;
 
 export interface OwnedItem {
   def: ItemDef;
@@ -103,7 +86,7 @@ export interface InventoryExtra {
 }
 
 export function inventory(badges: BadgeStatus[], classId: HeroClassId | undefined, rankLevel: number, purchases: string[], extra: InventoryExtra = { defeatedBossIds: [], loot: [] }): OwnedItem[] {
-  const byId = new Map(badges.map((b) => [b.id, b]));
+  const bt = badgeTiers(badges);
   const ctx: ArmorContext = { rankLevel, defeatedBossIds: extra.defeatedBossIds, loot: extra.loot, purchases };
   return ITEMS.flatMap((def): OwnedItem[] => {
     if (def.source.kind === 'armor') {
@@ -112,32 +95,37 @@ export function inventory(badges: BadgeStatus[], classId: HeroClassId | undefine
       const r = own ? ARMOR_CLASS_RARITY[set.cls] : null;
       return [{ def, unlocked: r, worn: r, rankLocked: null, hint: own ? undefined : armorHint(set, ctx, extra.rankName ?? ((l) => `${l}`), extra.bossName ?? ((b) => b)) }];
     }
-    if (def.source.kind === 'starter') {
-      const own = def.source.classId === classId || purchases.includes(starterPurchaseId(def.id));
-      return [{ def, unlocked: own ? 'common' : null, worn: own ? 'common' : null, rankLocked: null, hint: own ? undefined : `Start-Ausrüstung · ${STARTER_PRICE} Denare im Markt` }];
-    }
-    const b = byId.get(def.source.badgeId);
-    if (!b) return []; // z. B. Studio-Abzeichen ohne Heimstudio
-    const unlocked: Rarity | null = b.tier ? TIER_TO_RARITY[b.tier] : null;
-    let worn: Rarity | null = null;
-    let rankLocked: Rarity | null = null;
-    if (unlocked) {
-      for (const r of RARITIES.slice(1, RARITIES.indexOf(unlocked) + 1)) {
-        if (rankLevel >= RARITY_MIN_RANK[r]) worn = r;
-        else if (!rankLocked) rankLocked = r;
-      }
-    }
-    const nextTarget = b.nextTarget;
-    const hint = !unlocked ? `${b.name} Bronze: ${b.description(b.tiers[0])}` : nextTarget != null ? `Nächste Stufe: ${b.description(nextTarget)}` : undefined;
-    return [{ def, unlocked, worn, rankLocked, hint }];
+    const w = weaponById(def.source.weaponId)!;
+    const wc: WeaponContext = { classId, purchases, loot: extra.loot, defeatedBossIds: extra.defeatedBossIds, badgeTiers: bt, bossOfRegion: bossOfRegionId };
+    const own = ownsWeapon(w, wc);
+    const r: Rarity | null = own ? weaponRarity(w) : null;
+    return [{ def, unlocked: r, worn: r, rankLocked: null, hint: own ? undefined : weaponHint(w, rankLevel, extra) }];
   });
+}
+
+/** Wie man an eine Waffe kommt (für gesperrte Einträge) */
+export function weaponHint(w: NonNullable<ReturnType<typeof weaponById>>, rankLevel: number, extra: InventoryExtra): string {
+  if (w.boss) {
+    const region = REGIONS.find((r) => r.id === w.boss!.region);
+    const boss = CAMPAIGN.find((b) => b.id === region?.bossId);
+    return `Beute von ${boss?.name ?? 'einem Boss'} (${region?.capital ?? ''})`;
+  }
+  const parts: string[] = [];
+  if (isBuyable(w)) parts.push(rankLevel >= minRankForQuality(w.q) ? `Markt · ${weaponPrice(w)} Denare` : `Markt ab Rang ${extra.rankName?.(minRankForQuality(w.q)) ?? minRankForQuality(w.q)}`);
+  const r = firstLootRegion(w.q);
+  if (r >= 0) parts.push(`Beute ab ${REGIONS[r]!.name}`);
+  const badge = Object.entries(BADGE_WEAPONS).find(([, ids]) => ids.includes(w.id));
+  if (badge) parts.push(`Abzeichen-Belohnung`);
+  return parts.join(' · ');
 }
 
 export type Loadout = Partial<Record<SlotId, string | null>>;
 
 export function defaultLoadout(classId: HeroClassId): Loadout {
   const l: Loadout = {};
-  for (const i of ITEMS) if (i.source.kind === 'starter' && i.source.classId === classId) l[i.slot] = i.id;
+  const st = START_WEAPONS[classId];
+  l.main = st.main;
+  if (st.off) l.off = st.off;
   // Start-Rüstung (ohne Kopf, damit die Frisur sichtbar bleibt)
   for (const s of ['chest', 'hands', 'legs', 'feet'] as const) l[s] = armorItemId(START_SET, s);
   return l;
@@ -177,7 +165,7 @@ export function equipItem(current: Record<SlotId, string | null>, item: ItemDef,
   }
   if (item.slot === 'off' && current.main && itemById(current.main)?.twoHanded) {
     const oneHanded = inv.filter((x) => x.worn && x.def.slot === 'main' && !x.def.twoHanded).map((x) => x.def);
-    const fallback = oneHanded.find((i) => i.source.kind === 'starter' && i.source.classId === classId) ?? oneHanded[0];
+    const fallback = oneHanded.find((i) => i.id === START_WEAPONS[classId].main) ?? oneHanded[0];
     next.main = fallback?.id ?? null;
     notice = `${itemById(current.main)?.name} braucht beide Hände – ${fallback ? `gegen ${fallback.name} getauscht` : 'abgelegt'}.`;
   }

@@ -1,5 +1,4 @@
 // Feier-Overlay (Bestleistung, Rangaufstieg, Abzeichen, Feldzug) und Beobachter für neue Erfolge.
-import { gearExtra } from '@/domain/gear';
 import { ARMOR_CLASS_LABEL, ARMOR_CLASS_RARITY, ARMOR_SETS, START_SET, armorItemId, setSource } from '@/domain/armor';
 import { useEffect, useRef } from 'react';
 import { Trophy } from 'lucide-react';
@@ -15,8 +14,8 @@ import { startOfWeek, today } from '@/domain/dates';
 import { useSettings } from '@/hooks/data';
 import { triumphCelebration } from '@/pages/game/HeroTab';
 import { HeroPortrait, ItemIcon } from './rpg/Visuals';
-import { APPEARANCE_STAGES, RARITY_COLOR, RARITY_LABEL, RARITY_MIN_RANK, appearanceStage, inventory, itemById } from '@/domain/equipment';
-import { RANKS } from '@/domain/gamification';
+import { APPEARANCE_STAGES, RARITY_COLOR, RARITY_LABEL, appearanceStage, badgeWeaponIds, itemById } from '@/domain/equipment';
+import { weaponById, weaponRarity } from '@/domain/weapons';
 
 export function CelebrationHost() {
   const { queue, shift } = useCelebrate();
@@ -77,7 +76,10 @@ interface Ack {
   comebacks?: string[];
   duels?: string[];
   triumph?: string | null;
+  /** früher: Abzeichen-Waffen alter Art (nicht mehr genutzt) */
   items?: string[];
+  /** Abzeichen-Waffen (neue Waffenreihen) */
+  weapons?: string[];
   stage?: number;
   armorSets?: number[];
 }
@@ -105,9 +107,8 @@ export function GameWatcher() {
         comebacks: game.comebacks,
         duels: game.duelWeeksWon,
         triumph: null,
-        items: inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot))
-          .filter((o) => o.def.source.kind === 'badge' && o.unlocked)
-          .map((o) => `${o.def.id}:${o.unlocked}`),
+        items: [],
+        weapons: badgeWeaponIds(game.badges),
         stage: appearanceStage(game.rank.rank.level),
         armorSets: ARMOR_SETS.filter((st) => st.idx !== START_SET && setSource(st, { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: [], purchases: [] })).map((st) => st.idx),
       };
@@ -124,7 +125,7 @@ export function GameWatcher() {
       const prevMastery = ack.mastery ?? now.mastery;
       const prevComebacks = ack.comebacks ?? now.comebacks;
       const prevDuels = ack.duels ?? now.duels;
-      const prevItems = ack.items ?? now.items;
+      const prevWeapons = ack.weapons ?? now.weapons;
       const prevStage = ack.stage ?? now.stage;
       const prevSets = ack.armorSets ?? now.armorSets;
 
@@ -158,18 +159,12 @@ export function GameWatcher() {
       }
       for (const d of now.comebacks.filter((x) => !prevComebacks.includes(x))) celebrate({ kind: 'comeback', title: 'Der Phönix kehrt zurück', subtitle: `Willkommen zurück im Training (${d}) · +${XP_RULES.comeback.xp} EP` });
       for (const w of now.duels.filter((x) => !prevDuels.includes(x))) celebrate({ kind: 'duel', title: 'Schatten besiegt', subtitle: `Die Woche ab ${w} war besser als vor 4 Wochen · +${XP_RULES.duel.xp} EP` });
-      for (const k of now.items.filter((x) => !prevItems.includes(x))) {
-        const [id, rarity] = k.split(':') as [string, 'rare' | 'epic' | 'legendary'];
+      for (const id of now.weapons.filter((x) => !prevWeapons.includes(x))) {
         const def = itemById(id);
-        if (!def) continue;
-        const locked = game.rank.rank.level < RARITY_MIN_RANK[rarity];
-        celebrate({
-          kind: 'item',
-          title: def.name,
-          subtitle: `${RARITY_LABEL[rarity]}${def.effectText ? ` · ${def.effectText}` : ''}`,
-          lines: locked ? [`In dieser Pracht tragbar ab Rang ${RANKS[RARITY_MIN_RANK[rarity] - 1]?.name}`] : ['Im Inventar – jetzt anlegen unter Held'],
-          item: { id, rarity },
-        });
+        const w = weaponById(id);
+        if (!def || !w) continue;
+        const rarity = weaponRarity(w);
+        celebrate({ kind: 'item', title: def.name, subtitle: `${RARITY_LABEL[rarity]} · Abzeichen-Belohnung`, lines: ['Im Inventar – jetzt anlegen unter Held'], item: { id, rarity } });
       }
       for (const idx of now.armorSets.filter((x) => !prevSets.includes(x))) {
         const st = ARMOR_SETS[idx]!;
@@ -203,7 +198,8 @@ export function GameWatcher() {
           comebacks: merge(prevComebacks, now.comebacks, 200),
           duels: merge(prevDuels, now.duels, 200),
           triumph,
-          items: merge(prevItems, now.items, 500),
+          items: ack.items,
+          weapons: merge(prevWeapons, now.weapons, 500),
           stage: Math.max(prevStage, now.stage),
         } satisfies Ack,
       });

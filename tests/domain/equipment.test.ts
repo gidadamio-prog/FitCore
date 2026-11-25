@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ITEMS, SLOTS, appearanceStage, defaultLoadout, equipItem, inventory, itemById, itemFile, normalizeLoadout, portraitFile, setAura, starterPurchaseId } from '@/domain/equipment';
+import { existsSync } from 'node:fs';
+import { ITEMS, SLOTS, appearanceStage, bossOfRegionId, defaultLoadout, equipItem, inventory, itemById, itemFile, normalizeLoadout, portraitFile } from '@/domain/equipment';
+import { BADGE_WEAPONS, WEAPONS, isBuyable, minRankForQuality, pickWeapon, weaponById, weaponId, weaponLootIds, weaponStats } from '@/domain/weapons';
 import { secretAchievements } from '@/domain/achievements';
 import { computeGame, questsForWeek, type BadgeStatus, type DayFacts, type GameInput } from '@/domain/gamification';
 import { emptyDayFacts } from '@/domain/gamification';
@@ -11,82 +13,95 @@ import type { GoalVersion } from '@/domain/types';
 import { ex, set, workout } from './fixtures';
 
 const badge = (id: string, tier: BadgeStatus['tier']): BadgeStatus => ({ id, name: id, description: (t) => `${t}`, tiers: [1, 2, 3], value: 0, tier, nextTarget: null });
-const allBadges = (tier: BadgeStatus['tier'] = null) =>
-  [...new Set(ITEMS.filter((i) => i.source.kind === 'badge').map((i) => (i.source as { badgeId: string }).badgeId))].map((id) => badge(id, tier));
+const allBadges = (tier: BadgeStatus['tier'] = null) => Object.keys(BADGE_WEAPONS).map((id) => badge(id, tier));
+const W = weaponId;
 
 describe('Katalog', () => {
-  it('7 Start-Waffen, 9 Waffen-Belohnungen, 180 Rüstungsteile, eindeutige IDs und Dateinamen', () => {
-    expect(ITEMS.filter((i) => i.source.kind === 'starter')).toHaveLength(7);
-    expect(ITEMS.filter((i) => i.source.kind === 'badge')).toHaveLength(9);
+  it('100 Waffen (90 in Reihen, 10 Boss-Waffen), 180 Rüstungsteile, eindeutige IDs, jede Waffe hat ein Bild', () => {
+    expect(ITEMS.filter((i) => i.source.kind === 'weapon')).toHaveLength(100);
+    expect(WEAPONS.filter((w) => w.boss)).toHaveLength(10);
     expect(ITEMS.filter((i) => i.source.kind === 'armor')).toHaveLength(180);
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
-    for (const i of ITEMS) expect(itemFile(i)).toMatch(/^(haupthand|nebenhand)_[a-z0-9-]+$|^ruestung_\d\d_(kopf|brust|arm_l|hose|stiefel_l)$/);
-    expect(itemFile(itemById('gladius-bestleistung')!)).toBe('haupthand_gladius-bestleistung');
+    for (const w of WEAPONS) expect(existsSync(`src/assets/rpg/${w.file}.webp`), w.file).toBe(true);
+    for (const i of ITEMS) expect(itemFile(i)).toMatch(/^waffe_[a-z]+_\d\d(_R)?$|^ruestung_\d\d_(kopf|brust|arm_l|hose|stiefel_l)$/);
   });
-  it('jede Klasse hat ein vollständiges Set; Gladiator mit Zweihandwaffe ohne Nebenhand', () => {
+  it('Qualität: 10er-Reihen 0–9, 5er-Reihen 0/2/5/7/9; Werte steigen mit der Stufe', () => {
+    expect(WEAPONS.filter((w) => w.art === 'schwert').map((w) => w.q)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(WEAPONS.filter((w) => w.art === 'axt').map((w) => w.q)).toEqual([0, 2, 5, 7, 9]);
+    const atk = WEAPONS.filter((w) => w.art === 'schwert').map((w) => weaponStats(w).atk!);
+    for (let k = 1; k < atk.length; k++) expect(atk[k]).toBeGreaterThan(atk[k - 1]!);
+    expect(weaponStats(weaponById(W('streitaxt', 0))!).atk).toBeGreaterThan(weaponStats(weaponById(W('schwert', 0))!).atk!);
+    expect(weaponStats(weaponById(W('buch', 0))!)).toMatchObject({ atk: expect.any(Number), def: expect.any(Number) });
+  });
+  it('jede Klasse startet mit Stufe-I-Waffen; Gladiator mit Zweihand-Speer ohne Nebenhand', () => {
     for (const c of ['legionar', 'cursor', 'strategos'] as const) expect(Object.keys(defaultLoadout(c))).toHaveLength(6);
+    expect(defaultLoadout('legionar')).toMatchObject({ main: W('schwert', 0), off: W('schild', 0) });
     const g = defaultLoadout('gladiator');
     expect(g.off).toBeUndefined();
     expect(itemById(g.main)?.twoHanded).toBe(true);
   });
-  it('Waffen-Aura Kraft und Ernährung mit Haupt- und Nebenhand erreichbar', () => {
-    for (const c of ['kraft', 'ernaehrung']) {
-      const slots = new Set(ITEMS.filter((i) => i.category === c).map((i) => i.slot));
-      expect(slots, c).toEqual(new Set(['main', 'off']));
-    }
-  });
 });
 
-describe('Seltenheit und Rangbindung', () => {
-  it('ohne Abzeichen gesperrt, Bronze = Selten ab Rang 1', () => {
-    const inv = inventory(allBadges(null), 'legionar', 1, []);
-    expect(inv.find((o) => o.def.id === 'gladius-bestleistung')).toMatchObject({ unlocked: null, worn: null });
-    const inv2 = inventory(allBadges('bronze'), 'legionar', 1, []);
-    expect(inv2.find((o) => o.def.id === 'gladius-bestleistung')).toMatchObject({ unlocked: 'rare', worn: 'rare', rankLocked: null });
+describe('Freischaltung', () => {
+  const inv = (o: { badges?: BadgeStatus[]; rank?: number; purchases?: string[]; loot?: string[]; bosses?: string[] }) => inventory(o.badges ?? [], 'legionar', o.rank ?? 1, o.purchases ?? [], { defeatedBossIds: o.bosses ?? [], loot: o.loot ?? [] });
+  const get = (list: ReturnType<typeof inv>, id: string) => list.find((x) => x.def.id === id)!;
+  it('Start-Waffen der eigenen Klasse sofort, fremde gesperrt mit Hinweis auf Markt und Beute', () => {
+    const l = inv({});
+    expect(get(l, W('schwert', 0)).worn).toBe('common');
+    expect(get(l, W('dolch', 0))).toMatchObject({ worn: null });
+    expect(get(l, W('dolch', 0)).hint).toMatch(/Markt · \d+ Denare · Beute ab Arvernerhöhen/);
+    expect(get(l, W('schwert', 9)).hint).toMatch(/Beute ab/);
+    expect(get(l, W('schwert', 9)).hint).not.toMatch(/Markt/);
   });
-  it('Gold freigeschaltet, aber als Novize nur Selten tragbar; Episch ab Optio, Legendär ab Primus Pilus', () => {
-    const at = (rank: number) => inventory(allBadges('gold'), 'legionar', rank, []).find((o) => o.def.id === 'gladius-bestleistung')!;
-    expect(at(1)).toMatchObject({ unlocked: 'legendary', worn: 'rare', rankLocked: 'epic' });
-    expect(at(5)).toMatchObject({ worn: 'epic', rankLocked: 'legendary' });
-    expect(at(7)).toMatchObject({ worn: 'legendary', rankLocked: null });
+  it('Kauf, Beute, Abzeichen (Bronze/Silber/Gold) und Boss schalten frei', () => {
+    expect(get(inv({ purchases: [W('dolch', 0)] }), W('dolch', 0)).worn).toBe('common');
+    expect(get(inv({ loot: [W('axt', 1)] }), W('axt', 1)).worn).toBe('common');
+    const silver = inv({ badges: allBadges('silver') });
+    expect(get(silver, W('schwert', 2)).worn).toBeTruthy();
+    expect(get(silver, W('schwert', 5)).worn).toBe('rare');
+    expect(get(silver, W('schwert', 8)).worn).toBeNull();
+    const falx = WEAPONS.find((w) => w.boss?.region === 'drachenberge')!;
+    expect(get(inv({}), falx.id).hint).toMatch(/Beute von/);
+    expect(get(inv({ bosses: [bossOfRegionId('drachenberge')] }), falx.id).worn).toBe('legendary');
   });
-  it('Start-Teile: eigene Klasse sofort, fremde nur gekauft; Studio-Teile nur mit Studio-Abzeichen', () => {
-    const inv = inventory([], 'cursor', 1, [starterPurchaseId('scutum')]);
-    expect(inv.find((o) => o.def.id === 'botenstab')?.worn).toBe('common');
-    expect(inv.find((o) => o.def.id === 'scutum')?.worn).toBe('common');
-    expect(inv.find((o) => o.def.id === 'gladius')?.worn).toBeNull();
-    expect(inv.some((o) => o.def.id === 'hantelscheiben-schild')).toBe(false);
+  it('Markt: Stufe I ab Rang 1, Stufe II ab Rang 3 … höchstens Stufe V; Boss-Waffen nie', () => {
+    expect(minRankForQuality(0)).toBe(1);
+    expect(minRankForQuality(1)).toBe(3);
+    expect(WEAPONS.filter(isBuyable).every((w) => w.q <= 4)).toBe(true);
+    expect(WEAPONS.filter((w) => w.boss).some(isBuyable)).toBe(false);
+  });
+  it('Beute: Startgebiet nur Stufe I–III, die höchste nur bei Elite/Truhe/Boss; nichts doppelt', () => {
+    const qs = (ids: string[]) => [...new Set(ids.map((id) => weaponById(id)!.q))].sort();
+    expect(qs(weaponLootIds(0, 'gegner'))).toEqual([0, 1]);
+    expect(qs(weaponLootIds(0, 'elite'))).toEqual([0, 1, 2]);
+    expect(Math.max(...weaponLootIds(11, 'boss').map((id) => weaponById(id)!.q))).toBe(9);
+    const ctx = { classId: 'legionar' as const, purchases: [], loot: [], defeatedBossIds: [], badgeTiers: {}, bossOfRegion: bossOfRegionId };
+    for (let i = 0; i < 50; i++) expect(pickWeapon(weaponLootIds(0, 'elite'), ctx, i / 50)).not.toBe(W('schwert', 0));
   });
 });
 
 describe('Zweihand-Regel und Ausrüstung', () => {
-  const inv = inventory(allBadges('bronze'), 'legionar', 3, []);
+  const inv = inventory(allBadges('gold'), 'legionar', 3, [W('streitaxt', 0)]);
   const base = normalizeLoadout(undefined, inv, 'legionar');
-  it('Standard = Start-Set, ungültige oder fremde Teile fallen weg', () => {
-    expect(base).toEqual({ main: 'gladius', off: 'scutum', head: null, chest: 'armor-00-chest', hands: 'armor-00-hands', legs: 'armor-00-legs', feet: 'armor-00-feet' });
-    expect(normalizeLoadout({ main: 'dreizack', head: 'scutum' }, inv, 'legionar')).toMatchObject({ main: null, head: null, off: 'scutum' });
-    // alte, entfernte Rüstungsteile fallen auf die Start-Rüstung zurück
-    expect(normalizeLoadout({ hands: 'manicae', feet: 'caligae' }, inv, 'legionar')).toMatchObject({ hands: 'armor-00-hands', feet: 'armor-00-feet' });
+  it('Standard = Start-Set, ungültige, fremde oder alte Waffen fallen weg', () => {
+    expect(base).toEqual({ main: W('schwert', 0), off: W('schild', 0), head: null, chest: 'armor-00-chest', hands: 'armor-00-hands', legs: 'armor-00-legs', feet: 'armor-00-feet' });
+    expect(normalizeLoadout({ main: W('dolch', 9), head: W('schild', 0) }, inv, 'legionar')).toMatchObject({ main: null, head: null, off: W('schild', 0) });
+    // alte Waffen (vor 1.25) fallen auf die Start-Waffen zurück
+    expect(normalizeLoadout({ main: 'gladius', off: 'scutum' }, inv, 'legionar')).toMatchObject({ main: W('schwert', 0), off: W('schild', 0) });
   });
   it('Zweihandwaffe legt die Nebenhand ab', () => {
-    const r = equipItem(base, itemById('hammer-atlas')!, inv, 'legionar');
-    expect(r.loadout).toMatchObject({ main: 'hammer-atlas', off: null });
-    expect(r.notice).toContain('Scutum');
+    const r = equipItem(base, itemById(W('streitaxt', 0))!, inv, 'legionar');
+    expect(r.loadout).toMatchObject({ main: W('streitaxt', 0), off: null });
+    expect(r.notice).toContain('Holzschild');
   });
-  it('Nebenhand bei Zweihandwaffe tauscht auf eine Einhandwaffe', () => {
-    const two = equipItem(base, itemById('hammer-atlas')!, inv, 'legionar').loadout;
-    const r = equipItem(two, itemById('amphore-aquaedukt')!, inv, 'legionar');
-    expect(r.loadout).toMatchObject({ main: 'gladius', off: 'amphore-aquaedukt' });
+  it('Nebenhand bei Zweihandwaffe tauscht auf die Start-Einhandwaffe', () => {
+    const two = equipItem(base, itemById(W('streitaxt', 0))!, inv, 'legionar').loadout;
+    const r = equipItem(two, itemById(W('buch', 2))!, inv, 'legionar');
+    expect(r.loadout).toMatchObject({ main: W('schwert', 0), off: W('buch', 2) });
   });
-  it('gesperrte oder zu hohe Teile lassen sich nicht anlegen; gespeicherte Zweihand-Kombination wird repariert', () => {
-    const none = inventory(allBadges(null), 'legionar', 1, []);
-    expect(() => equipItem(base, itemById('hammer-atlas')!, none, 'legionar')).toThrow(/nicht freigeschaltet/);
-    expect(normalizeLoadout({ main: 'hammer-atlas', off: 'scutum' }, inv, 'legionar')).toMatchObject({ main: 'hammer-atlas', off: null });
-  });
-  it('Waffen-Aura bei Haupt- und Nebenhand derselben Kategorie', () => {
-    const l = { ...base, main: 'kochloeffel-kaiser', off: 'amphore-aquaedukt' };
-    expect(setAura(l)).toBe('ernaehrung');
-    expect(setAura(base)).toBeNull();
+  it('gesperrte Teile lassen sich nicht anlegen; gespeicherte Zweihand-Kombination wird repariert', () => {
+    expect(() => equipItem(base, itemById(W('bogen', 4))!, inv, 'legionar')).toThrow(/nicht freigeschaltet/);
+    expect(normalizeLoadout({ main: W('streitaxt', 0), off: W('schild', 0) }, inv, 'legionar')).toMatchObject({ main: W('streitaxt', 0), off: null });
   });
 });
 

@@ -5,6 +5,8 @@ import type { GameState } from '@/domain/gamification';
 import { hash, lootSets, rollLoot } from '@/domain/armor';
 import { foeFor, simulateFight, type FightResult, type Foe, type Stats } from '@/domain/combat';
 import { heroStatsFor, trainedToday } from '@/domain/gear';
+import { badgeTiers, bossOfRegionId } from '@/domain/equipment';
+import { pickWeapon, weaponLootIds } from '@/domain/weapons';
 import {
   AP_COST,
   REGIONS,
@@ -81,6 +83,15 @@ function lootCtx(game: GameState, s: Awaited<ReturnType<typeof getSettings>>, st
   return { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: [...s.armorLoot, ...state.loot], purchases: s.purchases };
 }
 
+/** Waffen-Beute: Chance je Quelle, Fenster der Region, nichts doppelt */
+export const WEAPON_DROP_CHANCE = { gegner: 0.15, elite: 0.5, truhe: 0.35, boss: 1 } as const;
+function weaponDrop(key: string, source: keyof typeof WEAPON_DROP_CHANCE, regionIdx: number, game: GameState, s: Awaited<ReturnType<typeof getSettings>>, state: WorldState): string[] {
+  if (hash(`${key}#waffe`) >= WEAPON_DROP_CHANCE[source]) return [];
+  const ctx = { classId: s.hero?.classId, purchases: s.purchases, loot: [...s.armorLoot, ...state.loot], defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), badgeTiers: badgeTiers(game.badges), bossOfRegion: bossOfRegionId };
+  const id = pickWeapon(weaponLootIds(regionIdx, source), ctx, hash(`${key}#waffe-wahl`));
+  return id ? [id] : [];
+}
+
 export async function fight(nodeId: string, game: GameState): Promise<FightOutcome> {
   const { s, log, state, ap } = await load(game);
   const n = nodeById(nodeId);
@@ -101,6 +112,7 @@ export async function fight(nodeId: string, game: GameState): Promise<FightOutco
   let denare = 0;
   if (result.won) {
     loot = rollLoot(`${nodeId}|${at}`, n.type === 'elite' ? 1 : 0, lootCtx(game, s, state), n.type === 'elite' ? 0 : 0.4, lootSets(ri, n.type === 'elite' ? 'elite' : 'gegner'));
+    loot.push(...weaponDrop(`${nodeId}|${at}`, n.type === 'elite' ? 'elite' : 'gegner', ri, game, s, state));
     denare = Math.round((n.type === 'elite' ? 20 : 5) * (1 + ri * 0.3) * (1 + hash(at)));
   }
   await append(log, { k: 'fight', at, date: d, node: nodeId, ap: cost, won: result.won, loot, denare }, loot);
@@ -116,7 +128,7 @@ export async function openChest(nodeId: string, game: GameState) {
   needAp(ap, AP_COST.chest);
   const at = new Date().toISOString();
   const ri = regionIndex(n.region);
-  const loot = rollLoot(`${nodeId}|${at}`, 0, lootCtx(game, s, state), 0.65, lootSets(ri, 'truhe'));
+  const loot = [...rollLoot(`${nodeId}|${at}`, 0, lootCtx(game, s, state), 0.65, lootSets(ri, 'truhe')), ...weaponDrop(`${nodeId}|${at}`, 'truhe', ri, game, s, state)];
   const denare = Math.round((loot.length ? 10 : 30) * (1 + ri * 0.3) * (1 + hash(at)));
   await append(log, { k: 'chest', at, date: today(), node: nodeId, ap: AP_COST.chest, loot, denare }, loot);
   return { loot, denare };
@@ -141,7 +153,7 @@ export async function siege(nodeId: string, game: GameState): Promise<FightOutco
   const left = foe.hp - (state.bossDmg.get(n.region) ?? 0);
   const result = simulateFight(hero, foe, `${nodeId}|${at}`, { kampfgeist: kg, foeHp: left });
   const killed = result.foeHpEnd <= 0;
-  const loot = killed ? rollLoot(`${nodeId}|${at}`, 1, lootCtx(game, s, state), 0, lootSets(regionIndex(n.region), 'boss')) : [];
+  const loot = killed ? [...rollLoot(`${nodeId}|${at}`, 1, lootCtx(game, s, state), 0, lootSets(regionIndex(n.region), 'boss')), ...weaponDrop(`${nodeId}|${at}`, 'boss', regionIndex(n.region), game, s, state)] : [];
   const denare = killed ? 100 + regionIndex(n.region) * 40 : 0;
   await append(log, { k: 'siege', at, date: d, node: nodeId, ap: AP_COST.siege, dmg: result.dealt, killed, loot, denare }, loot);
   return { foe, hero, result, loot, denare, kampfgeist: kg, regionName: r.name, bossHpMax: foe.hp, killed };
