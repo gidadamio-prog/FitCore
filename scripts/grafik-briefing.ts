@@ -1,6 +1,7 @@
 // Erzeugt GRAFIK_BRIEFING.md direkt aus dem Katalog – Dateinamen stimmen dadurch immer mit dem Code überein.
 import { existsSync, writeFileSync } from 'node:fs';
-import { APPEARANCE_STAGES, ITEMS, itemFile, portraitFile, CLASS_FILE } from '../src/domain/equipment';
+import { APPEARANCE_STAGES, portraitFile, CLASS_FILE } from '../src/domain/equipment';
+import { BOSS_WEAPONS, WEAPON_ARTS } from '../src/domain/weapons';
 import { CAMPAIGN, HERO_CLASSES, bossAt, bossFile, colosseumBossName } from '../src/domain/rpg';
 
 const BOSS_LOOK: Record<string, string> = {
@@ -124,8 +125,7 @@ p();
 p('Damit legen wir den Stil fest, bevor du den Rest machst.');
 p();
 p(`- [ ] \`${portraitFile('legionar', 1)}.png\` – ${LOOK.legionar}; ${APPEARANCE_STAGES[0].look}`);
-const g = ITEMS.find((i) => i.id === 'gladius-bestleistung')!;
-p(`- [ ] \`${itemFile(g)}.png\` – ${g.motif}`);
+p('- [x] Waffen – geliefert (siehe Abschnitt 3)');
 p();
 p('## 2. Heldenporträts (20 Bilder: 4 Klassen × 5 Stufen)');
 p();
@@ -146,24 +146,12 @@ for (const c of HERO_CLASSES) {
   }
   p();
 }
-p('## 3. Start-Ausrüstung (23 Bilder)');
+p('## 3. Waffen (geliefert)');
 p();
-p('Jede Klasse startet mit einem gewöhnlichen Set. Der Gladiator trägt eine Zweihandwaffe und hat deshalb keine Nebenhand.');
+p('12 Waffenarten in Stufen plus 10 Boss-Waffen, zerlegt mit `scripts/weapons/process.py`. Für weitere Reihen: **ein Sammelbild je Art, Stufen nebeneinander, frontal, freigestellt**; Kampffäuste als Paar.');
 p();
-for (const c of HERO_CLASSES) {
-  p(`**${c.name}**`);
-  p();
-  for (const i of ITEMS.filter((x) => x.source.kind === 'starter' && x.source.classId === c.id)) p(`- [ ] \`${itemFile(i)}.png\` – ${i.name}: ${i.motif}${i.twoHanded ? ' (Zweihand)' : ''}`);
-  p();
-}
-p('## 4. Achievement-Ausrüstung (21 Bilder, davon 1 im Testlauf)');
-p();
-p('Wird über Abzeichen freigeschaltet. Bronze/Silber/Gold verwenden dasselbe Bild; Rahmen und Effekt-Stärke wachsen im Code. Den Effekt in Klammern **nicht** malen – nur zur Info, damit das Motiv dazu passt.');
-p();
-for (const i of ITEMS.filter((x) => x.source.kind === 'badge')) {
-  const done = i.id === 'gladius-bestleistung';
-  p(`- ${done ? '' : '[ ] '}\`${itemFile(i)}.png\` – ${i.name}: ${i.motif}${i.twoHanded ? ' (Zweihand)' : ''} _(Effekt: ${i.effectText})_${done ? ' – siehe Testlauf oben' : ''}`);
-}
+for (const a of WEAPON_ARTS) p(`- [x] ${a.label} – ${a.names.length} Stufen${a.twoHanded ? ' (Zweihand)' : ''}`);
+p(`- [x] Boss-Waffen – ${BOSS_WEAPONS.map((b) => b.name).join(', ')}`);
 p();
 p('## 5. Bosse für die Kampfszene (13 Bilder)');
 p();

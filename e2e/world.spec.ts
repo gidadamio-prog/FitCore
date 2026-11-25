@@ -28,6 +28,7 @@ test('AK-111 Weltkarte: Start mit 5 AP, Reisen kostet AP, Gegner blockiert bis b
   await map.getByTestId('node-arverner-a').dispatchEvent('click');
   const sheet = page.getByTestId('node-sheet');
   await expect(sheet.getByTestId('foe-stats')).toBeVisible();
+  await expect(sheet.getByTestId('loot-table')).toContainText('Rüstung Stoff II–IV');
   await sheet.getByTestId('travel').click();
   await expect(map.getByTestId('ap')).toContainText('4');
   await map.getByTestId('node-arverner-a').dispatchEvent('click');

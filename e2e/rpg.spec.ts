@@ -27,22 +27,24 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
 
   // Charakterbogen: Start-Set des Legionärs, Erscheinung Stufe 1 (Tiro)
   const sheet = page.getByTestId('character-sheet');
-  await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: Gladius');
-  await expect(sheet.getByTestId('slot-off')).toHaveAccessibleName('Nebenhand: Scutum');
+  await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: Holzschwert');
+  await expect(sheet.getByTestId('slot-off')).toHaveAccessibleName('Nebenhand: Holzschild');
   await expect(sheet.getByTestId('appearance-stage')).toContainText('Erscheinung 1/5');
   // Grundkörper aus dem Onboarding-Gewicht (80 kg, 180 cm, 30 J., KFA geschätzt ≈ 20 %)
   await expect(sheet.getByTestId('hero-figure')).toHaveAttribute('data-body', 'durchschnitt');
   await expect(sheet.getByTestId('body-type')).toContainText('Durchschnitt (geschätzt)');
   await sheet.getByTestId('slot-main').click();
   const inv = page.getByTestId('inventory');
-  await expect(inv.getByTestId('inv-gladius')).toContainText('angelegt');
-  await expect(inv.getByTestId('inv-gladius-bestleistung')).toContainText('Rekordjäger Bronze');
-  await expect(inv.getByTestId('inv-hammer-atlas')).toContainText('Zweihand');
+  await expect(inv.getByTestId('inv-waffe-schwert-00')).toContainText('angelegt');
+  await expect(inv.getByTestId('inv-waffe-schwert-00')).toContainText('Schwert I · Angriff +5');
+  await page.getByTestId('inventory-locked').locator('summary').click();
+  await expect(page.getByTestId('inv-waffe-dolch-00')).toContainText('Markt');
+  await expect(page.getByTestId('inv-waffe-streitaxt-00')).toContainText('Zweihand');
   await page.getByRole('button', { name: 'Haupthand ablegen' }).click();
   await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: leer');
   await sheet.getByTestId('slot-main').click();
-  await page.getByTestId('inv-gladius').getByRole('button', { name: 'Anlegen' }).click();
-  await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: Gladius');
+  await page.getByTestId('inv-waffe-schwert-00').getByRole('button', { name: 'Anlegen' }).click();
+  await expect(sheet.getByTestId('slot-main')).toHaveAccessibleName('Haupthand: Holzschwert');
 
   // Klasse = Trainingsfokus
   await expect(page.getByTestId('class-focus')).toContainText('Kraft und Muskelaufbau');
@@ -62,7 +64,7 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   // Feldzug
   await page.getByRole('tab', { name: 'Feldzug' }).click();
   await expect(page.getByTestId('boss-name')).toHaveText('Vercingetorix');
-  await expect(page.getByTestId('boss-hp')).toContainText('256 / 256 LP'); // Bosse nur im direkten Kampf
+  await expect(page.getByTestId('boss-hp')).toContainText('224 / 224 LP'); // Bosse nur im direkten Kampf
   await expect(page.getByTestId('province-current')).toHaveCount(1);
   await expect(page.getByTestId('duel')).toBeVisible();
 
@@ -98,16 +100,20 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   await page.getByRole('button', { name: 'Prüfen' }).click();
   await expect(page.getByText(/beschädigt/)).toBeVisible();
 
-  // Markt: noch zu wenig Denare, Start-Ausrüstung anderer Klassen
+  // Markt: noch zu wenig Denare; Waffen Stufe I käuflich, Stufe II erst ab höherem Rang
   await page.getByRole('tab', { name: 'Markt' }).click();
   await expect(page.getByTestId('denare')).toHaveText('0');
   await expect(page.getByTestId('shop-palette-byzanz').getByRole('button')).toBeDisabled();
-  await expect(page.getByTestId('shop-item-dreizack').getByRole('button')).toBeDisabled();
+  const ws = page.getByTestId('weapon-shop');
+  await expect(ws.getByTestId('shop-weapon-waffe-schwert-00')).toContainText('im Inventar');
+  await ws.getByRole('tab', { name: 'Dolch' }).click();
+  await expect(ws.getByTestId('shop-weapon-waffe-dolch-00').getByRole('button')).toBeDisabled();
+  await expect(ws.getByTestId('shop-weapon-waffe-dolch-01')).toContainText('ab Rang');
 
   // Ruhm: geheime Erfolge verdeckt, Abzeichen mit Belohnung
   await page.getByRole('tab', { name: 'Ruhm' }).click();
   await expect(page.getByTestId('secret-fruehaufsteher')).toContainText('???');
-  await expect(page.getByTestId('reward-prs')).toContainText('Gladius der Bestleistung');
+  await expect(page.getByTestId('reward-prs')).toContainText('Legionärsschwert');
   await dismissCelebrations(page);
   // Kein horizontales Überlaufen auf dem Handy
   for (const t of ['Held', 'Feldzug', 'Arena', 'Ruhm', 'Markt']) {

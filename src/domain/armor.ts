@@ -182,8 +182,47 @@ export function hash(s: string) {
  * Beute eines Kampfes – reproduzierbar aus dem Kampfschlüssel. Je Kampf 35 % Chance auf ein Teil,
  * je besiegtem Boss ein weiteres sicheres Teil. Nur Teile, die man noch nicht hat, aus Klassen, die der Rang erlaubt.
  */
-export function rollLoot(key: string, kills: number, ctx: ArmorContext, chance = LOOT_CHANCE, classes?: ArmorClass[]): string[] {
-  const pool = ARMOR_SETS.filter((s) => s.cls !== 'boss' && (classes ? classes.includes(s.cls) : ctx.rankLevel >= ARMOR_CLASS_MIN_RANK[s.cls]))
+/**
+ * Beutetabelle je Region: welche Sets (Klasse und Stufe innerhalb der Klasse) dort fallen.
+ * Die oberste Stufe eines Fensters ist „selten“ und fällt nur bei Elite, Truhe und Boss –
+ * so wächst die Ausrüstung mit dem Fortschritt auf der Karte statt per Zufall.
+ */
+export const LOOT_WINDOWS: [ArmorClass, number, number][][] = [
+  [['stoff', 1, 3]],
+  [['stoff', 2, 4]],
+  [['stoff', 3, 6]],
+  [['stoff', 5, 8], ['leder', 0, 1]],
+  [['stoff', 7, 9], ['leder', 0, 3]],
+  [['leder', 2, 5]],
+  [['leder', 4, 7]],
+  [['leder', 6, 9], ['schwer', 0, 1]],
+  [['leder', 8, 9], ['schwer', 0, 3]],
+  [['schwer', 2, 5]],
+  [['schwer', 4, 7]],
+  [['schwer', 6, 9]],
+];
+
+export type LootSource = 'gegner' | 'elite' | 'truhe' | 'boss';
+
+/** Sets, die in einer Region aus dieser Quelle fallen können (Index in ARMOR_SETS). */
+export function lootSets(regionIdx: number, source: LootSource): number[] {
+  const win = LOOT_WINDOWS[Math.max(0, Math.min(LOOT_WINDOWS.length - 1, regionIdx))]!;
+  return ARMOR_SETS.filter((s) => win.some(([cls, from, to]) => s.cls === cls && s.tier >= from && s.tier <= (source === 'gegner' ? to - 1 : to))).map((s) => s.idx);
+}
+
+/** Klartext fürs Kartenblatt, z. B. „Stoff II–IV“ */
+export function lootLabel(regionIdx: number): string {
+  const R = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  const CLS: Record<ArmorClass, string> = { stoff: 'Stoff', leder: 'Leder', schwer: 'Schwer', boss: 'Boss' };
+  return LOOT_WINDOWS[Math.max(0, Math.min(LOOT_WINDOWS.length - 1, regionIdx))]!.map(([c, a, b]) => `${CLS[c]} ${R[a]}–${R[b]}`).join(', ');
+}
+
+/**
+ * Beute würfeln (deterministisch je Schlüssel). `sets` begrenzt auf eine Beutetabelle,
+ * sonst alles bis zum eigenen Rang. Bereits Besessenes fällt nicht doppelt.
+ */
+export function rollLoot(key: string, kills: number, ctx: ArmorContext, chance = LOOT_CHANCE, sets?: number[]): string[] {
+  const pool = ARMOR_SETS.filter((s) => s.cls !== 'boss' && (sets ? sets.includes(s.idx) : ctx.rankLevel >= ARMOR_CLASS_MIN_RANK[s.cls]))
     .flatMap((s) => ARMOR_SLOTS.map((slot) => armorItemId(s.idx, slot)))
     .filter((id) => !ownsArmorPiece(id, ctx));
   const out: string[] = [];

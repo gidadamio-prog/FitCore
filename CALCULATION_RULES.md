@@ -188,3 +188,20 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
   - Heilerzelt: 0 / 7 / 30 / 90 Messtage (Gewicht oder Erholung) – Heilerzelt, Kräutergarten, Hospiz, Tempel der Heilung
   - Kartentisch: 0 / 2 / 5 / 9 eroberte Regionen – Kartentisch, Kriegszelt, Kommandoturm, Kriegsrat
 - Bilder `lager_<station>_<stufe>.webp`; fehlt ein Stufenbild, zeigt die Szene das höchste vorhandene darunter.
+
+## Beutetabelle und Rüstungsfarbe (1.24.1)
+- Rüstung fällt nur aus dem Fenster der Region (Klasse + Stufe I–X innerhalb der Klasse): Arvernerhöhen Stoff II–IV, Dunkelwald Stoff III–V, Nebelinseln Stoff IV–VII, Hirtenland Stoff VI–IX + Leder I–II, Drachenberge Stoff VIII–X + Leder I–IV, Löwensteppe Leder III–VI, Sobeks Delta Leder V–VIII, Gipfelreich Leder VII–X + Schwer I–II, Reiterwüste Leder IX–X + Schwer I–IV, Hunnensteppe Schwer III–VI, Thron der Könige Schwer V–VIII, Kaiserstadt Schwer VII–X.
+- Die oberste Stufe eines Fensters ist selten: nur Elite, Truhe und Boss können sie fallen lassen, normale Gegner nicht. Das Kartenblatt zeigt „Mögliche Beute“.
+- Rüstungsfarbe zusätzlich direkt am Charakterbogen („Rüstung: Farbe & Anzeige“), nicht nur unter Aussehen → Farben.
+
+## Waffen (1.25.0)
+- 100 Waffen: 12 Arten in Stufen (Schwert, Dolch, Stangenwaffe, Kampffäuste, Schild, Foliant je 10; Beil, Streitkolben, Säbel, Bogen, Streitaxt, Kriegshammer je 5) plus 10 Boss-Unikate. Qualität q 0–9: 10er-Reihen = Stufe I–X, 5er-Reihen = Stufe I, III, VI, VIII, X.
+- Werte: Haupthand Angriff = (5 + 2,2·q) × Artfaktor (Dolch 0,9 · Schwert/Säbel 1,0 · Beil/Kolben 1,05 · Fäuste/Bogen 1,3 · Stangenwaffe 1,35 · Streitaxt 1,4 · Kriegshammer 1,45). Schild Abwehr = 4 + 1,3·q; Foliant Abwehr ×0,6 plus Angriff 1,5 + 0,8·q. Boss-Waffen mit eigenem Faktor (1,15–1,55).
+- Zweihand (Fäuste, Bogen, Streitaxt, Kriegshammer, Stangenwaffe, einige Boss-Waffen) blockiert die Nebenhand.
+- Start je Klasse (Stufe I): Legionär Holzschwert + Holzschild, Gladiator Speer, Cursor Eisendolch + Wanderbuch, Strategos Stachelkeule + Wanderbuch. Die alten Waffen sind ersetzt; frühere Käufe der alten Start-Waffen werden erstattet.
+- Markt: Stufe I ab Rang 1, II ab Rang 3, III ab Rang 5, IV ab Rang 7, V ab Rang 9; Preis (30 + 22·q) Denare, Zweihand ×1,4. Höhere Stufen nur über Beute, Abzeichen, Bosse.
+- Beute: Waffenfenster je Region (Arvernerhöhen I–III … Kaiserstadt IX–X), oberste Stufe nur bei Elite/Truhe/Boss; Chance Gegner 15 %, Elite 50 %, Truhe 35 %, Boss 100 %; nie doppelt.
+- Abzeichen geben feste Waffen je Stufe (Bronze/Silber/Gold), z. B. Rekordjäger → Legionärsschwert / Prätorianerklinge / Kaiserklinge.
+- Boss-Waffen: Nebelinseln Nebelklingen, Hirtenland Kettensichel, Drachenberge Falx, Löwensteppe Löwenkreis, Sobeks Delta Klingenfächer, Gipfelreich Adlerflegel, Reiterwüste Parthische Armbrust, Hunnensteppe Horn des Etzel, Thron der Könige Siegel der Könige, Kaiserstadt Zepter des Palatiums.
+- Gegner richten sich nach einem Referenz-Helden mit Einhandwaffe + Schild der unteren Stufe des Regionsfensters.
+- Figur: Haupthand links im Bild, Nebenhand rechts; Griffpunkt, Länge und Neigung je Art (`src/domain/weaponHold.ts`), Handpunkt aus der Arm-Ebene jedes Grundkörpers. Waffen lassen sich wie Rüstung ausblenden. Prüfansicht aller Körper: `#/vorschau?main=…&off=…&set=…`.

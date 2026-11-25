@@ -2,6 +2,9 @@
 // Effekte, Rahmen und Animationen entstehen hier im Code – die Bilder bleiben statisch.
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@/components/ui';
+import { weaponById } from '@/domain/weapons';
+import { handPoint, holdFor } from '@/domain/weaponHold';
+import { WEAPON_ASPECT } from '@/domain/weaponAspect';
 import { useReducedMotion } from '@/hooks/motion';
 import { RARITY_COLOR, appearanceStage, itemFile, portraitFile, type EffectId, type ItemDef, type Rarity, type SlotId } from '@/domain/equipment';
 import type { HeroClassId } from '@/domain/rpg';
@@ -341,7 +344,7 @@ function ScarLayer({ id, bodyId }: { id: string; bodyId: string }) {
   return <img src={url} alt="" draggable={false} data-testid="layer-scar" style={{ position: 'absolute', maxWidth: 'none', opacity: 0.92, width: `${w}%`, left: `${box[0] + place.u * box[2] - w / 2}%`, top: `${box[1] + place.v * box[3] - h / 2}%` }} />;
 }
 
-export type WornArmor = Partial<Record<ArmorSlot, number | null>> & { color?: string | null };
+export type WornArmor = Partial<Record<ArmorSlot, number | null>> & { color?: string | null; /** Waffen (Item-IDs) */ main?: string | null; off?: string | null };
 
 /** Getragene Rüstung aus der gespeicherten Ausrüstung: fehlende Slots = Start-Ausrüstung, null = abgelegt, alte Teile → Start. */
 export function wornArmor(loadout: Partial<Record<string, string | null>> | undefined, classId: string | undefined, hidden: string[] = [], color?: string | null): WornArmor {
@@ -355,6 +358,13 @@ export function wornArmor(loadout: Partial<Record<string, string | null>> | unde
     out[slot] = p && p.slot === slot && !hidden.includes(slot) ? p.set.idx : null;
   }
   out.color = armorColorById(color) ? color : null;
+  for (const slot of ['main', 'off'] as const) {
+    const stored = loadout?.[slot];
+    const id = stored === undefined || (stored && !weaponById(stored)) ? def[slot] ?? null : stored;
+    const w = id ? weaponById(id) : undefined;
+    out[slot] = w && w.slot === slot && !hidden.includes(slot) ? w.id : null;
+  }
+  if (out.main && weaponById(out.main)?.twoHanded) out.off = null;
   return out;
 }
 
@@ -414,6 +424,48 @@ function ArmorBody({ bodyId, armor }: { bodyId: string; armor: WornArmor }) {
   return <>{out}</>;
 }
 
+/** Waffe an der Figur: Haupthand links im Bild, Nebenhand rechts; Kampffäuste an beiden Händen. */
+function WeaponLayer({ id, bodyId }: { id: string; bodyId: string }) {
+  const w = weaponById(id);
+  if (!w) return null;
+  const hold = holdFor(w);
+  const side = w.slot === 'main' ? 'L' : 'R';
+  const st = (file: string, style: CSSProperties, testId: string) => {
+    const url = rpgAsset(file);
+    return url ? <img key={testId} src={url} alt="" draggable={false} data-testid={testId} style={{ position: 'absolute', maxWidth: 'none', ...style }} /> : null;
+  };
+  if (hold.mode === 'fists') {
+    return (
+      <>
+        {(['L', 'R'] as const).map((s) => {
+          const hp = handPoint(bodyId, s);
+          if (!hp) return null;
+          const file = `waffe_faust_${String(w.k).padStart(2, '0')}_${s === 'L' ? 'R' : 'L'}`;
+          // Faust zeigt nach unten (Knöchel unten, Stulpe zum Unterarm)
+          const wPct = hp.w * 1.75;
+          const hPct = wPct / (1.5 * (WEAPON_ASPECT[file] ?? 1));
+          return st(file, { left: `${hp.x - wPct / 2}%`, top: `${hp.y - hPct * 0.45}%`, width: `${wPct}%`, height: `${hPct}%`, transform: `rotate(${180 + hp.ang}deg)` }, `weapon-fist-${s}`);
+        })}
+      </>
+    );
+  }
+  const hp = handPoint(bodyId, side);
+  if (!hp) return null;
+  const asp = WEAPON_ASPECT[w.file] ?? 0.4;
+  const hPct = hold.len;
+  const wPct = hold.len * 1.5 * asp;
+  if (hold.mode === 'forearm') {
+    const cx = hp.cx;
+    const cy = hp.cy + 0.08 * hp.len;
+    return st(w.file, { left: `${cx - wPct / 2}%`, top: `${cy - hPct / 2}%`, width: `${wPct}%`, height: `${hPct}%`, transform: `rotate(${hold.ang + hp.ang * 0.5}deg)` }, `weapon-${w.slot}`);
+  }
+  return st(
+    w.file,
+    { left: `${hp.x - hold.gx * wPct}%`, top: `${hp.y - hold.gy * hPct}%`, width: `${wPct}%`, height: `${hPct}%`, transformOrigin: `${hold.gx * 100}% ${hold.gy * 100}%`, transform: `rotate(${hold.ang}deg)${hold.flip ? ' scaleX(-1)' : ''}` },
+    `weapon-${w.slot}`,
+  );
+}
+
 function ArmorHead({ idx, color }: { idx: number; color?: string | null }) {
   const [l, t, w] = ARMOR_HEAD[idx] ?? [0, 0, 0];
   return <ArmorImg file={armorFile(idx, 'kopf')} color={color} testId="armor-head" style={{ left: `${l}%`, top: `${t}%`, width: `${w}%` }} />;
@@ -439,7 +491,10 @@ export function HeroLayers({ bodyUrl, bodyId, look, armor }: { bodyUrl?: string;
           {scar && <ScarLayer id={scar.id} bodyId={bodyId} />}
         </div>
       )}
+      {bodyId && armor?.main && !holdFor(weaponById(armor.main)!).front && <WeaponLayer id={armor.main} bodyId={bodyId} />}
       {bodyId && armor && <ArmorBody bodyId={bodyId} armor={armor} />}
+      {bodyId && armor?.main && holdFor(weaponById(armor.main)!).front && <WeaponLayer id={armor.main} bodyId={bodyId} />}
+      {bodyId && armor?.off && <WeaponLayer id={armor.off} bodyId={bodyId} />}
       {beard && <TraitLayer file={traitFile(beard)} color={beardColor} testId="layer-beard" />}
       {hair && armor?.head == null && <TraitLayer file={traitFile(hair)} color={hairColor} testId="layer-hair" />}
       {eyes && <TraitLayer file={traitFile(eyes)} testId="layer-eyes" />}

@@ -100,7 +100,7 @@ Geliefert: 36 Sets (10 Stoff, 10 Leder, 10 Schwer, 6 Boss) je Kopf, Brust, Arme 
 Damit legen wir den Stil fest, bevor du den Rest machst.
 
 - [ ] `portraet_legionaer_stufe1.png` – kräftiger Legionär, kurzes dunkles Haar, kantiges Kinn; einfache, abgetragene Tunika, barfuß wirkend, unsicherer Blick, zerzaustes Haar
-- [ ] `haupthand_gladius-bestleistung.png` – prunkvoller Gladius mit Goldgriff
+- [x] Waffen – geliefert (siehe Abschnitt 3)
 
 ## 2. Heldenporträts (20 Bilder: 4 Klassen × 5 Stufen)
 
@@ -146,42 +146,23 @@ Das Erscheinungsbild wächst mit dem Rang: Stufe 1 = Tiro/Miles … Stufe 5 = Le
 - [ ] `portraet_stratege_stufe4.png` – Stufe 4 (Offizier)
 - [ ] `portraet_stratege_stufe5.png` – Stufe 5 (Imperator)
 
-## 3. Start-Ausrüstung (23 Bilder)
+## 3. Waffen (geliefert)
 
-Jede Klasse startet mit einem gewöhnlichen Set. Der Gladiator trägt eine Zweihandwaffe und hat deshalb keine Nebenhand.
+12 Waffenarten in Stufen plus 10 Boss-Waffen, zerlegt mit `scripts/weapons/process.py`. Für weitere Reihen: **ein Sammelbild je Art, Stufen nebeneinander, frontal, freigestellt**; Kampffäuste als Paar.
 
-**Legionär**
-
-- [ ] `haupthand_gladius.png` – Gladius: schlichter Eisen-Gladius
-- [ ] `nebenhand_scutum.png` – Scutum: roter Langschild mit Goldadler
-
-**Gladiator**
-
-- [ ] `haupthand_dreizack.png` – Dreizack: Dreizack des Retiarius (Zweihand)
-
-**Cursor**
-
-- [ ] `haupthand_botenstab.png` – Botenstab: Botenstab mit Bronzekappe
-- [ ] `nebenhand_depeschenrolle.png` – Depeschenrolle: versiegelte Schriftrolle
-
-**Stratege**
-
-- [ ] `haupthand_kommandostab.png` – Kommandostab: Kommandostab (Vitis) mit Goldbeschlag
-- [ ] `nebenhand_wachstafel.png` – Wachstafel: Wachstafel mit Griffel
-
-## 4. Achievement-Ausrüstung (21 Bilder, davon 1 im Testlauf)
-
-Wird über Abzeichen freigeschaltet. Bronze/Silber/Gold verwenden dasselbe Bild; Rahmen und Effekt-Stärke wachsen im Code. Den Effekt in Klammern **nicht** malen – nur zur Info, damit das Motiv dazu passt.
-
-- `haupthand_gladius-bestleistung.png` – Gladius der Bestleistung: prunkvoller Gladius mit Goldgriff _(Effekt: Funken sprühen von der Klinge)_ – siehe Testlauf oben
-- [ ] `haupthand_hammer-atlas.png` – Hammer des Atlas: riesiger Steinhammer mit Atlas-Relief (Zweihand) _(Effekt: Bodenwelle, Steinchen hüpfen)_
-- [ ] `haupthand_feder-chronist.png` – Feder des Chronisten: übergroße Schreibfeder als Waffe _(Effekt: Tintenkleckse tropfen)_
-- [ ] `haupthand_kochloeffel-kaiser.png` – Kochlöffel des Kaisers: goldener Kochlöffel mit Lorbeergravur _(Effekt: Dampf und fliegende Kräuter)_
-- [ ] `nebenhand_veteranenschild.png` – Veteranenschild: zerkratzter, geflügelter Rundschild _(Effekt: Glanzlicht wandert übers Metall)_
-- [ ] `nebenhand_amphore-aquaedukt.png` – Amphore des Aquädukts: bauchige Amphore mit Wellenmuster _(Effekt: Wasser schwappt, Tropfen fallen)_
-- [ ] `nebenhand_waage-punktlandung.png` – Waage der Punktlandung: bronzene Balkenwaage _(Effekt: Schalen pendeln exakt ein)_
-- [ ] `nebenhand_phoenixfackel.png` – Phönixfackel: Fackel mit Phönixkopf _(Effekt: Flammen und aufsteigende Funken)_
-- [ ] `nebenhand_hantelscheiben-schild.png` – Hantelscheiben-Schild: Hantelscheibe als Schild mit Griff _(Effekt: Scheibe dreht sich, Metallglanz)_
+- [x] Schwert – 10 Stufen
+- [x] Dolch – 10 Stufen
+- [x] Beil – 5 Stufen
+- [x] Streitkolben – 5 Stufen
+- [x] Säbel – 5 Stufen
+- [x] Kampffäuste – 10 Stufen (Zweihand)
+- [x] Bogen – 5 Stufen (Zweihand)
+- [x] Streitaxt – 5 Stufen (Zweihand)
+- [x] Kriegshammer – 5 Stufen (Zweihand)
+- [x] Stangenwaffe – 10 Stufen (Zweihand)
+- [x] Schild – 10 Stufen
+- [x] Foliant – 10 Stufen
+- [x] Boss-Waffen – Klingenfächer der Pharaonin, Kettensichel von Numantia, Löwenkreis, Zepter des Palatiums, Horn des Etzel, Parthische Armbrust, Nebelklingen, Adlerflegel von Artaxata, Falx der Drachenberge, Siegel der Könige
 
 ## 5. Bosse für die Kampfszene (13 Bilder)
 

@@ -20,7 +20,7 @@ Typdefinitionen: `src/domain/types.ts`. Schema & Migrationen: `src/data/db.ts`.
 | savedMeals | id, name | Gespeicherte Mahlzeiten (Snapshot der Einträge) |
 | mealPlan | id, date | Wochenplanung (Rezept + Portionen) |
 | shopping | id, checked | Einkaufsliste |
-| settings | key | Theme, Trinkziel, eigene Mahlzeiten, USDA-Key, Zustimmung Online-Suche, `lastBackupAt`, `backupSnoozeUntil`, `lookSeen`, `armorLoot` (Rüstungs-Beute), `setBonusLog` ([{from, setIdx}]), `worldLog` (Weltkarte: init/move/fight/chest/siege mit Datum, AP, Ergebnis, Beute), `apAck`, `sickDays` (Krankentage YYYY-MM-DD); `hero.armorHidden`, `hero.armorColor`; Rüstungskäufe als `armor-NN-slot` in `purchases`; `hero.loadout` mit Slot `chest`; `hero.look` = { hair, beard, scar, tattoo, eyes, hairColor, beardColor } |
+| settings | key | Theme, Trinkziel, eigene Mahlzeiten, USDA-Key, Zustimmung Online-Suche, `lastBackupAt`, `backupSnoozeUntil`, `lookSeen`, `armorLoot` (Rüstungs-Beute), `setBonusLog` ([{from, setIdx}]), `worldLog` (Weltkarte: init/move/fight/chest/siege mit Datum, AP, Ergebnis, Beute), `apAck`, `sickDays` (Krankentage YYYY-MM-DD); `hero.armorHidden`, `hero.armorColor`; Rüstungskäufe als `armor-NN-slot` und Waffenkäufe als `waffe-<art>-NN` in `purchases` (Waffen-Beute ebenfalls in `armorLoot`; alte Käufe `item-…` werden mit 0 Denaren gewertet = erstattet); `hero.loadout.main/off` = Waffen-IDs, `hero.armorHidden` kann auch `main`/`off` enthalten; `hero.loadout` mit Slot `chest`; `hero.look` = { hair, beard, scar, tattoo, eyes, hairColor, beardColor } |
 | apiCache | key, provider, expiresAt | Cache externer Antworten (nicht im Backup) |
 
 ## Konventionen

@@ -26,7 +26,8 @@ test('AK-109 Rüstung: Start-Set auf der Figur, Kopfteil verdeckt Frisur, ganzes
   await expect(fig.getByTestId('layer-hair')).toBeVisible();
   await sheet.getByTestId('slot-head').click();
   const inv = page.getByTestId('inventory');
-  await expect(inv.getByTestId('inv-armor-25-head')).toContainText(/Set ab Rang/);
+  await page.getByTestId('inventory-locked').locator('summary').click();
+  await expect(page.getByTestId('inv-armor-25-head')).toContainText(/Set ab Rang/);
   await inv.getByTestId('inv-armor-00-head').getByRole('button', { name: 'ganzes Set anlegen' }).click();
   await expect(fig.getByTestId('armor-head')).toBeVisible();
   await expect(fig.getByTestId('layer-hair')).toHaveCount(0);
@@ -44,6 +45,7 @@ test('AK-109 Rüstung: Start-Set auf der Figur, Kopfteil verdeckt Frisur, ganzes
 
   // Sichtbarkeit direkt unter der Figur: alle ausblenden → Figur ohne Rüstung, Bonus bleibt; alle zeigen
   await sheet.getByTestId('armor-visibility').click();
+  await expect(page.getByRole('dialog').getByRole('group', { name: 'Rüstungsfarbe' })).toBeVisible();
   await page.getByTestId('vis-all-off').click();
   await expect(fig.getByTestId('armor-chest')).toHaveCount(0);
   await expect(page.getByTestId('vis-chest')).toHaveAttribute('aria-pressed', 'false');

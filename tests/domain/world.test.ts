@@ -92,7 +92,7 @@ describe('Kampf', () => {
   });
   it('Heldenwerte: Stufe, Waffe, Schild und Rüstung; Kampfgeist +15 % Angriff', () => {
     const naked = heroStats(1, {}, () => null);
-    const geared = heroStats(1, { main: 'gladius', off: 'scutum', chest: 'armor-25-chest' }, () => 'common');
+    const geared = heroStats(1, { main: 'waffe-schwert-00', off: 'waffe-schild-00', chest: 'armor-25-chest' }, () => 'common');
     expect(geared.atk).toBeGreaterThan(naked.atk);
     expect(geared.def).toBeGreaterThan(naked.def + 10);
     expect(power(geared)).toBeGreaterThan(power(naked));

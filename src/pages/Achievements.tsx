@@ -7,7 +7,8 @@ import { Laurel } from '@/components/Laurel';
 import { useGame } from '@/hooks/game';
 import { RANKS, TIER_LABEL, XP_RULES, type BadgeStatus, type GameState, type Quest, type Tier } from '@/domain/gamification';
 import { formatDate } from '@/domain/dates';
-import { ITEMS, RARITY_LABEL } from '@/domain/equipment';
+import { RARITY_LABEL, itemById } from '@/domain/equipment';
+import { BADGE_WEAPONS, weaponById, weaponRarity } from '@/domain/weapons';
 import { ItemIcon } from '@/components/rpg/Visuals';
 import type { SecretAchievement } from '@/domain/achievements';
 import { HeroTab } from './game/HeroTab';
@@ -130,8 +131,11 @@ export function QuestList({ quests }: { quests: Quest[] }) {
 function BadgeTile({ b }: { b: BadgeStatus }) {
   const color = b.tier ? TIER_COLOR[b.tier] : 'rgb(var(--muted) / 0.45)';
   const shownTarget = b.nextTarget ?? b.tiers[2];
-  const reward = ITEMS.find((i) => i.source.kind === 'badge' && i.source.badgeId === b.id);
-  const rarity = b.tier ? ({ bronze: 'rare', silver: 'epic', gold: 'legendary' } as const)[b.tier] : null;
+  // Belohnung: Waffe der erreichten Stufe (sonst die Bronze-Waffe als Ausblick)
+  const ids = BADGE_WEAPONS[b.id];
+  const tierIdx = b.tier ? ['bronze', 'silver', 'gold'].indexOf(b.tier) : -1;
+  const reward = ids ? itemById(ids[Math.max(0, tierIdx)]) : undefined;
+  const rarity = reward && tierIdx >= 0 ? weaponRarity(weaponById(reward.id)!) : null;
   return (
     <div className={cn('rounded-2xl border p-3 text-center', !b.tier && 'opacity-70')} data-testid={`badge-${b.id}`}>
       <Laurel size={56} color={color} className="mx-auto">
@@ -152,7 +156,7 @@ function BadgeTile({ b }: { b: BadgeStatus }) {
           <ItemIcon item={reward} rarity={rarity} locked={!rarity} size={32} animate={false} />
           <span className="min-w-0 text-[10px] leading-tight">
             <span className="block truncate font-semibold">{reward.name}</span>
-            <span className="text-muted">{rarity ? RARITY_LABEL[rarity] : 'Belohnung bei Bronze'}</span>
+            <span className="text-muted">{rarity ? `${RARITY_LABEL[rarity]}${tierIdx < 2 && ids ? ` · nächste: ${itemById(ids[tierIdx + 1])?.name}` : ''}` : 'Belohnung bei Bronze'}</span>
           </span>
         </div>
       )}

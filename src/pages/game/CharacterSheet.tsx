@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Dumbbell, Salad, Check, Scissors, Eye, EyeOff } from 'lucide-react';
-import { LookEditor, useNewLooks } from './LookEditor';
+import { Lock, Dumbbell, Salad, Check, Scissors, Eye, EyeOff, Palette } from 'lucide-react';
+import { WEAPONS, artById, isBuyable, minRankForQuality, weaponById, weaponStats } from '@/domain/weapons';
+import type { Rarity } from '@/domain/equipment';
+import { ArmorColorPicker, LookEditor, useNewLooks } from './LookEditor';
 import { gearExtra } from '@/domain/gear';
 import { ARMOR_CLASS_COLOR, ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, bonusText, fullArmorSet, setBonuses, type ArmorSlot } from '@/domain/armor';
+
+/** Plätze, die sich auf der Figur ausblenden lassen (Waffen und Rüstung) */
+const VIS_SLOTS: SlotId[] = ['main', 'off', 'head', 'chest', 'hands', 'legs', 'feet'];
 
 const setIdx = (o: OwnedItem) => (o.def.source.kind === 'armor' ? o.def.source.setIdx : -1);
 import { Badge, Button, Card, CardTitle, Sheet, fmt, cn } from '@/components/ui';
@@ -105,7 +110,7 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
           )}
           {ARMOR_SLOTS.some((s) => loadout[s]) && (
             <Button size="sm" variant="secondary" className="mt-1.5" data-testid="armor-visibility" onClick={() => setVisOpen(true)}>
-              {hero.armorHidden?.length ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />} Rüstung anzeigen
+              <Palette className="h-3.5 w-3.5" /> Rüstung: Farbe & Anzeige
             </Button>
           )}
           {fullSet && (
@@ -127,10 +132,14 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
         {col(['off', 'legs', 'feet'])}
       </div>
       {lookOpen && <LookEditor hero={hero} game={game} onClose={() => setLookOpen(false)} />}
-      <Sheet open={visOpen} onClose={() => setVisOpen(false)} title="Rüstung auf der Figur">
-        <p className="mb-3 text-xs text-muted">Ausgeblendete Teile bleiben angelegt – Kampfwerte und Set-Bonus gelten weiter. Nur deine Figur zeigt sie nicht (z. B. Helm aus, damit die Frisur zu sehen ist).</p>
+      <Sheet open={visOpen} onClose={() => setVisOpen(false)} title="Rüstung: Farbe & Anzeige">
+        <div className="mb-1 text-sm font-semibold">Farbe</div>
+        <p className="mb-2 text-[11px] text-muted">Färbt den roten und purpurnen Stoff deiner Rüstung. Gold, Leder und Metall bleiben. Weitere Farben schaltest du über Rang, Abzeichen und Bosse frei.</p>
+        <ArmorColorPicker game={game} />
+        <div className="mb-1 mt-4 text-sm font-semibold">Anzeige auf der Figur</div>
+        <p className="mb-3 text-xs text-muted">Ausgeblendete Teile bleiben angelegt – Kampfwerte und Set-Bonus gelten weiter. Nur deine Figur zeigt sie nicht (z. B. Helm aus, damit die Frisur zu sehen ist, oder Waffe weg).</p>
         <ul className="space-y-2">
-          {ARMOR_SLOTS.filter((s) => loadout[s]).map((s) => {
+          {VIS_SLOTS.filter((s) => loadout[s]).map((s) => {
             const off = !!hero.armorHidden?.includes(s);
             return (
               <li key={s}>
@@ -151,10 +160,10 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
           })}
         </ul>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <Button variant="secondary" data-testid="vis-all-on" onClick={() => void setArmorHidden([...ARMOR_SLOTS], false)}>
+          <Button variant="secondary" data-testid="vis-all-on" onClick={() => void setArmorHidden([...VIS_SLOTS], false)}>
             Alle zeigen
           </Button>
-          <Button variant="secondary" data-testid="vis-all-off" onClick={() => void setArmorHidden([...ARMOR_SLOTS], true)}>
+          <Button variant="secondary" data-testid="vis-all-off" onClick={() => void setArmorHidden([...VIS_SLOTS], true)}>
             Alle ausblenden
           </Button>
         </div>
@@ -179,19 +188,12 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
 
 function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { slot: SlotId; hero: Hero; game: GameState; inv: OwnedItem[]; current: string | null; onClose: () => void; onEquipped: (s: SlotId) => void }) {
   const nav = useNavigate();
-  const items = inv.filter((o) => o.def.slot === slot).sort((a, b) => Number(!!b.worn) - Number(!!a.worn) || Number(a.def.source.kind === 'badge') - Number(b.def.source.kind === 'badge') || setIdx(a) - setIdx(b));
+  const order = (o: OwnedItem) => (o.def.source.kind === 'armor' ? setIdx(o) : (weaponById(o.def.id)?.q ?? 0) * 100 + WEAPONS.findIndex((w) => w.id === o.def.id));
+  const all = inv.filter((o) => o.def.slot === slot).sort((a, b) => order(a) - order(b));
+  const owned = all.filter((o) => o.worn);
+  const locked = all.filter((o) => !o.worn);
   const ownedOfSet = (idx: number) => inv.filter((o) => o.worn && o.def.source.kind === 'armor' && o.def.source.setIdx === idx).length;
-  const label = SLOTS.find((s) => s.id === slot)!.label;
-  return (
-    <Sheet open onClose={onClose} title={`${label} – Inventar`}>
-      {current && ARMOR_SLOTS.includes(slot as ArmorSlot) && (
-        <Button variant="secondary" className="mb-3 w-full" data-testid="toggle-armor-hidden" onClick={() => void toggleArmorHidden(slot)}>
-          {hero.armorHidden?.includes(slot) ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          {hero.armorHidden?.includes(slot) ? 'Auf der Figur wieder zeigen' : 'Auf der Figur ausblenden (bleibt angelegt)'}
-        </Button>
-      )}
-      <ul className="space-y-2" data-testid="inventory">
-        {items.map((o) => {
+  const row = (o: OwnedItem) => {
           const equipped = current === o.def.id;
           return (
             <li key={o.def.id} className={cn('flex items-center gap-3 rounded-xl border p-2', equipped && 'border-gold/60 bg-gold/5')} data-testid={`inv-${o.def.id}`}>
@@ -207,12 +209,7 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
                     <span className="text-gold"> · Set-Bonus: {setBonuses(ARMOR_SETS[o.def.source.setIdx]!).map(bonusText).join(', ')}</span>
                   </div>
                 )}
-                {o.worn && o.def.source.kind !== 'armor' && (
-                  <div className="text-[11px]" style={{ color: RARITY_COLOR[o.worn] }}>
-                    {RARITY_LABEL[o.worn]}
-                    {o.def.effectText && <span className="text-muted"> · {o.def.effectText}</span>}
-                  </div>
-                )}
+                {o.def.source.kind === 'weapon' && <WeaponLine id={o.def.id} rarity={o.worn} />}
                 {o.rankLocked && (
                   <div className="flex items-center gap-1 text-[11px] text-warn">
                     <Lock className="h-3 w-3" /> {RARITY_LABEL[o.rankLocked]} freigeschaltet – tragbar ab {rankName(RARITY_MIN_RANK[o.rankLocked])}
@@ -256,15 +253,32 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
                     </button>
                   )}
                 </div>
-              ) : o.def.source.kind === 'starter' || (o.def.source.kind === 'armor' && ARMOR_SETS[o.def.source.setIdx]!.cls !== 'boss' && game.rank.rank.level >= ARMOR_CLASS_MIN_RANK[ARMOR_SETS[o.def.source.setIdx]!.cls]) ? (
+              ) : (o.def.source.kind === 'weapon' && isBuyable(weaponById(o.def.id)!) && game.rank.rank.level >= minRankForQuality(weaponById(o.def.id)!.q)) || (o.def.source.kind === 'armor' && ARMOR_SETS[o.def.source.setIdx]!.cls !== 'boss' && game.rank.rank.level >= ARMOR_CLASS_MIN_RANK[ARMOR_SETS[o.def.source.setIdx]!.cls]) ? (
                 <Button size="sm" variant="secondary" onClick={() => nav('/erfolge?tab=markt')}>
                   Markt
                 </Button>
               ) : null}
             </li>
           );
-        })}
+        };
+  const label = SLOTS.find((s) => s.id === slot)!.label;
+  return (
+    <Sheet open onClose={onClose} title={`${label} – Inventar`}>
+      {current && ARMOR_SLOTS.includes(slot as ArmorSlot) && (
+        <Button variant="secondary" className="mb-3 w-full" data-testid="toggle-armor-hidden" onClick={() => void toggleArmorHidden(slot)}>
+          {hero.armorHidden?.includes(slot) ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          {hero.armorHidden?.includes(slot) ? 'Auf der Figur wieder zeigen' : 'Auf der Figur ausblenden (bleibt angelegt)'}
+        </Button>
+      )}
+      <ul className="space-y-2" data-testid="inventory">
+        {owned.map(row)}
       </ul>
+      {locked.length > 0 && (
+        <details className="mt-3" data-testid="inventory-locked">
+          <summary className="cursor-pointer text-sm text-muted">Noch nicht freigeschaltet ({locked.length})</summary>
+          <ul className="mt-2 space-y-2">{locked.map(row)}</ul>
+        </details>
+      )}
       {current && (
         <Button
           variant="ghost"
@@ -427,5 +441,20 @@ export function LifePathCard() {
         </Sheet>
       )}
     </Card>
+  );
+}
+
+/** Art, Stufe und Kampfwerte einer Waffe im Inventar */
+function WeaponLine({ id, rarity }: { id: string; rarity: Rarity | null }) {
+  const w = weaponById(id);
+  if (!w) return null;
+  const st = weaponStats(w);
+  const ROM = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  return (
+    <div className="text-[11px] text-muted" data-testid={`weapon-line-${id}`}>
+      <span style={{ color: rarity ? RARITY_COLOR[rarity] : undefined }}>{w.boss ? 'Boss-Waffe' : `${artById(w.art)?.label} ${ROM[w.q]}`}</span>
+      {st.atk != null && <> · Angriff +{st.atk}</>}
+      {st.def != null && <> · Abwehr +{st.def}</>}
+    </div>
   );
 }

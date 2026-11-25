@@ -1,7 +1,8 @@
 // Held, Rivalen und Markt – gespeichert in den lokalen Einstellungen.
 import { addGoalVersion, currentGoal, deriveGoal, getProfile, getSettings, latestWeight, setSetting, type Rival } from './profileRepo';
 import { encodeShare, SHOP, classById, denare, pathById, type Hero, type PathId, type ShareCard } from '@/domain/rpg';
-import { STARTER_PRICE, equipItem, inventory, itemById, normalizeLoadout, unequip, type SlotId } from '@/domain/equipment';
+import { isBuyable, minRankForQuality, weaponById, weaponPrice } from '@/domain/weapons';
+import { equipItem, inventory, itemById, normalizeLoadout, unequip, type SlotId } from '@/domain/equipment';
 import { gearExtra } from '@/domain/gear';
 import { ARMOR_CLASS_MIN_RANK, ARMOR_SLOTS, armorItemId, armorPrice, fullArmorSet, parseArmorId, updateBonusLog, type BonusLogEntry } from '@/domain/armor';
 import type { GameState } from '@/domain/gamification';
@@ -86,15 +87,31 @@ export async function removeRival(id: string) {
   await setSetting('rivals', s.rivals.filter((r) => r.id !== id));
 }
 
-/** Preise für Käufe außerhalb des SHOP-Katalogs (Start-Ausrüstung anderer Klassen) */
+/** Preise für Käufe außerhalb des SHOP-Katalogs (Rüstung, Waffen). Alte Käufe der früheren Start-Waffen („item-…“) werden erstattet. */
 export function extraPrices(purchases: string[]) {
   return Object.fromEntries(
     purchases.flatMap((p) => {
-      if (p.startsWith('item-')) return [[p, STARTER_PRICE]];
+      if (p.startsWith('item-')) return [[p, 0]];
+      const w = weaponById(p);
+      if (w) return [[p, weaponPrice(w)]];
       const a = parseArmorId(p);
       return a ? [[p, armorPrice(a.set)]] : [];
     }),
   );
+}
+
+/** Waffe im Markt kaufen – Qualität muss für den Rang freigegeben sein, Boss-Waffen sind nicht käuflich. */
+export async function buyWeapon(id: string, game: GameState) {
+  const w = weaponById(id);
+  if (!w || !isBuyable(w)) throw new Error('Diese Waffe ist nicht käuflich.');
+  if (game.rank.rank.level < minRankForQuality(w.q)) throw new Error('Diese Waffe gibt es erst ab einem höheren Rang.');
+  const s = await getSettings();
+  const inv = inventory(game.badges, s.hero?.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot));
+  if (inv.find((o) => o.def.id === id)?.unlocked) throw new Error('Hast du schon.');
+  const price = weaponPrice(w);
+  const { balance } = denare(game.xp, s.purchases, game.bonusDenare, extraPrices(s.purchases));
+  if (balance < price) throw new Error(`Dir fehlen noch ${price - balance} Denare.`);
+  await setSetting('purchases', [...s.purchases, id]);
 }
 
 /** Rüstungsteile im Markt kaufen – Klasse muss für den Rang freigegeben sein, Boss-Rüstung ist nicht käuflich. */
@@ -116,9 +133,8 @@ export async function buyArmor(itemIds: string[], game: GameState) {
 
 export async function buyItem(itemId: string, xp: number, bonus = 0) {
   const shopItem = SHOP.find((x) => x.id === itemId);
-  const starter = itemId.startsWith('item-') ? itemById(itemId.slice(5)) : undefined;
-  if (!shopItem && !starter) throw new Error('Unbekannter Gegenstand.');
-  const price = shopItem?.price ?? STARTER_PRICE;
+  if (!shopItem) throw new Error('Unbekannter Gegenstand.');
+  const price = shopItem.price;
   const s = await getSettings();
   if (s.purchases.includes(itemId)) throw new Error('Schon gekauft.');
   const { balance } = denare(xp, s.purchases, bonus, extraPrices(s.purchases));
