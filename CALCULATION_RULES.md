@@ -175,3 +175,16 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Trainings-Serie: eine Woche mit mindestens 2 Krankentagen und ohne Training zählt nicht, bricht die Serie aber nicht (1 Krankentag reicht nicht).
 - Tagesauftrag am Krankentag: „Heiltrank“ – Trinkziel erreichen (40 EP, 1 AP wie jeder Tagesauftrag). Schritt- und Trainingsziel sind keine Pflicht (es gab dort ohnehin keine Abzüge).
 - Rüstung ausblenden: Knopf „Rüstung anzeigen“ direkt unter der Figur (je Teil oder alle), zusätzlich oben im Inventar des Platzes.
+
+## Startseite „Lager“ (1.24.0)
+- Oben steht der Held im Lager (gemaltes Lagerbild `lager_lager_N`, bis dahin ein gezeichneter Platzhalter) mit Stufe, Erfahrung bis zur nächsten Stufe, Aktionspunkten und Kampfwert; antippen öffnet den Charakterbogen.
+- Darunter Stationen als Bildszenen (Motiv rechts, Werte links): Proviant (Kalorien, Makros, Lebensmittel/Mahlzeit kopieren), Übungsplatz (Plantag, Training starten, letzte Einheit, Einheiten der Woche), Wanderpfad (Schritte), Brunnen (Trinkziel, +250 ml), Heilerzelt (Gewicht, Trend, Schlaf und Erholung), Kartentisch (AP, eroberte Regionen → Weltkarte). Danach „Rat des Lagers“ (Coach und Ernährungshinweise).
+- Ausbaustufen I–IV je Station aus echtem Verhalten (Gesamtzahl seit Beginn):
+  - Lager: Rang 1 / 3 / 6 / 9 – Zelt, Feldlager, Holzhütte, Burghof
+  - Proviant: 0 / 7 / 30 / 90 Protokolltage – Reiserucksack, Packesel, Vorratswagen, Proviantlager
+  - Übungsplatz: 0 / 10 / 40 / 100 Trainingseinheiten – Übungswiese, Kampfschule, Trainingsplatz, Arena
+  - Wanderpfad: 0 / 7 / 30 / 90 Tage Schrittziel – Feldweg, Gepflasterter Weg, Handelsstraße, Kaiserstraße
+  - Brunnen: 0 / 7 / 30 / 90 Tage Trinkziel – Dorfbrunnen, Quellhaus, Zierbrunnen, Thermen
+  - Heilerzelt: 0 / 7 / 30 / 90 Messtage (Gewicht oder Erholung) – Heilerzelt, Kräutergarten, Hospiz, Tempel der Heilung
+  - Kartentisch: 0 / 2 / 5 / 9 eroberte Regionen – Kartentisch, Kriegszelt, Kommandoturm, Kriegsrat
+- Bilder `lager_<station>_<stufe>.webp`; fehlt ein Stufenbild, zeigt die Szene das höchste vorhandene darunter.

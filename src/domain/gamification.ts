@@ -1,5 +1,6 @@
 // Gamification – vollständig aus echten Daten abgeleitet (nichts wird separat „gutgeschrieben“).
 // Belohnt werden Regelmäßigkeit, Training und Zielnähe – ausdrücklich NICHT möglichst wenig Kalorien oder schnelles Abnehmen.
+import { lagerState, type StationId, type StationState } from './lager';
 import { REGIONS, apBalance, bossOfRegion, nextRegion, regionIndex, replayWorld, type WorldEvent, type WorldState } from './world';
 import { foeFor } from './combat';
 import { bonusValue, bonusesAt, effectiveStepGoal, type BonusLogEntry, type SetBonus } from './armor';
@@ -478,6 +479,8 @@ export interface GameState {
   world: { state: WorldState; ap: number; apToday: number; apByDay: Map<string, number> };
   /** Alter Feldzug aus Trainingsschaden (nur für die Übernahme in die Weltkarte) */
   legacyDefeated: { bossId: string; date: string }[];
+  /** Lager auf der Startseite: Stationen mit Ausbaustufen */
+  lager: Record<StationId, StationState>;
   /** Aktive Set-Boni heute */
   setBonus: SetBonus[];
   /** Schrittziel heute (mit Set-Bonus) */
@@ -707,6 +710,7 @@ export function computeGame(i: GameInput): GameState {
     attributes: attributes({ facts: factList, prCount: prs.filter((p) => p.date <= i.today).length, questsDone: questsCompletedTotal, cardioKm, classId: i.heroClass }),
     campaign: camp,
     world: { state: world, ap: ap.balance, apToday: ap.earnedToday, apByDay },
+    lager: lagerState({ facts: factList, today: i.today, conquered: world.conquered.size, rankLevel: rankFor(xp).rank.level }),
     legacyDefeated: legacy.defeated.filter((d) => CAMPAIGN.some((b) => b.id === d.boss.id)).map((d) => ({ bossId: d.boss.id, date: d.date })),
     colosseum: colosseum(month, dmgList, i.today),
     colosseumWins,

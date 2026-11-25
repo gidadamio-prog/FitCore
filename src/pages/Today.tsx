@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, Footprints, CloudUpload } from 'lucide-react';
-import { Badge, Button, Card, CardTitle, Field, NumberInput, Progress, Ring, Sheet, Stat, fmt } from '@/components/ui';
-import { HeroPortrait } from '@/components/rpg/Visuals';
+import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, CloudUpload } from 'lucide-react';
+import { Button, Card, CardTitle, Field, NumberInput, Progress, Sheet, Stat, fmt } from '@/components/ui';
+import { HeroCamp, SceneCard, SceneValue } from '@/components/lager/Lager';
+import type { StationState } from '@/domain/lager';
 import { BossStage } from '@/components/rpg/BossStage';
 import { PageHeader } from '@/components/Layout';
 import { useActiveWorkout, useCardio, useDaySummary, useGoals, useMeasurements, usePlans, useProfile, useSettings, useWorkouts, useAllEntries } from '@/hooks/data';
@@ -42,6 +43,7 @@ export function Today() {
   const active = useActiveWorkout();
   const [weightOpen, setWeightOpen] = useState(false);
   const game = useGame();
+  const lager = game?.lager;
   const plan = plans.find((p) => p.status === 'active');
   const todaysDays = plan?.days.filter((d) => d.weekdays.includes(isoWeekday(date))) ?? [];
   const lastWorkout = workouts[workouts.length - 1];
@@ -112,40 +114,25 @@ export function Today() {
         </Card>
       )}
       <SickBanner />
-      {game && <BossStage game={game} onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')} cta={settings.hero ? `Zur Weltkarte · ${game.world.ap} AP` : 'Helden erschaffen und losziehen'} />}
       {game && (
-        <Card className="border-gold/25" data-testid="game-card">
-          <button className="block w-full text-left" onClick={() => nav('/erfolge')} aria-label="Zur Ruhmeshalle">
-            <RankHeader game={game} compact />
-          </button>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <StreakChips game={game} />
-            <SickButton />
-          </div>
-          <button className="mt-3 block w-full rounded-xl bg-fg/[0.04] p-3 text-left" onClick={() => nav('/erfolge?tab=held')} data-testid="today-hero">
-            {settings.hero ? (
-              <div className="flex items-center gap-3">
-                <HeroPortrait classId={settings.hero.classId} rankLevel={game.rank.rank.level} crest={settings.hero.color} size={44} />
-                <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="truncate font-semibold">
-                    {settings.hero.name} · Stufe {game.level.level}
-                  </span>
-                  <span className="shrink-0 text-xs text-muted">Kampfwert {fmt(game.battle.score)}</span>
-                </div>
-                <div className="mt-1 text-xs text-muted">Charakterbogen und Ausrüstung →</div>
-                </div>
-              </div>
-            ) : (
-              <span className="text-sm font-medium text-gold">Erschaffe deinen Helden und zieh gegen die Bosse des Reiches →</span>
-            )}
-          </button>
-          {game.dailyQuest && (
-            <div className="mt-3">
-              <DailyQuestBanner q={game.dailyQuest} />
+        <Card className="overflow-hidden border-gold/25 p-2" data-testid="game-card">
+          <HeroCamp game={game} onHero={() => nav('/erfolge?tab=held')} />
+          <div className="px-2 pb-2 pt-3">
+            <button className="block w-full text-left" onClick={() => nav('/erfolge')} aria-label="Zur Ruhmeshalle">
+              <RankHeader game={game} compact />
+            </button>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <StreakChips game={game} />
+              <SickButton />
             </div>
-          )}
-          <details className="mt-3" open={!game.questsPicked && game.questOffers.length > 0}>
+          </div>
+        </Card>
+      )}
+      {game && <BossStage game={game} onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')} cta={settings.hero ? `Zur Weltkarte · ${game.world.ap} AP` : 'Helden erschaffen und losziehen'} />}
+      {game && (game.dailyQuest || game.quests.length > 0 || game.questOffers.length > 0) && (
+        <Card data-testid="quest-card">
+          {game.dailyQuest && <DailyQuestBanner q={game.dailyQuest} />}
+          <details className={game.dailyQuest ? 'mt-3' : undefined} open={!game.questsPicked && game.questOffers.length > 0}>
             <summary className="cursor-pointer text-sm font-medium">
               {!game.questsPicked && game.questOffers.length > 0 ? (
                 <span className="text-gold">Feldzug der Woche wählen (3 aus {game.questOffers.length})</span>
@@ -161,186 +148,215 @@ export function Today() {
           </details>
         </Card>
       )}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          {g ? (
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
-              <Ring value={t.kcal} max={g.calorieTarget + s.credit.creditedKcal} size={168}>
-                <div className="text-3xl font-bold tabular-nums" data-testid="remaining-kcal">
-                  {fmt(s.budget!.remaining)}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {lager && (
+          <SceneCard
+            st={lager.proviant}
+            onScene={() => nav('/nutrition?add=1')}
+            sceneLabel="Proviant – Essen eintragen"
+            overlay={
+              g ? (
+                <SceneValue value={fmt(s.budget!.remaining)} unit={s.budget!.remaining >= 0 ? 'kcal übrig' : 'kcal drüber'} sub={`${fmt(t.kcal)} von ${fmt(g.calorieTarget + s.credit.creditedKcal)} kcal`} testId="remaining-kcal" />
+              ) : (
+                <div className="text-xs text-white/80">Noch kein Ziel hinterlegt</div>
+              )
+            }
+          >
+            {g ? (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <Stat label="Ziel" value={<span data-testid="target-kcal">{fmt(g.calorieTarget)}</span>} unit="kcal" />
+                  <Stat label="Gegessen" value={<span data-testid="eaten-kcal">{fmt(t.kcal)}</span>} unit="kcal" />
+                  <Stat label="Training" value={<span data-testid="credited-kcal">+{fmt(s.credit.creditedKcal)}</span>} unit="kcal" sub={s.credit.rawKcal ? `geschätzt · ${profile.trainingCreditPct} % von ${fmt(s.credit.creditableKcal)}` : 'kein Training'} />
+                  <MacroBar label="Protein" value={t.protein} target={s.macros?.proteinG ?? g.proteinG} extra={s.macros?.extra.proteinG} color="protein" />
+                  <MacroBar label="Kohlenhydrate" value={t.carbs} target={s.macros?.carbsG ?? g.carbsG} extra={s.macros?.extra.carbsG} color="carbs" />
+                  <MacroBar label="Fett" value={t.fat} target={s.macros?.fatG ?? g.fatG} extra={s.macros?.extra.fatG} color="fat" />
                 </div>
-                <div className="text-xs text-muted">{s.budget!.remaining >= 0 ? 'kcal übrig' : 'kcal über Budget'}</div>
-              </Ring>
-              <div className="grid w-full flex-1 grid-cols-3 gap-3">
-                <Stat label="Ziel" value={<span data-testid="target-kcal">{fmt(g.calorieTarget)}</span>} unit="kcal" />
-                <Stat label="Gegessen" value={<span data-testid="eaten-kcal">{fmt(t.kcal)}</span>} unit="kcal" />
-                <Stat label="Training" value={<span data-testid="credited-kcal">+{fmt(s.credit.creditedKcal)}</span>} unit="kcal" sub={s.credit.rawKcal ? `geschätzt · ${profile.trainingCreditPct} % von ${fmt(s.credit.creditableKcal)}` : 'kein Training'} />
-                <MacroBar label="Protein" value={t.protein} target={s.macros?.proteinG ?? g.proteinG} extra={s.macros?.extra.proteinG} color="protein" />
-                <MacroBar label="Kohlenhydrate" value={t.carbs} target={s.macros?.carbsG ?? g.carbsG} extra={s.macros?.extra.carbsG} color="carbs" />
-                <MacroBar label="Fett" value={t.fat} target={s.macros?.fatG ?? g.fatG} extra={s.macros?.extra.fatG} color="fat" />
-              </div>
+                {s.credit.rawKcal > 0 && profile.trainingCreditPct === 0 && (
+                  <p className="mt-2 text-xs text-muted" data-testid="credit-hint">
+                    Du hast heute trainiert, aber Trainingsenergie wird nicht angerechnet – deine Ziele bleiben daher gleich.{' '}
+                    <button className="text-accent underline" onClick={() => nav('/settings?tab=energy')}>
+                      Anrechnung einstellen
+                    </button>
+                  </p>
+                )}
+                {s.sum.unknown.kcal > 0 && <p className="mt-2 text-xs text-warn">{s.sum.unknown.kcal} Einträge ohne Kalorienangabe – Summe unvollständig.</p>}
+                <div className="mt-3 text-xs text-muted">
+                  Kalorienziel diese Woche: {week.rate.hitDays}/{week.rate.evaluableDays} Tage{week.rate.missingDates.length > 0 && ` · ${week.rate.missingDates.length} Tag(e) ohne Einträge`}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted">Für heute ist noch kein Ziel hinterlegt.</p>
+            )}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button onClick={() => nav('/nutrition?add=1')}>
+                <Plus className="h-4 w-4" /> Lebensmittel
+              </Button>
+              <Button variant="secondary" onClick={() => nav('/nutrition?copy=1')}>
+                <Copy className="h-4 w-4" /> Mahlzeit kopieren
+              </Button>
             </div>
-          ) : (
-            <p className="text-sm text-muted">Für heute ist noch kein Ziel hinterlegt.</p>
-          )}
-          {g && s.credit.rawKcal > 0 && profile.trainingCreditPct === 0 && (
-            <p className="mt-2 text-xs text-muted" data-testid="credit-hint">
-              Du hast heute trainiert, aber Trainingsenergie wird nicht angerechnet – deine Ziele bleiben daher gleich.{' '}
-              <button className="text-accent underline" onClick={() => nav('/settings?tab=energy')}>
-                Anrechnung einstellen
+          </SceneCard>
+        )}
+
+        {lager && (
+          <SceneCard
+            st={lager.training}
+            overlay={
+              <div className="text-white">
+                <div className="text-xs text-white/75">{DAY_TYPE_LABELS[dayType]}</div>
+                <div className="text-base font-semibold leading-tight drop-shadow">{active ? 'Training läuft' : todaysDays[0]?.name ?? (plan ? 'Kein Plantag' : 'Freies Training')}</div>
+                <div className="text-xs text-white/75">
+                  {week.done}/{week.planned || '–'} Einheiten diese Woche
+                </div>
+              </div>
+            }
+          >
+            {settings.sickDays?.includes(date) && <p className="mb-2 text-xs text-sky-300" data-testid="sick-training">Krankentag – Training ist heute keine Pflicht.</p>}
+            <Button className="w-full" onClick={() => start(todaysDays[0]?.id)}>
+              <Dumbbell className="h-4 w-4" /> Training starten
+            </Button>
+            {plan ? (
+              todaysDays.length ? (
+                <ul className="mt-3 space-y-2">
+                  {todaysDays.map((d) => (
+                    <li key={d.id} className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{d.name}</div>
+                        <div className="text-xs text-muted">
+                          {plan.name} · {d.exercises.length} Übungen
+                        </div>
+                      </div>
+                      <Button size="sm" variant="secondary" onClick={() => start(d.id)}>
+                        Starten
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs text-muted">
+                  Heute kein Trainingstag in „{plan.name}“.{' '}
+                  <button className="text-accent underline" onClick={() => nav('/training')}>
+                    Plan ansehen
+                  </button>
+                </p>
+              )
+            ) : (
+              <p className="mt-2 text-xs text-muted">
+                Kein aktiver Plan.{' '}
+                <button className="text-accent underline" onClick={() => nav('/training')}>
+                  Plan erstellen oder aktivieren
+                </button>
+              </p>
+            )}
+            {lastWorkout && (
+              <button className="mt-3 w-full rounded-xl bg-fg/[0.04] p-3 text-left" onClick={() => nav('/training/history/' + lastWorkout.id)}>
+                <div className="text-xs text-muted">Letzte Einheit</div>
+                <div className="font-medium">{lastWorkout.name}</div>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  <Stat label="Datum" value={new Date(lastWorkout.startedAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} />
+                  <Stat label="Sätze" value={completedSets(lastWorkout)} />
+                  <Stat label="Volumen" value={fmt(workoutVolume(lastWorkout))} unit="kg" />
+                </div>
               </button>
-            </p>
-          )}
-          {s.sum.unknown.kcal > 0 && <p className="mt-2 text-xs text-warn">{s.sum.unknown.kcal} Einträge ohne Kalorienangabe – Summe unvollständig.</p>}
-        </Card>
-        <Card>
-          <CardTitle>Schnellaktionen</CardTitle>
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" className="h-14 flex-col gap-1 text-xs" onClick={() => nav('/nutrition?add=1')}>
-              <Plus className="h-5 w-5" /> Lebensmittel
-            </Button>
-            <Button variant="secondary" className="h-14 flex-col gap-1 text-xs" onClick={() => nav('/nutrition?copy=1')}>
-              <Copy className="h-5 w-5" /> Mahlzeit kopieren
-            </Button>
-            <Button variant="secondary" className="h-14 flex-col gap-1 text-xs" onClick={() => start(todaysDays[0]?.id)}>
-              <Dumbbell className="h-5 w-5" /> Training starten
-            </Button>
-            <Button variant="secondary" className="h-14 flex-col gap-1 text-xs" onClick={() => setWeightOpen(true)}>
-              <Scale className="h-5 w-5" /> Gewicht
-            </Button>
+            )}
+          </SceneCard>
+        )}
+
+        {lager && <StepsCard date={date} goal={date === today() && game ? game.stepGoalToday : settings.stepGoal} bonus={date === today() && game && game.stepGoalToday < settings.stepGoal ? settings.stepGoal - game.stepGoalToday : 0} st={lager.pfad} />}
+
+        {lager && (
+          <SceneCard
+            st={lager.brunnen}
+            overlay={<SceneValue value={fmt(s.waterMl / 1000, 2)} unit={`von ${fmt(settings.waterGoalMl / 1000, 1)} l`} sub={s.waterMl >= settings.waterGoalMl ? '✓ Trinkziel erreicht' : `noch ${fmt(Math.max(0, settings.waterGoalMl - s.waterMl) / 1000, 2)} l`} testId="water-today" />}
+          >
+            <Progress value={s.waterMl} max={settings.waterGoalMl} label="Trinkziel" />
             <Button
               variant="secondary"
-              className="col-span-2 h-12 text-xs"
+              className="mt-3 w-full"
               onClick={async () => {
                 await addWater(date, 250);
                 toast('+250 ml Wasser', 'success');
               }}
             >
-              <Droplets className="h-5 w-5" /> Wasser +250 ml · {fmt(s.waterMl / 1000, 2)} / {fmt(settings.waterGoalMl / 1000, 1)} l
+              <Droplets className="h-4 w-4" /> Wasser +250 ml
             </Button>
-          </div>
-        </Card>
+          </SceneCard>
+        )}
+
+        {lager && (
+          <SceneCard
+            st={lager.heiler}
+            overlay={
+              weight.last ? (
+                <SceneValue value={fmt(weight.last.value, 1)} unit="kg" sub={weight.w7.kgPerWeek == null ? 'Trend: zu wenig Daten' : `${weight.w7.kgPerWeek > 0 ? '+' : ''}${fmt(weight.w7.kgPerWeek, 2)} kg/Woche`} />
+              ) : (
+                <div className="text-xs text-white/80">Noch kein Gewicht erfasst</div>
+              )
+            }
+          >
+            {weight.last && (
+              <div className="grid grid-cols-3 gap-2">
+                <Stat label="Letzte Messung" value={fmt(weight.last.value, 1)} unit="kg" />
+                <Stat label="Trend (EMA)" value={fmt(weight.trend?.value, 1)} unit="kg" />
+                <Stat label="7-Tage-Trend" value={weight.w7.kgPerWeek == null ? '–' : `${weight.w7.kgPerWeek > 0 ? '+' : ''}${fmt(weight.w7.kgPerWeek, 2)}`} unit={weight.w7.kgPerWeek == null ? undefined : 'kg/W'} sub={weight.w7.n < 2 ? 'zu wenig Daten' : `${weight.w7.n} Messungen`} />
+              </div>
+            )}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button variant="secondary" onClick={() => setWeightOpen(true)}>
+                <Scale className="h-4 w-4" /> Gewicht
+              </Button>
+              <Button variant="ghost" onClick={() => nav('/body')}>
+                Verlauf <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <details className="mt-3">
+              <summary className="flex cursor-pointer items-center gap-1 text-sm font-medium">
+                <Moon className="h-4 w-4" /> Schlaf und Erholung
+              </summary>
+              <div className="mt-3">
+                <RecoveryFields date={date} />
+              </div>
+            </details>
+          </SceneCard>
+        )}
+
+        {lager && game && (
+          <SceneCard
+            st={lager.kartentisch}
+            onScene={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')}
+            sceneLabel="Kartentisch – zur Weltkarte"
+            overlay={<SceneValue value={game.world.ap} unit="Aktionspunkte" sub={`${game.world.state.conquered.size} von 12 Regionen erobert`} />}
+          />
+        )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardTitle action={<Badge>{DAY_TYPE_LABELS[dayType]}</Badge>}>Geplantes Training</CardTitle>
-          {settings.sickDays?.includes(date) && <p className="mb-2 text-xs text-sky-300" data-testid="sick-training">Krankentag – Training ist heute keine Pflicht.</p>}
-          {plan ? (
-            todaysDays.length ? (
-              <ul className="space-y-2">
-                {todaysDays.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate font-medium">{d.name}</div>
-                      <div className="text-xs text-muted">
-                        {plan.name} · {d.exercises.length} Übungen
-                      </div>
-                    </div>
-                    <Button size="sm" onClick={() => start(d.id)}>
-                      Starten
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted">
-                Heute kein Trainingstag in „{plan.name}“.{' '}
-                <button className="text-accent underline" onClick={() => nav('/training')}>
-                  Plan ansehen
-                </button>
-              </p>
-            )
-          ) : (
-            <p className="text-sm text-muted">
-              Kein aktiver Plan.{' '}
-              <button className="text-accent underline" onClick={() => nav('/training')}>
-                Plan erstellen oder aktivieren
-              </button>
-            </p>
-          )}
-        </Card>
-        <Card>
-          <CardTitle>Letzte Trainingsleistung</CardTitle>
-          {lastWorkout ? (
-            <button className="w-full text-left" onClick={() => nav('/training/history/' + lastWorkout.id)}>
-              <div className="font-medium">{lastWorkout.name}</div>
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                <Stat label="Datum" value={new Date(lastWorkout.startedAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} />
-                <Stat label="Sätze" value={completedSets(lastWorkout)} />
-                <Stat label="Volumen" value={fmt(workoutVolume(lastWorkout))} unit="kg" />
-              </div>
-            </button>
-          ) : (
-            <p className="text-sm text-muted">Noch kein Workout abgeschlossen.</p>
-          )}
-        </Card>
-        <Card>
-          <CardTitle action={<button className="text-xs text-accent" onClick={() => nav('/body')}>Details</button>}>Gewichtstrend</CardTitle>
-          {weight.last ? (
-            <div className="grid grid-cols-2 gap-2">
-              <Stat label="Letzte Messung" value={fmt(weight.last.value, 1)} unit="kg" />
-              <Stat label="Trend (EMA)" value={fmt(weight.trend?.value, 1)} unit="kg" />
-              <Stat label="7-Tage-Trend" value={weight.w7.kgPerWeek == null ? '–' : `${weight.w7.kgPerWeek > 0 ? '+' : ''}${fmt(weight.w7.kgPerWeek, 2)}`} unit={weight.w7.kgPerWeek == null ? undefined : 'kg/W'} sub={weight.w7.n < 2 ? 'zu wenig Daten' : `${weight.w7.n} Messungen`} />
-            </div>
-          ) : (
-            <p className="text-sm text-muted">Noch kein Gewicht erfasst.</p>
-          )}
-        </Card>
-        <Card>
-          <CardTitle>Wochenfortschritt</CardTitle>
-          <div className="space-y-3 text-sm">
-            <div>
-              <div className="mb-1 flex justify-between">
-                <span className="text-muted">Kalorienziel getroffen (±10 %)</span>
-                <span className="tabular-nums">
-                  {week.rate.hitDays}/{week.rate.evaluableDays} Tage
-                </span>
-              </div>
-              <Progress value={week.rate.hitDays} max={Math.max(1, week.rate.evaluableDays)} label="Kalorienziel Woche" />
-              {week.rate.missingDates.length > 0 && <div className="mt-1 text-xs text-muted">{week.rate.missingDates.length} Tag(e) ohne Einträge</div>}
-            </div>
-            <div>
-              <div className="mb-1 flex justify-between">
-                <span className="text-muted">Trainingseinheiten</span>
-                <span className="tabular-nums">
-                  {week.done}/{week.planned || '–'}
-                </span>
-              </div>
-              <Progress value={week.done} max={Math.max(1, week.planned)} label="Training Woche" />
-            </div>
-          </div>
-        </Card>
-        <Card>
-          <CardTitle action={<button className="flex items-center text-xs text-accent" onClick={() => nav('/coach')}>Alle <ChevronRight className="h-3 w-3" /></button>}>
-            <span className="flex items-center gap-1">
-              <Sparkles className="h-4 w-4 text-accent" /> Coach
-            </span>
-          </CardTitle>
-          <ul className="space-y-2 text-sm">
-            {insights.slice(0, 3).map((i) => (
-              <li key={i.id}>
-                <div className="font-medium">{i.title}</div>
-                <div className="text-xs text-muted">{i.message}</div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card>
-          <CardTitle>Ernährung heute · {DAY_TYPE_LABELS[dayType]}</CardTitle>
-          <ul className="space-y-2 text-sm">
-            {recs.slice(0, 4).map((r) => (
-              <li key={r.topic}>
-                <span className="font-medium">{r.topic}: </span>
-                <span className="text-muted">{r.text}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-[11px] text-muted">Allgemeine Richtwerte – sie ändern deine Ziele nicht automatisch.</p>
-        </Card>
-        <StepsCard date={date} goal={date === today() && game ? game.stepGoalToday : settings.stepGoal} bonus={date === today() && game && game.stepGoalToday < settings.stepGoal ? settings.stepGoal - game.stepGoalToday : 0} />
-        <RecoveryCard date={date} />
-      </div>
+      <Card>
+        <CardTitle action={<button className="flex items-center text-xs text-accent" onClick={() => nav('/coach')}>Alle <ChevronRight className="h-3 w-3" /></button>}>
+          <span className="flex items-center gap-1">
+            <Sparkles className="h-4 w-4 text-accent" /> Rat des Lagers
+          </span>
+        </CardTitle>
+        <ul className="space-y-2 text-sm">
+          {insights.slice(0, 3).map((i) => (
+            <li key={i.id}>
+              <div className="font-medium">{i.title}</div>
+              <div className="text-xs text-muted">{i.message}</div>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 border-t pt-3 text-xs font-medium text-muted">Ernährung heute · {DAY_TYPE_LABELS[dayType]}</div>
+        <ul className="mt-1 space-y-2 text-sm">
+          {recs.slice(0, 4).map((r) => (
+            <li key={r.topic}>
+              <span className="font-medium">{r.topic}: </span>
+              <span className="text-muted">{r.text}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[11px] text-muted">Allgemeine Richtwerte – sie ändern deine Ziele nicht automatisch.</p>
+      </Card>
       <WeightSheet open={weightOpen} onClose={() => setWeightOpen(false)} last={weight.last?.value} />
     </div>
   );
@@ -385,7 +401,7 @@ export function WeightSheet({ open, onClose, last }: { open: boolean; onClose: (
   );
 }
 
-function RecoveryCard({ date }: { date: string }) {
+function RecoveryFields({ date }: { date: string }) {
   const log = useLiveQuery(() => db.recovery.get(date), [date]);
   const yesterday = useLiveQuery(() => db.recovery.get(addDays(date, -1)), [date]);
   const update = async (patch: Partial<RecoveryLog>) => {
@@ -405,12 +421,7 @@ function RecoveryCard({ date }: { date: string }) {
     </div>
   );
   return (
-    <Card>
-      <CardTitle>
-        <span className="flex items-center gap-1">
-          <Moon className="h-4 w-4" /> Regeneration
-        </span>
-      </CardTitle>
+    <div className="space-y-3">
       <div className="space-y-3">
         <Field label="Schlafdauer (h)" hint={yesterday?.sleepHours ? `Gestern: ${yesterday.sleepHours} h` : undefined}>
           {(id) => <NumberInput id={id} value={log?.sleepHours} onValue={(v) => (v == null || (v >= 0 && v <= 24)) && update({ sleepHours: v })} />}
@@ -419,12 +430,12 @@ function RecoveryCard({ date }: { date: string }) {
         {scale('soreness', 'Muskelkater (1 = keiner, 5 = stark)')}
         {scale('energy', 'Energielevel (1 = niedrig, 5 = hoch)')}
       </div>
-    </Card>
+    </div>
   );
 }
 
 /** Schrittzähler: Schritte des Tages von Hand eintragen (z. B. von der Uhr ablesen). */
-function StepsCard({ date, goal, bonus = 0 }: { date: string; goal: number; bonus?: number }) {
+function StepsCard({ date, goal, bonus = 0, st }: { date: string; goal: number; bonus?: number; st: StationState }) {
   const week = useLiveQuery(() => db.recovery.where('date').between(addDays(date, -6), date, true, true).toArray(), [date]);
   const steps = week?.find((r) => r.date === date)?.steps;
   const save = async (v: number | undefined) => {
@@ -435,12 +446,11 @@ function StepsCard({ date, goal, bonus = 0 }: { date: string; goal: number; bonu
   const days = Array.from({ length: 7 }, (_, k) => addDays(date, k - 6));
   const max = Math.max(goal, ...(week ?? []).map((r) => r.steps ?? 0));
   return (
-    <Card data-testid="steps-card">
-      <CardTitle action={<span className="text-xs text-muted" data-testid="steps-goal">Ziel {fmt(goal)}{bonus > 0 && <span className="text-gold"> (Set-Bonus −{fmt(bonus)})</span>}</span>}>
-        <span className="flex items-center gap-1">
-          <Footprints className="h-4 w-4" /> Schritte
-        </span>
-      </CardTitle>
+    <SceneCard
+      st={st}
+      testId="steps-card"
+      overlay={<SceneValue value={fmt(steps ?? 0)} unit="Schritte" sub={<span data-testid="steps-goal">Ziel {fmt(goal)}{bonus > 0 && <span className="text-gold"> (Set-Bonus −{fmt(bonus)})</span>}</span>} />}
+    >
       <div className="flex items-end gap-3">
         <Field label="Schritte heute" className="flex-1">
           {(id) => <NumberInput id={id} inputMode="numeric" value={steps} placeholder="z. B. 8500" onValue={(v) => void save(v)} />}
@@ -464,6 +474,6 @@ function StepsCard({ date, goal, bonus = 0 }: { date: string; goal: number; bonu
           );
         })}
       </div>
-    </Card>
+    </SceneCard>
   );
 }
