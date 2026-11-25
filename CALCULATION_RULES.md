@@ -188,3 +188,8 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
   - Heilerzelt: 0 / 7 / 30 / 90 Messtage (Gewicht oder Erholung) – Heilerzelt, Kräutergarten, Hospiz, Tempel der Heilung
   - Kartentisch: 0 / 2 / 5 / 9 eroberte Regionen – Kartentisch, Kriegszelt, Kommandoturm, Kriegsrat
 - Bilder `lager_<station>_<stufe>.webp`; fehlt ein Stufenbild, zeigt die Szene das höchste vorhandene darunter.
+
+## Beutetabelle und Rüstungsfarbe (1.24.1)
+- Rüstung fällt nur aus dem Fenster der Region (Klasse + Stufe I–X innerhalb der Klasse): Arvernerhöhen Stoff II–IV, Dunkelwald Stoff III–V, Nebelinseln Stoff IV–VII, Hirtenland Stoff VI–IX + Leder I–II, Drachenberge Stoff VIII–X + Leder I–IV, Löwensteppe Leder III–VI, Sobeks Delta Leder V–VIII, Gipfelreich Leder VII–X + Schwer I–II, Reiterwüste Leder IX–X + Schwer I–IV, Hunnensteppe Schwer III–VI, Thron der Könige Schwer V–VIII, Kaiserstadt Schwer VII–X.
+- Die oberste Stufe eines Fensters ist selten: nur Elite, Truhe und Boss können sie fallen lassen, normale Gegner nicht. Das Kartenblatt zeigt „Mögliche Beute“.
+- Rüstungsfarbe zusätzlich direkt am Charakterbogen („Rüstung: Farbe & Anzeige“), nicht nur unter Aussehen → Farben.

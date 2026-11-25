@@ -33,7 +33,7 @@ export function LookEditor({ hero, game, onClose }: { hero: Hero; game: GameStat
   const [tab, setTab] = useState<Tab>('hair');
   const fresh = useNewLooks(game);
   const [newKeys] = useState(() => new Set(fresh));
-  const { lookSeen, hero: liveHero } = useSettings();
+  const { lookSeen } = useSettings();
   useEffect(() => {
     if (fresh.length) void setSetting('lookSeen', [...new Set([...lookSeen, ...fresh])]);
   }, [fresh, lookSeen]);
@@ -149,37 +149,46 @@ export function LookEditor({ hero, game, onClose }: { hero: Hero; game: GameStat
             <div>
               <div className="mb-1 text-sm font-semibold">Rüstungsfarbe</div>
               <p className="mb-2 text-[11px] text-muted">Färbt den roten und purpurnen Stoff deiner Rüstung. Gold, Leder und Metall bleiben.</p>
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Rüstungsfarbe">
-                {[null, ...ARMOR_COLORS].map((c) => {
-                  const st = c ? unlockStatus(c.unlock, ctx) : { unlocked: true, hint: '' };
-                  const active = ((liveHero ?? hero).armorColor ?? null) === (c?.id ?? null);
-                  return (
-                    <button
-                      key={c?.id ?? 'original'}
-                      type="button"
-                      onClick={() => (st.unlocked ? void setArmorColor(c?.id ?? null) : toast(`${c!.label}: ${st.hint}`, 'info'))}
-                      className="flex w-14 flex-col items-center gap-1"
-                      aria-pressed={active}
-                      aria-label={st.unlocked ? c?.label ?? 'Original' : `${c!.label} (gesperrt: ${st.hint})`}
-                      data-testid={`armorcolor-${c?.id ?? 'original'}`}
-                    >
-                      <span
-                        className={cn('relative flex h-10 w-10 items-center justify-center rounded-full border-2', active ? 'border-gold' : 'border-white/15', !st.unlocked && 'opacity-40')}
-                        style={{ background: c?.hex ?? 'linear-gradient(135deg,#8a1c1c 50%,#c9a24a 50%)' }}
-                      >
-                        {!st.unlocked && <Lock className="h-4 w-4 text-white/90" />}
-                        {active && <Check className="h-4 w-4 text-white" />}
-                        {c && newKeys.has(`armorcolor:${c.id}`) && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-accent" />}
-                      </span>
-                      <span className="text-[10px] leading-tight text-muted">{c?.label ?? 'Original'}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              <ArmorColorPicker game={game} newKeys={newKeys} />
             </div>
           </div>
         )}
       </div>
     </Sheet>
+  );
+}
+
+/** Rüstungsfarbe: Original + 2 Startfarben, weitere über Rang, Abzeichen und Bosse. */
+export function ArmorColorPicker({ game, newKeys }: { game: GameState; newKeys?: Set<string> }) {
+  const ctx = lookContext(game);
+  const { hero } = useSettings();
+  return (
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Rüstungsfarbe">
+      {[null, ...ARMOR_COLORS].map((c) => {
+        const st = c ? unlockStatus(c.unlock, ctx) : { unlocked: true, hint: '' };
+        const active = (hero?.armorColor ?? null) === (c?.id ?? null);
+        return (
+          <button
+            key={c?.id ?? 'original'}
+            type="button"
+            onClick={() => (st.unlocked ? void setArmorColor(c?.id ?? null) : toast(`${c!.label}: ${st.hint}`, 'info'))}
+            className="flex w-14 flex-col items-center gap-1"
+            aria-pressed={active}
+            aria-label={st.unlocked ? c?.label ?? 'Original' : `${c!.label} (gesperrt: ${st.hint})`}
+            data-testid={`armorcolor-${c?.id ?? 'original'}`}
+          >
+            <span
+              className={cn('relative flex h-10 w-10 items-center justify-center rounded-full border-2', active ? 'border-gold' : 'border-white/15', !st.unlocked && 'opacity-40')}
+              style={{ background: c?.hex ?? 'linear-gradient(135deg,#8a1c1c 50%,#c9a24a 50%)' }}
+            >
+              {!st.unlocked && <Lock className="h-4 w-4 text-white/90" />}
+              {active && <Check className="h-4 w-4 text-white" />}
+              {c && newKeys?.has(`armorcolor:${c.id}`) && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-accent" />}
+            </span>
+            <span className="text-[10px] leading-tight text-muted">{c?.label ?? 'Original'}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

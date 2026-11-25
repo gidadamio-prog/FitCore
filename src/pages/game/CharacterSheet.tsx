@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Dumbbell, Salad, Check, Scissors, Eye, EyeOff } from 'lucide-react';
-import { LookEditor, useNewLooks } from './LookEditor';
+import { Lock, Dumbbell, Salad, Check, Scissors, Eye, EyeOff, Palette } from 'lucide-react';
+import { ArmorColorPicker, LookEditor, useNewLooks } from './LookEditor';
 import { gearExtra } from '@/domain/gear';
 import { ARMOR_CLASS_COLOR, ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, bonusText, fullArmorSet, setBonuses, type ArmorSlot } from '@/domain/armor';
 
@@ -105,7 +105,7 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
           )}
           {ARMOR_SLOTS.some((s) => loadout[s]) && (
             <Button size="sm" variant="secondary" className="mt-1.5" data-testid="armor-visibility" onClick={() => setVisOpen(true)}>
-              {hero.armorHidden?.length ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />} Rüstung anzeigen
+              <Palette className="h-3.5 w-3.5" /> Rüstung: Farbe & Anzeige
             </Button>
           )}
           {fullSet && (
@@ -127,7 +127,11 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
         {col(['off', 'legs', 'feet'])}
       </div>
       {lookOpen && <LookEditor hero={hero} game={game} onClose={() => setLookOpen(false)} />}
-      <Sheet open={visOpen} onClose={() => setVisOpen(false)} title="Rüstung auf der Figur">
+      <Sheet open={visOpen} onClose={() => setVisOpen(false)} title="Rüstung: Farbe & Anzeige">
+        <div className="mb-1 text-sm font-semibold">Farbe</div>
+        <p className="mb-2 text-[11px] text-muted">Färbt den roten und purpurnen Stoff deiner Rüstung. Gold, Leder und Metall bleiben. Weitere Farben schaltest du über Rang, Abzeichen und Bosse frei.</p>
+        <ArmorColorPicker game={game} />
+        <div className="mb-1 mt-4 text-sm font-semibold">Anzeige auf der Figur</div>
         <p className="mb-3 text-xs text-muted">Ausgeblendete Teile bleiben angelegt – Kampfwerte und Set-Bonus gelten weiter. Nur deine Figur zeigt sie nicht (z. B. Helm aus, damit die Frisur zu sehen ist).</p>
         <ul className="space-y-2">
           {ARMOR_SLOTS.filter((s) => loadout[s]).map((s) => {

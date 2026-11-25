@@ -2,8 +2,8 @@
 import { getSettings, setSetting } from './profileRepo';
 import { today } from '@/domain/dates';
 import type { GameState } from '@/domain/gamification';
-import { hash, rollLoot } from '@/domain/armor';
-import { ARMOR_CLASSES_BY_REGION, foeFor, simulateFight, type FightResult, type Foe, type Stats } from '@/domain/combat';
+import { hash, lootSets, rollLoot } from '@/domain/armor';
+import { foeFor, simulateFight, type FightResult, type Foe, type Stats } from '@/domain/combat';
 import { heroStatsFor, trainedToday } from '@/domain/gear';
 import {
   AP_COST,
@@ -100,7 +100,7 @@ export async function fight(nodeId: string, game: GameState): Promise<FightOutco
   let loot: string[] = [];
   let denare = 0;
   if (result.won) {
-    loot = rollLoot(`${nodeId}|${at}`, n.type === 'elite' ? 1 : 0, lootCtx(game, s, state), n.type === 'elite' ? 0 : 0.4, ARMOR_CLASSES_BY_REGION(ri));
+    loot = rollLoot(`${nodeId}|${at}`, n.type === 'elite' ? 1 : 0, lootCtx(game, s, state), n.type === 'elite' ? 0 : 0.4, lootSets(ri, n.type === 'elite' ? 'elite' : 'gegner'));
     denare = Math.round((n.type === 'elite' ? 20 : 5) * (1 + ri * 0.3) * (1 + hash(at)));
   }
   await append(log, { k: 'fight', at, date: d, node: nodeId, ap: cost, won: result.won, loot, denare }, loot);
@@ -116,7 +116,7 @@ export async function openChest(nodeId: string, game: GameState) {
   needAp(ap, AP_COST.chest);
   const at = new Date().toISOString();
   const ri = regionIndex(n.region);
-  const loot = rollLoot(`${nodeId}|${at}`, 0, lootCtx(game, s, state), 0.65, ARMOR_CLASSES_BY_REGION(ri));
+  const loot = rollLoot(`${nodeId}|${at}`, 0, lootCtx(game, s, state), 0.65, lootSets(ri, 'truhe'));
   const denare = Math.round((loot.length ? 10 : 30) * (1 + ri * 0.3) * (1 + hash(at)));
   await append(log, { k: 'chest', at, date: today(), node: nodeId, ap: AP_COST.chest, loot, denare }, loot);
   return { loot, denare };
@@ -141,7 +141,7 @@ export async function siege(nodeId: string, game: GameState): Promise<FightOutco
   const left = foe.hp - (state.bossDmg.get(n.region) ?? 0);
   const result = simulateFight(hero, foe, `${nodeId}|${at}`, { kampfgeist: kg, foeHp: left });
   const killed = result.foeHpEnd <= 0;
-  const loot = killed ? rollLoot(`${nodeId}|${at}`, 1, lootCtx(game, s, state), 0, ARMOR_CLASSES_BY_REGION(regionIndex(n.region))) : [];
+  const loot = killed ? rollLoot(`${nodeId}|${at}`, 1, lootCtx(game, s, state), 0, lootSets(regionIndex(n.region), 'boss')) : [];
   const denare = killed ? 100 + regionIndex(n.region) * 40 : 0;
   await append(log, { k: 'siege', at, date: d, node: nodeId, ap: AP_COST.siege, dmg: result.dealt, killed, loot, denare }, loot);
   return { foe, hero, result, loot, denare, kampfgeist: kg, regionName: r.name, bossHpMax: foe.hp, killed };

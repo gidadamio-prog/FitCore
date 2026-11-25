@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARMOR_SETS, BOSS_SETS, RANK_SETS, armorItemId, armorPrice, fullArmorSet, ownsArmorPiece, parseArmorId, rollLoot, type ArmorContext } from '@/domain/armor';
+import { ARMOR_SETS, BOSS_SETS, LOOT_WINDOWS, RANK_SETS, armorItemId, armorPrice, fullArmorSet, lootLabel, lootSets, ownsArmorPiece, parseArmorId, rollLoot, type ArmorContext } from '@/domain/armor';
 import { inventory, itemById } from '@/domain/equipment';
 import { ARMOR_ASPECT, ARMOR_BODY, ARMOR_HEAD } from '@/domain/armorLayout';
 import { CAMPAIGN } from '@/domain/rpg';
@@ -46,6 +46,19 @@ describe('Rüstungs-Sets', () => {
     for (let i = 0; i < 400; i++) drops += rollLoot(`k${i}`, 0, c).length;
     expect(drops / 400).toBeGreaterThan(0.25);
     expect(drops / 400).toBeLessThan(0.45);
+  });
+  it('Beutetabelle: Startgebiet nur niedrige Stoff-Stufen, seltenste Stufe nur bei Elite/Truhe/Boss, steigt mit der Region', () => {
+    const tiers = (ids: number[]) => ids.map((i) => `${ARMOR_SETS[i]!.cls}${ARMOR_SETS[i]!.tier}`);
+    expect(tiers(lootSets(0, 'gegner'))).toEqual(['stoff1', 'stoff2']);
+    expect(tiers(lootSets(0, 'elite'))).toEqual(['stoff1', 'stoff2', 'stoff3']);
+    expect(lootSets(0, 'truhe')).toEqual(lootSets(0, 'boss'));
+    expect(lootLabel(0)).toBe('Stoff II–IV');
+    // 500 Würfe im Startgebiet: nie etwas über Stoff III (Stufe 3)
+    for (let i = 0; i < 500; i++) for (const id of rollLoot(`s${i}`, 1, ctx({ rankLevel: 10 }), 1, lootSets(0, 'elite'))) expect(parseArmorId(id)!.set.tier).toBeLessThanOrEqual(3);
+    // Fenster steigen: beste Stufe je Region nie schlechter als in der vorigen
+    const best = LOOT_WINDOWS.map((_, r) => Math.max(...lootSets(r, 'boss').map((i) => ARMOR_SETS[i]!.idx)));
+    for (let r = 1; r < best.length; r++) expect(best[r]).toBeGreaterThanOrEqual(best[r - 1]!);
+    expect(lootSets(11, 'boss').every((i) => ARMOR_SETS[i]!.cls === 'schwer')).toBe(true);
   });
   it('Inventar: Rüstung ohne Rangsperre, Hinweis für Gesperrtes; Set-Bonus nur bei allen 5 Teilen', () => {
     const inv = inventory([], 'legionar', 1, [], { defeatedBossIds: [], loot: [], rankName: (l) => `R${l}`, bossName: (b) => b });

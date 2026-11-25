@@ -44,6 +44,7 @@ test('AK-109 Rüstung: Start-Set auf der Figur, Kopfteil verdeckt Frisur, ganzes
 
   // Sichtbarkeit direkt unter der Figur: alle ausblenden → Figur ohne Rüstung, Bonus bleibt; alle zeigen
   await sheet.getByTestId('armor-visibility').click();
+  await expect(page.getByRole('dialog').getByRole('group', { name: 'Rüstungsfarbe' })).toBeVisible();
   await page.getByTestId('vis-all-off').click();
   await expect(fig.getByTestId('armor-chest')).toHaveCount(0);
   await expect(page.getByTestId('vis-chest')).toHaveAttribute('aria-pressed', 'false');

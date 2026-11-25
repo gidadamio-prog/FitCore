@@ -155,5 +155,4 @@ export function winChance(hero: Stats, foe: Foe, kampfgeist = false): number {
   return wins / 40;
 }
 
-export const ARMOR_CLASSES_BY_REGION = (regionIdx: number): ArmorClass[] => (regionIdx < 3 ? ['stoff'] : regionIdx < 6 ? ['stoff', 'leder'] : ['leder', 'schwer']);
 export { ARMOR_SETS };
