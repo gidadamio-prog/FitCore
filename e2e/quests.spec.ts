@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { onboard } from './helpers';
+import { onboard, openStation } from './helpers';
 
 test('Schritte eintragen, Feldzug der Woche wählen (3 aus 5)', async ({ page }) => {
   await onboard(page);
-  // Schrittzähler
+  // Schrittzähler (Kachel: +1.000 direkt, Eingabe nach dem Vergrößern)
+  await page.getByTestId('steps-card').getByRole('button', { name: '1.000 Schritte hinzufügen' }).click();
+  await expect(page.getByTestId('steps-card')).toContainText('1.000');
+  await openStation(page, 'Wanderpfad');
   const steps = page.getByTestId('steps-card');
   await steps.getByLabel('Schritte heute').fill('6500');
   await steps.getByLabel('Schritte heute').blur();

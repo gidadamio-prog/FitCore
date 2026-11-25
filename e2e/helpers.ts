@@ -89,3 +89,9 @@ export async function dismissCelebrations(page: Page) {
     await btn.first().click();
   }
 }
+
+/** Station auf „Heute“ vergrößern (Kacheln sind standardmäßig klein). */
+export async function openStation(page: Page, title: string) {
+  const btn = page.getByRole('button', { name: `${title} öffnen` });
+  if (await btn.count()) await btn.click();
+}

@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, CloudUpload } from 'lucide-react';
+import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, CloudUpload, Footprints, Map as MapIcon } from 'lucide-react';
 import { Button, Card, CardTitle, Field, NumberInput, Progress, Sheet, Stat, fmt } from '@/components/ui';
-import { HeroCamp, SceneCard, SceneValue } from '@/components/lager/Lager';
-import type { StationState } from '@/domain/lager';
+import { HeroCamp, SceneCard, SceneValue, StationTile } from '@/components/lager/Lager';
+import type { StationId, StationState } from '@/domain/lager';
 import { BossStage } from '@/components/rpg/BossStage';
 import { PageHeader } from '@/components/Layout';
 import { useActiveWorkout, useCardio, useDaySummary, useGoals, useMeasurements, usePlans, useProfile, useSettings, useWorkouts, useAllEntries } from '@/hooks/data';
@@ -22,7 +22,7 @@ import { InstallPrompt } from '@/components/InstallPrompt';
 import { backupDue, saveBackupToCloud } from '@/data/backup';
 import { setSetting } from '@/data/profileRepo';
 import { useGame } from '@/hooks/game';
-import { RankHeader, StreakChips } from './Achievements';
+import { StreakChips } from './Achievements';
 import { SickBanner, SickButton } from '@/components/SickDay';
 import { DailyQuestBanner, QuestBoard } from '@/components/QuestBoard';
 import { db } from '@/data/db';
@@ -44,6 +44,12 @@ export function Today() {
   const [weightOpen, setWeightOpen] = useState(false);
   const game = useGame();
   const lager = game?.lager;
+  // geöffnete Station (nur eine zugleich); scrollt sie ins Bild
+  const [open, setOpen] = useState<StationId | null>(null);
+  const toggle = (id: StationId | null) => {
+    setOpen(id);
+    if (id) requestAnimationFrame(() => document.querySelector(`[data-testid="${id === 'pfad' ? 'steps-card' : `station-${id}`}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  };
   const plan = plans.find((p) => p.status === 'active');
   const todaysDays = plan?.days.filter((d) => d.weekdays.includes(isoWeekday(date))) ?? [];
   const lastWorkout = workouts[workouts.length - 1];
@@ -117,22 +123,31 @@ export function Today() {
       {game && (
         <Card className="overflow-hidden border-gold/25 p-2" data-testid="game-card">
           <HeroCamp game={game} onHero={() => nav('/erfolge?tab=held')} />
-          <div className="px-2 pb-2 pt-3">
-            <button className="block w-full text-left" onClick={() => nav('/erfolge')} aria-label="Zur Ruhmeshalle">
-              <RankHeader game={game} compact />
+          <div className="px-2 pb-2 pt-2">
+            <button className="flex w-full items-center gap-2 text-left text-xs" onClick={() => nav('/erfolge?tab=ruhm')} aria-label="Zur Ruhmeshalle">
+              <span className="font-brand text-sm font-bold text-gold" data-testid="rank-name">
+                {game.rank.rank.name}
+              </span>
+              <span className="text-muted">
+                Rang {game.rank.rank.level} · <span data-testid="xp-total">{fmt(game.xp)}</span> EP
+              </span>
+              <span className="ml-auto min-w-0 flex-1">
+                <Progress value={game.rank.progress * 100} max={100} label="Fortschritt zum nächsten Rang" />
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
             </button>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StreakChips game={game} />
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StreakChips game={game} compact />
               <SickButton />
             </div>
           </div>
         </Card>
       )}
-      {game && <BossStage game={game} onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')} cta={settings.hero ? `Zur Weltkarte · ${game.world.ap} AP` : 'Helden erschaffen und losziehen'} />}
+      {game && <BossStage compact game={game} onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')} cta={settings.hero ? `Zur Weltkarte · ${game.world.ap} AP` : 'Helden erschaffen und losziehen'} />}
       {game && (game.dailyQuest || game.quests.length > 0 || game.questOffers.length > 0) && (
         <Card data-testid="quest-card">
           {game.dailyQuest && <DailyQuestBanner q={game.dailyQuest} />}
-          <details className={game.dailyQuest ? 'mt-3' : undefined} open={!game.questsPicked && game.questOffers.length > 0}>
+          <details className={game.dailyQuest ? 'mt-3' : undefined}>
             <summary className="cursor-pointer text-sm font-medium">
               {!game.questsPicked && game.questOffers.length > 0 ? (
                 <span className="text-gold">Feldzug der Woche wählen (3 aus {game.questOffers.length})</span>
@@ -149,10 +164,13 @@ export function Today() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {lager && (
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3" data-testid="stations">
+        {lager &&
+          (open === 'proviant' ? (
           <SceneCard
             st={lager.proviant}
+            onClose={() => toggle(null)}
+            className="col-span-2 md:col-span-3"
             onScene={() => nav('/nutrition?add=1')}
             sceneLabel="Proviant – Essen eintragen"
             overlay={
@@ -198,11 +216,26 @@ export function Today() {
               </Button>
             </div>
           </SceneCard>
-        )}
+          ) : (
+            <StationTile
+              st={lager.proviant}
+              onOpen={() => toggle('proviant')}
+              value={g ? <span data-testid="remaining-kcal">{fmt(s.budget!.remaining)}</span> : '–'}
+              sub={g ? (s.budget!.remaining >= 0 ? 'kcal übrig' : 'kcal drüber') : 'kein Ziel'}
+              action={
+                <Button size="sm" className="w-full" onClick={() => nav('/nutrition?add=1')}>
+                  <Plus className="h-4 w-4" /> Lebensmittel
+                </Button>
+              }
+            />
+          ))}
 
-        {lager && (
+        {lager &&
+          (open === 'training' ? (
           <SceneCard
             st={lager.training}
+            onClose={() => toggle(null)}
+            className="col-span-2 md:col-span-3"
             overlay={
               <div className="text-white">
                 <div className="text-xs text-white/75">{DAY_TYPE_LABELS[dayType]}</div>
@@ -262,13 +295,28 @@ export function Today() {
               </button>
             )}
           </SceneCard>
-        )}
+          ) : (
+            <StationTile
+              st={lager.training}
+              onOpen={() => toggle('training')}
+              value={`${week.done}/${week.planned || '–'}`}
+              sub={settings.sickDays?.includes(date) ? 'Krankentag' : active ? 'Training läuft' : todaysDays[0]?.name ?? DAY_TYPE_LABELS[dayType]}
+              action={
+                <Button size="sm" variant="secondary" className="w-full" onClick={() => start(todaysDays[0]?.id)}>
+                  <Dumbbell className="h-4 w-4" /> Training starten
+                </Button>
+              }
+            />
+          ))}
 
-        {lager && <StepsCard date={date} goal={date === today() && game ? game.stepGoalToday : settings.stepGoal} bonus={date === today() && game && game.stepGoalToday < settings.stepGoal ? settings.stepGoal - game.stepGoalToday : 0} st={lager.pfad} />}
+        {lager && <StepsCard date={date} goal={date === today() && game ? game.stepGoalToday : settings.stepGoal} bonus={date === today() && game && game.stepGoalToday < settings.stepGoal ? settings.stepGoal - game.stepGoalToday : 0} st={lager.pfad} open={open === 'pfad'} onToggle={(o) => toggle(o ? 'pfad' : null)} />}
 
-        {lager && (
+        {lager &&
+          (open === 'brunnen' ? (
           <SceneCard
             st={lager.brunnen}
+            onClose={() => toggle(null)}
+            className="col-span-2 md:col-span-3"
             overlay={<SceneValue value={fmt(s.waterMl / 1000, 2)} unit={`von ${fmt(settings.waterGoalMl / 1000, 1)} l`} sub={s.waterMl >= settings.waterGoalMl ? '✓ Trinkziel erreicht' : `noch ${fmt(Math.max(0, settings.waterGoalMl - s.waterMl) / 1000, 2)} l`} testId="water-today" />}
           >
             <Progress value={s.waterMl} max={settings.waterGoalMl} label="Trinkziel" />
@@ -283,11 +331,39 @@ export function Today() {
               <Droplets className="h-4 w-4" /> Wasser +250 ml
             </Button>
           </SceneCard>
-        )}
+          ) : (
+            <StationTile
+              st={lager.brunnen}
+              onOpen={() => toggle('brunnen')}
+              value={
+                <>
+                  <span data-testid="water-today">{fmt(s.waterMl / 1000, 2)}</span> l
+                </>
+              }
+              sub={s.waterMl >= settings.waterGoalMl ? '✓ Trinkziel erreicht' : `von ${fmt(settings.waterGoalMl / 1000, 1)} l`}
+              action={
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="w-full"
+                  aria-label="Wasser +250 ml"
+                  onClick={async () => {
+                    await addWater(date, 250);
+                    toast('+250 ml Wasser', 'success');
+                  }}
+                >
+                  <Droplets className="h-4 w-4" /> +250 ml
+                </Button>
+              }
+            />
+          ))}
 
-        {lager && (
+        {lager &&
+          (open === 'heiler' ? (
           <SceneCard
             st={lager.heiler}
+            onClose={() => toggle(null)}
+            className="col-span-2 md:col-span-3"
             overlay={
               weight.last ? (
                 <SceneValue value={fmt(weight.last.value, 1)} unit="kg" sub={weight.w7.kgPerWeek == null ? 'Trend: zu wenig Daten' : `${weight.w7.kgPerWeek > 0 ? '+' : ''}${fmt(weight.w7.kgPerWeek, 2)} kg/Woche`} />
@@ -320,42 +396,65 @@ export function Today() {
               </div>
             </details>
           </SceneCard>
-        )}
+          ) : (
+            <StationTile
+              st={lager.heiler}
+              onOpen={() => toggle('heiler')}
+              value={weight.last ? `${fmt(weight.last.value, 1)} kg` : '–'}
+              sub={weight.w7.kgPerWeek == null ? 'Trend: zu wenig Daten' : `${weight.w7.kgPerWeek > 0 ? '+' : ''}${fmt(weight.w7.kgPerWeek, 2)} kg/Woche`}
+              action={
+                <Button size="sm" variant="secondary" className="w-full" onClick={() => setWeightOpen(true)}>
+                  <Scale className="h-4 w-4" /> Gewicht
+                </Button>
+              }
+            />
+          ))}
 
         {lager && game && (
-          <SceneCard
+          <StationTile
             st={lager.kartentisch}
-            onScene={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')}
-            sceneLabel="Kartentisch – zur Weltkarte"
-            overlay={<SceneValue value={game.world.ap} unit="Aktionspunkte" sub={`${game.world.state.conquered.size} von 12 Regionen erobert`} />}
+            onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')}
+            value={`${game.world.ap} AP`}
+            sub={`${game.world.state.conquered.size}/12 Regionen erobert`}
+            action={
+              <Button size="sm" variant="secondary" className="w-full" onClick={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')}>
+                <MapIcon className="h-4 w-4" /> Zur Karte
+              </Button>
+            }
           />
         )}
       </div>
 
-      <Card>
+      <Card data-testid="coach-card">
         <CardTitle action={<button className="flex items-center text-xs text-accent" onClick={() => nav('/coach')}>Alle <ChevronRight className="h-3 w-3" /></button>}>
           <span className="flex items-center gap-1">
             <Sparkles className="h-4 w-4 text-accent" /> Rat des Lagers
           </span>
         </CardTitle>
-        <ul className="space-y-2 text-sm">
-          {insights.slice(0, 3).map((i) => (
-            <li key={i.id}>
-              <div className="font-medium">{i.title}</div>
-              <div className="text-xs text-muted">{i.message}</div>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-3 border-t pt-3 text-xs font-medium text-muted">Ernährung heute · {DAY_TYPE_LABELS[dayType]}</div>
-        <ul className="mt-1 space-y-2 text-sm">
-          {recs.slice(0, 4).map((r) => (
-            <li key={r.topic}>
-              <span className="font-medium">{r.topic}: </span>
-              <span className="text-muted">{r.text}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 text-[11px] text-muted">Allgemeine Richtwerte – sie ändern deine Ziele nicht automatisch.</p>
+        {insights[0] && (
+          <div className="text-sm">
+            <div className="font-medium">{insights[0].title}</div>
+            <div className="text-xs text-muted">{insights[0].message}</div>
+          </div>
+        )}
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs font-medium text-muted">Mehr Hinweise · Ernährung heute ({DAY_TYPE_LABELS[dayType]})</summary>
+          <ul className="mt-2 space-y-2 text-sm">
+            {insights.slice(1, 3).map((i) => (
+              <li key={i.id}>
+                <div className="font-medium">{i.title}</div>
+                <div className="text-xs text-muted">{i.message}</div>
+              </li>
+            ))}
+            {recs.slice(0, 4).map((r) => (
+              <li key={r.topic}>
+                <span className="font-medium">{r.topic}: </span>
+                <span className="text-muted">{r.text}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-muted">Allgemeine Richtwerte – sie ändern deine Ziele nicht automatisch.</p>
+        </details>
       </Card>
       <WeightSheet open={weightOpen} onClose={() => setWeightOpen(false)} last={weight.last?.value} />
     </div>
@@ -435,7 +534,7 @@ function RecoveryFields({ date }: { date: string }) {
 }
 
 /** Schrittzähler: Schritte des Tages von Hand eintragen (z. B. von der Uhr ablesen). */
-function StepsCard({ date, goal, bonus = 0, st }: { date: string; goal: number; bonus?: number; st: StationState }) {
+function StepsCard({ date, goal, bonus = 0, st, open, onToggle }: { date: string; goal: number; bonus?: number; st: StationState; open: boolean; onToggle: (open: boolean) => void }) {
   const week = useLiveQuery(() => db.recovery.where('date').between(addDays(date, -6), date, true, true).toArray(), [date]);
   const steps = week?.find((r) => r.date === date)?.steps;
   const save = async (v: number | undefined) => {
@@ -445,10 +544,27 @@ function StepsCard({ date, goal, bonus = 0, st }: { date: string; goal: number; 
   };
   const days = Array.from({ length: 7 }, (_, k) => addDays(date, k - 6));
   const max = Math.max(goal, ...(week ?? []).map((r) => r.steps ?? 0));
+  if (!open)
+    return (
+      <StationTile
+        st={st}
+        testId="steps-card"
+        onOpen={() => onToggle(true)}
+        value={fmt(steps ?? 0)}
+        sub={steps && steps >= goal ? '✓ Schrittziel erreicht' : `von ${fmt(goal)} Schritten`}
+        action={
+          <Button size="sm" variant="secondary" className="w-full" onClick={() => void save((steps ?? 0) + 1000)} aria-label="1.000 Schritte hinzufügen">
+            <Footprints className="h-4 w-4" /> +1.000
+          </Button>
+        }
+      />
+    );
   return (
     <SceneCard
       st={st}
       testId="steps-card"
+      onClose={() => onToggle(false)}
+      className="col-span-2 md:col-span-3"
       overlay={<SceneValue value={fmt(steps ?? 0)} unit="Schritte" sub={<span data-testid="steps-goal">Ziel {fmt(goal)}{bonus > 0 && <span className="text-gold"> (Set-Bonus −{fmt(bonus)})</span>}</span>} />}
     >
       <div className="flex items-end gap-3">
