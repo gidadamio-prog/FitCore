@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Swords, Zap } from 'lucide-react';
+import { Minimize2, Swords, Zap } from 'lucide-react';
 import { HeroFigure, HeroPortrait, rpgAsset } from '@/components/rpg/Visuals';
 import { useBodyType } from '@/hooks/game';
 import { useSettings } from '@/hooks/data';
@@ -39,11 +39,16 @@ export function TierLine({ st }: { st: StationState }) {
  * Station als Bildszene: Motiv rechts, links Titel und Live-Werte auf einem weichen Verlauf,
  * darunter die eigentlichen Eingaben und Details.
  */
-export function SceneCard({ st, overlay, children, testId, onScene, sceneLabel }: { st: StationState; overlay?: ReactNode; children?: ReactNode; testId?: string; onScene?: () => void; sceneLabel?: string }) {
+export function SceneCard({ st, overlay, children, testId, onScene, sceneLabel, onClose, className }: { st: StationState; overlay?: ReactNode; children?: ReactNode; testId?: string; onScene?: () => void; sceneLabel?: string; onClose?: () => void; className?: string }) {
   const url = sceneUrl(st.id, st.tier);
   const Scene = onScene ? 'button' : 'div';
   return (
-    <Card className="overflow-hidden p-0" data-testid={testId ?? `station-${st.id}`}>
+    <Card className={cn('scene-open relative overflow-hidden p-0', className)} data-testid={testId ?? `station-${st.id}`} data-open="true">
+      {onClose && (
+        <button type="button" onClick={onClose} aria-label={`${st.title} verkleinern`} className="absolute right-2 top-2 z-10 rounded-full bg-black/55 p-1.5 text-white">
+          <Minimize2 className="h-4 w-4" />
+        </button>
+      )}
       <Scene
         {...(onScene ? { type: 'button' as const, onClick: onScene, 'aria-label': sceneLabel ?? st.title } : {})}
         className="relative block aspect-[16/8] w-full overflow-hidden text-left"
@@ -62,6 +67,31 @@ export function SceneCard({ st, overlay, children, testId, onScene, sceneLabel }
       </Scene>
       {children && <div className="p-4">{children}</div>}
     </Card>
+  );
+}
+
+/**
+ * Kompakte Station als Bildkachel: Motiv, Titel, wichtigster Wert und eine Schnellaktion.
+ * Antippen (oder Hover am Rechner) vergrößert; geöffnet zeigt die Station alle Eingaben.
+ */
+export function StationTile({ st, value, sub, action, onOpen, testId }: { st: StationState; value: ReactNode; sub?: ReactNode; action?: ReactNode; onOpen: () => void; testId?: string }) {
+  const url = sceneUrl(st.id, st.tier);
+  return (
+    <div className="station-tile overflow-hidden rounded-2xl border bg-card transition duration-200 hover:z-10 hover:scale-[1.04] hover:shadow-xl hover:shadow-black/40" data-testid={testId ?? `station-${st.id}`} data-open="false">
+      <button type="button" onClick={onOpen} aria-label={`${st.title} öffnen`} className="relative block aspect-[4/3] w-full overflow-hidden text-left text-white">
+        {url ? <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover object-right" draggable={false} loading="lazy" /> : <div className="absolute inset-0 bg-gradient-to-br from-[#3a2c1e] to-[#1c140d]" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+        <div className="absolute left-2 top-1.5 font-brand text-sm font-bold drop-shadow">{st.title}</div>
+        <div className="absolute right-1.5 top-1.5 rounded-full bg-black/50 px-1.5 text-[10px] font-semibold text-gold" title={`Stufe ${ROMAN[st.tier]} · ${st.name}`}>
+          {ROMAN[st.tier]}
+        </div>
+        <div className="absolute inset-x-2 bottom-1.5">
+          <div className="text-xl font-bold leading-none tabular-nums drop-shadow">{value}</div>
+          {sub && <div className="mt-0.5 truncate text-[10px] text-white/80">{sub}</div>}
+        </div>
+      </button>
+      {action && <div className="p-1.5">{action}</div>}
+    </div>
   );
 }
 
@@ -114,7 +144,7 @@ export function HeroCamp({ game, onHero }: { game: GameState; onHero: () => void
   const url = sceneUrl('lager', st.tier);
   const lv = game.level;
   return (
-    <div className="relative aspect-square max-h-[26rem] w-full overflow-hidden rounded-xl" data-testid="hero-camp">
+    <div className="relative aspect-[5/4] max-h-[22rem] w-full overflow-hidden rounded-xl" data-testid="hero-camp">
       {url ? <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_70%]" draggable={false} /> : <CampBackdrop />}
       <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/70 to-transparent" />
       {hero && (
@@ -144,7 +174,7 @@ export function HeroCamp({ game, onHero }: { game: GameState; onHero: () => void
           <div className="relative mb-[4%] flex h-full items-end">
             <div className="absolute bottom-1 left-1/2 h-4 w-28 -translate-x-1/2 rounded-[50%] bg-black/45 blur-[3px]" />
             {body ? (
-              <HeroFigure bodyType={body.id} width={150} className="relative" />
+              <HeroFigure bodyType={body.id} width={128} className="relative" />
             ) : (
               <HeroPortrait classId={hero.classId} rankLevel={game.rank.rank.level} crest={hero.color} size={140} />
             )}

@@ -98,17 +98,18 @@ export function RankHeader({ game, compact = false }: { game: GameState; compact
   );
 }
 
-export function StreakChips({ game }: { game: GameState }) {
+export function StreakChips({ game, compact = false }: { game: GameState; compact?: boolean }) {
+  const chip = compact ? 'px-2 py-0.5 text-xs' : 'px-3 py-1';
   return (
-    <div className="flex flex-wrap gap-2 text-sm">
-      <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-3 py-1" data-testid="log-streak">
-        <Flame className="h-4 w-4 text-primary" /> {game.logStreak.current} Tage protokolliert
+    <div className={cn('flex flex-wrap gap-2', compact ? 'text-xs' : 'text-sm')}>
+      <span className={cn('inline-flex items-center gap-1 rounded-full bg-primary/15', chip)} data-testid="log-streak" title="Tage in Folge mit Ernährungsprotokoll">
+        <Flame className="h-4 w-4 text-primary" /> {game.logStreak.current} {compact ? 'Tage' : 'Tage protokolliert'}
       </span>
-      <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1" data-testid="train-streak">
-        <Swords className="h-4 w-4 text-accent" /> {game.trainStreak.current} Wochen trainiert
+      <span className={cn('inline-flex items-center gap-1 rounded-full bg-accent/15', chip)} data-testid="train-streak" title="Wochen in Folge mit Training">
+        <Swords className="h-4 w-4 text-accent" /> {game.trainStreak.current} {compact ? 'Wochen' : 'Wochen trainiert'}
       </span>
-      <span className="inline-flex items-center gap-1 rounded-full bg-fg/[0.06] px-3 py-1 text-muted" title="Pro Woche darf ein Tag fehlen, ohne dass die Ernährungs-Serie reißt.">
-        <Shield className="h-4 w-4" /> Schild {game.logStreak.shieldUsedThisWeek ? 'diese Woche verbraucht' : 'bereit'}
+      <span className={cn('inline-flex items-center gap-1 rounded-full bg-fg/[0.06] text-muted', chip)} title="Pro Woche darf ein Tag fehlen, ohne dass die Ernährungs-Serie reißt.">
+        <Shield className="h-4 w-4" /> {compact ? (game.logStreak.shieldUsedThisWeek ? 'Schild weg' : 'Schild') : `Schild ${game.logStreak.shieldUsedThisWeek ? 'diese Woche verbraucht' : 'bereit'}`}
       </span>
     </div>
   );

@@ -228,3 +228,8 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Fertiggewicht (optional): je 100 g und Portionsgewicht beziehen sich auf das gewogene fertige Gericht; Portionen bleiben gleich energiereich.
 - Buchen in Portionen (Stepper, halbe Portionen) oder in Gramm vom fertigen Gericht, mit kcal-Vorschau.
 - Rezept kopieren als Vorlage für Varianten.
+
+## Startseite kompakt (1.29.0)
+- Stationen als kleine Bildkacheln (2 Spalten, am Rechner 3): Titel, wichtigster Wert, Ausbaustufe (I–IV) und eine Schnellaktion (Lebensmittel, Training starten, +1.000 Schritte, +250 ml, Gewicht, Zur Karte).
+- Antippen (am Rechner: Hover vergrößert leicht, Klick öffnet) vergrößert die Station über die volle Breite mit allen Eingaben; immer nur eine offen, schließen über das Symbol oben rechts.
+- Rang als eine Zeile unter dem Helden (Name, EP, Fortschritt), Serien als kompakte Chips, Boss-Banner niedriger, Wochen-Feldzüge eingeklappt, „Rat des Lagers“ mit einem Hinweis und aufklappbarem Rest.

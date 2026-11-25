@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { createAndActivatePlan, createCustomFood, dismissCelebrations, mockOff, nav, onboard } from './helpers';
+import { createAndActivatePlan, createCustomFood, dismissCelebrations, mockOff, nav, onboard, openStation } from './helpers';
 
 test('E2E-01 Profil anlegen → Kalorienziel berechnen → Dashboard prüfen', async ({ page }) => {
   await onboard(page);
   // 30 J., 80 kg, 180 cm, männlich: BMR 1780 · 1,375 = 2447,5; Abnehmen −0,4 kg/W → −440 kcal → 2008 kcal
+  await openStation(page, 'Proviant');
   await expect(page.getByTestId('target-kcal')).toHaveText('2.008');
   await expect(page.getByTestId('eaten-kcal')).toHaveText('0');
   await expect(page.getByTestId('remaining-kcal')).toHaveText('2.008');
@@ -18,6 +19,7 @@ test('E2E-01 Profil anlegen → Kalorienziel berechnen → Dashboard prüfen', a
   await page.getByRole('button', { name: 'Als neues Ziel speichern' }).click();
   await expect(page.getByText('Manuelle Anpassung')).toBeVisible();
   await page.goto('/#/');
+  await openStation(page, 'Proviant');
   await expect(page.getByTestId('target-kcal')).toHaveText('1.900');
 });
 
@@ -48,6 +50,7 @@ test('E2E-02 Lebensmittel suchen → Portion → buchen → Tageswerte', async (
   await expect(page.getByTestId('day-kcal')).toHaveText('1.078');
   await expect(page.getByTestId('day-protein')).toContainText('12,6');
   await nav(page, 'Heute');
+  await openStation(page, 'Proviant');
   await expect(page.getByTestId('eaten-kcal')).toHaveText('1.078');
   await expect(page.getByTestId('remaining-kcal')).toHaveText('930');
 });
@@ -180,6 +183,8 @@ test('E2E-06/07 Plan erstellen → aktivieren → Workout → Historie', async (
   await onboard(page);
   await createAndActivatePlan(page);
   await nav(page, 'Heute');
+  await expect(page.getByTestId('station-training')).toContainText('Tag A');
+  await openStation(page, 'Übungsplatz');
   await expect(page.getByText('PPL Push · 2 Übungen')).toBeVisible();
   await page.getByRole('button', { name: 'Starten', exact: true }).click();
   await expect(page.getByTestId('workout-exercise')).toHaveCount(2);
@@ -232,6 +237,7 @@ test('E2E-08 Workout → Trainingsenergie anrechnen → Tagesbudget', async ({ p
   await page.getByRole('radio', { name: '100 %' }).click();
   await expect(page.getByTestId('credit-pct')).toHaveText('100 %');
   await page.goto('/#/');
+  await openStation(page, 'Proviant');
   await expect(page.getByTestId('credited-kcal')).toHaveText('+300');
   await expect(page.getByTestId('remaining-kcal')).toHaveText('2.308');
   await page.goto('/#/settings');

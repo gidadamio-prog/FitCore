@@ -4,11 +4,11 @@ import { fmt } from '@/components/ui';
 import type { GameState } from '@/domain/gamification';
 import { BossFigure } from './Visuals';
 
-export function BossStage({ game, onOpen, cta }: { game: GameState; onOpen: () => void; cta?: string }) {
+export function BossStage({ game, onOpen, cta, compact = false }: { game: GameState; onOpen: () => void; cta?: string; compact?: boolean }) {
   const c = game.campaign.current;
   const pct = Math.max(0, Math.min(100, (c.remaining / c.boss.hp) * 100));
   return (
-    <button onClick={onOpen} className="boss-stage relative block h-[300px] w-full overflow-hidden rounded-3xl text-left text-white shadow-xl shadow-black/30 ring-1 ring-gold/30" data-testid="boss-stage" aria-label={`Aktueller Gegner ${c.boss.name}, ${fmt(c.remaining)} von ${fmt(c.boss.hp)} Lebenspunkten`}>
+    <button onClick={onOpen} className={`boss-stage relative block ${compact ? 'h-[170px]' : 'h-[300px]'} w-full overflow-hidden rounded-3xl text-left text-white shadow-xl shadow-black/30 ring-1 ring-gold/30`} data-testid="boss-stage" aria-label={`Aktueller Gegner ${c.boss.name}, ${fmt(c.remaining)} von ${fmt(c.boss.hp)} Lebenspunkten`}>
       <div className="battle-bg absolute inset-0" aria-hidden />
       <div className="boss-aura absolute right-[-10%] top-[8%] h-[85%] w-[75%] rounded-full" aria-hidden />
       <div className="absolute right-[-6%] top-[22%] h-full w-[68%]">
@@ -18,10 +18,10 @@ export function BossStage({ game, onOpen, cta }: { game: GameState; onOpen: () =
       <div className="relative flex h-full max-w-[62%] flex-col justify-between p-4">
         <div>
           <div className="text-[11px] uppercase tracking-[0.2em] text-gold">{c.boss.province} · Hauptstadt</div>
-          <div className="font-brand mt-1 text-3xl font-bold leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]" data-testid="stage-boss-name">
+          <div className={`font-brand mt-1 ${compact ? 'text-xl' : 'text-3xl'} font-bold leading-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]`} data-testid="stage-boss-name">
             {c.boss.name}
           </div>
-          <div className="mt-0.5 text-xs text-white/75">{c.boss.epithet}</div>
+          {!compact && <div className="mt-0.5 text-xs text-white/75">{c.boss.epithet}</div>}
         </div>
         <div>
           <div className="relative h-3 w-full overflow-hidden rounded-full bg-white/15 ring-1 ring-white/20" role="progressbar" aria-label={`Lebenspunkte ${c.boss.name}`} aria-valuemin={0} aria-valuemax={c.boss.hp} aria-valuenow={c.remaining}>
