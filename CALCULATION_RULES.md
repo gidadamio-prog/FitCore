@@ -251,3 +251,7 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - **Verwendung** = ein Tagebuch-Eintrag aus einem eigenen Rezept (`recipeId`). Je Tag und Mahlzeit zählt höchstens eine, je Tag höchstens 4 (Frühstück, Mittag, Abend, Snack). Zukünftige Tage zählen nicht.
 - Gezählt wird aus den aktuellen Daten: angelegte Rezepte = Rezepte in der Datenbank (auch kopierte), Verwendungen = vorhandene Tagebuch-Einträge.
 - Fortschritt steht unter Ernährung → Rezepte („Küchen-Rüstung x/3“) und bei gesperrten Teilen im Inventar.
+
+## Figur auf dem Heldenblatt (1.31.1)
+- Die Figur füllt die Mitte zwischen den Ausrüstungsplätzen (max. 260 px breit, vorher fest 128 px).
+- Küchen-Kopfbedeckungen sitzen bis zur Stirn wie die übrigen Hüte (`--kopf-tiefer` in `scripts/armor/process_extra.py`).

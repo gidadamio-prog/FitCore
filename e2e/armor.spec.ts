@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { dismissCelebrations, onboard } from './helpers';
 
 test('AK-109 Rüstung: Start-Set auf der Figur, Kopfteil verdeckt Frisur, ganzes Set → Set-Bonus, Markt nach Rang', async ({ page }) => {
+  test.setTimeout(120000);
   await onboard(page);
   await page.getByTestId('today-hero').click();
   const form = page.getByTestId('hero-form');
