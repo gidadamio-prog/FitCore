@@ -17,6 +17,7 @@ test('AK-116 Inventar: Sammlung mit Zählern, Filter, Details, fehlende Teile mi
   await expect(tab.getByTestId('inv-count-weapons')).toHaveText('2/100');
   await expect(tab.getByTestId('inv-count-armor')).toHaveText('5/180'); // Novizen-Set inkl. Kapuze
   await expect(tab.getByTestId('inv-count-sets')).toHaveText('1/36');
+  await expect(tab.getByTestId('forge-card').getByTestId('mat-eisen')).toContainText('Eisen 0');
   await expect(tab.getByTestId('inv-grid').locator('li')).toHaveCount(7);
 
   // Filter Waffen → Nebenhand
@@ -28,6 +29,13 @@ test('AK-116 Inventar: Sammlung mit Zählern, Filter, Details, fehlende Teile mi
   await expect(page.getByTestId('item-sheet')).toContainText('Schild I');
   await expect(page.getByTestId('item-stats')).toContainText('Abwehr +4');
   await expect(page.getByTestId('item-sheet')).toContainText('angelegt');
+  // Schmiede: noch kein Material, angelegte Teile nicht zerlegbar
+  await expect(page.getByTestId('forge-level')).toHaveText('+0 / +10');
+  await expect(page.getByTestId('forge-cost')).toContainText('Eisen 0/2');
+  await expect(page.getByTestId('forge-upgrade')).toBeDisabled();
+  await expect(page.getByTestId('forge-section')).toContainText('Erst ablegen');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: 'test-results/schmiede.png' });
   await page.keyboard.press('Escape');
 
   // fehlende zeigen: Weg zur Freischaltung

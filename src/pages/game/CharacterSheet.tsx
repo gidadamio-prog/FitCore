@@ -5,6 +5,7 @@ import { WEAPONS, artById, isBuyable, minRankForQuality, weaponById, weaponStats
 import type { Rarity } from '@/domain/equipment';
 import { ArmorColorPicker, LookEditor, useNewLooks } from './LookEditor';
 import { gearExtra } from '@/domain/gear';
+import { forgeLevels } from '@/domain/forge';
 import { ARMOR_CLASS_COLOR, ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, bonusText, fullArmorSet, setBonuses, type ArmorSlot } from '@/domain/armor';
 
 /** Plätze, die sich auf der Figur ausblenden lassen (Waffen und Rüstung) */
@@ -27,8 +28,8 @@ import { PLAN_TEMPLATES } from '@/data/planTemplates';
 const rankName = (level: number) => RANKS[level - 1]?.name ?? '';
 
 export function useHeroGear(hero: Hero, game: GameState) {
-  const { purchases, armorLoot } = useSettings();
-  const inv = inventory(game.badges, hero.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot));
+  const { purchases, armorLoot, forgeLog } = useSettings();
+  const inv = inventory(game.badges, hero.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot, forgeLog));
   const loadout = normalizeLoadout(hero.loadout, inv, hero.classId);
   return {
     inv,
@@ -192,6 +193,7 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
 
 function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { slot: SlotId; hero: Hero; game: GameState; inv: OwnedItem[]; current: string | null; onClose: () => void; onEquipped: (s: SlotId) => void }) {
   const nav = useNavigate();
+  const forgeLv = forgeLevels(useSettings().forgeLog);
   const order = (o: OwnedItem) => (o.def.source.kind === 'armor' ? setIdx(o) : (weaponById(o.def.id)?.q ?? 0) * 100 + WEAPONS.findIndex((w) => w.id === o.def.id));
   const all = inv.filter((o) => o.def.slot === slot).sort((a, b) => order(a) - order(b));
   const owned = all.filter((o) => o.worn);
@@ -205,6 +207,7 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold">
                   {o.def.name}
+                  {(forgeLv.get(o.def.id) ?? 0) > 0 && o.worn && <span className="ml-1 text-gold">+{forgeLv.get(o.def.id)}</span>}
                   {o.def.twoHanded && <span className="ml-1 text-[10px] font-normal text-muted">Zweihand</span>}
                 </div>
                 {o.def.source.kind === 'armor' && (

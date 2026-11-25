@@ -38,6 +38,7 @@ test('AK-111 Weltkarte: Start mit 5 AP, Reisen kostet AP, Gegner blockiert bis b
   await expect(battle).toBeVisible();
   await battle.getByRole('button', { name: 'Überspringen' }).click();
   await expect(battle.getByTestId('fight-verdict')).toHaveText('Sieg!');
+  await expect(battle.getByTestId('battle-mats')).toContainText('Eisen'); // Schmiedematerial
   await battle.getByRole('button', { name: 'Weiter' }).click();
   await expect(map.getByTestId('ap')).toContainText('2');
   // Weg ist frei: Lager aufgedeckt, Reise dorthin

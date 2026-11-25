@@ -100,9 +100,9 @@ export function MarketTab({ game }: { game: GameState }) {
 }
 
 function ArmorShop({ game, balance }: { game: GameState; balance: number }) {
-  const { hero, purchases, armorLoot } = useSettings();
+  const { hero, purchases, armorLoot, forgeLog } = useSettings();
   const [cls, setCls] = useState<Exclude<ArmorClass, 'boss'>>('stoff');
-  const inv = inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot));
+  const inv = inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot, forgeLog));
   const owned = new Set(inv.filter((o) => o.unlocked).map((o) => o.def.id));
   const rank = game.rank.rank.level;
   const open = rank >= ARMOR_CLASS_MIN_RANK[cls];
@@ -176,9 +176,9 @@ function ArmorShop({ game, balance }: { game: GameState; balance: number }) {
 const ROM = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
 function WeaponShop({ game, balance }: { game: GameState; balance: number }) {
-  const { hero, purchases, armorLoot } = useSettings();
+  const { hero, purchases, armorLoot, forgeLog } = useSettings();
   const [art, setArt] = useState<WeaponArt>('schwert');
-  const inv = inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot));
+  const inv = inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot, forgeLog));
   const owned = new Set(inv.filter((o) => o.unlocked).map((o) => o.def.id));
   const rank = game.rank.rank.level;
   const list = WEAPONS.filter((w) => w.art === art && isBuyable(w));

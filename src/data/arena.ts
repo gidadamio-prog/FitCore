@@ -106,7 +106,7 @@ export async function buyWeapon(id: string, game: GameState) {
   if (!w || !isBuyable(w)) throw new Error('Diese Waffe ist nicht käuflich.');
   if (game.rank.rank.level < minRankForQuality(w.q)) throw new Error('Diese Waffe gibt es erst ab einem höheren Rang.');
   const s = await getSettings();
-  const inv = inventory(game.badges, s.hero?.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot));
+  const inv = inventory(game.badges, s.hero?.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot, s.forgeLog));
   if (inv.find((o) => o.def.id === id)?.unlocked) throw new Error('Hast du schon.');
   const price = weaponPrice(w);
   const { balance } = denare(game.xp, s.purchases, game.bonusDenare, extraPrices(s.purchases));
@@ -117,7 +117,7 @@ export async function buyWeapon(id: string, game: GameState) {
 /** Rüstungsteile im Markt kaufen – Klasse muss für den Rang freigegeben sein, Boss-Rüstung ist nicht käuflich. */
 export async function buyArmor(itemIds: string[], game: GameState) {
   const s = await getSettings();
-  const inv = inventory(game.badges, s.hero?.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot));
+  const inv = inventory(game.badges, s.hero?.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot, s.forgeLog));
   let price = 0;
   for (const id of itemIds) {
     const a = parseArmorId(id);
@@ -154,7 +154,7 @@ export async function equipToHero(itemId: string, game: GameState) {
   if (!s.hero) throw new Error('Erschaffe zuerst deinen Helden.');
   const item = itemById(itemId);
   if (!item) throw new Error('Unbekannter Gegenstand.');
-  const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot));
+  const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot, s.forgeLog));
   const current = normalizeLoadout(s.hero.loadout, inv, s.hero.classId);
   const r = equipItem(current, item, inv, s.hero.classId);
   await saveLoadout(s.hero, r.loadout, s.setBonusLog);
@@ -200,7 +200,7 @@ export async function setArmorColor(color: string | null) {
 export async function equipArmorSet(idx: number, game: GameState) {
   const s = await getSettings();
   if (!s.hero) throw new Error('Erschaffe zuerst deinen Helden.');
-  const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot));
+  const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot, s.forgeLog));
   const loadout = normalizeLoadout(s.hero.loadout, inv, s.hero.classId);
   let n = 0;
   for (const slot of ARMOR_SLOTS) {
@@ -217,7 +217,7 @@ export async function equipArmorSet(idx: number, game: GameState) {
 export async function unequipFromHero(slot: SlotId, game: GameState) {
   const s = await getSettings();
   if (!s.hero) return;
-  const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot));
+  const inv = inventory(game.badges, s.hero.classId, game.rank.rank.level, s.purchases, gearExtra(game, s.armorLoot, s.forgeLog));
   await saveLoadout(s.hero, unequip(normalizeLoadout(s.hero.loadout, inv, s.hero.classId), slot), s.setBonusLog);
 }
 

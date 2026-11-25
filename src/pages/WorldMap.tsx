@@ -37,6 +37,7 @@ import {
   regionIndex,
 } from '@/domain/world';
 import { fight, openChest, siege, travel } from '@/data/worldRepo';
+import { matText } from '@/domain/forge';
 
 const SCALE = 0.7;
 const W = MAP_W;
@@ -56,7 +57,7 @@ export function WorldMap() {
   const w = game?.world.state;
   const seen = useMemo(() => (w ? revealed(w) : new Set<string>()), [w]);
   const level = game?.level.level ?? 1;
-  const stats = useMemo(() => (game && settings.hero ? heroStatsFor(game, settings.hero, settings.purchases, settings.armorLoot) : null), [game, settings.hero, settings.purchases, settings.armorLoot]);
+  const stats = useMemo(() => (game && settings.hero ? heroStatsFor(game, settings.hero, settings.purchases, settings.armorLoot, settings.forgeLog) : null), [game, settings.hero, settings.purchases, settings.armorLoot, settings.forgeLog]);
   const pos = w ? nodeById(w.pos)! : WORLD.nodes[0]!;
 
   // Auf den Helden scrollen
@@ -367,7 +368,7 @@ function NodeSheet({
                   onClick={() =>
                     run(async () => {
                       const r = await openChest(id, game);
-                      toast(`Truhe geöffnet: ${lootNote(r.loot, r.denare)}`, 'success');
+                      toast(`Truhe geöffnet: ${[lootNote(r.loot, r.denare), matText(r.mats)].filter(Boolean).join(', ')}${r.pity ? ' · Glück des Tapferen' : ''}`, 'success');
                       onClose();
                     })
                   }

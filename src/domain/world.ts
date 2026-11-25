@@ -2,6 +2,7 @@
 // in der ein Boss wartet. Bewegt wird mit Aktionspunkten (AP), die nur aus echtem Verhalten stammen.
 // Der Spielstand der Welt wird aus einem Ereignis-Log abgespielt (rein, deterministisch).
 import { CAMPAIGN, type Boss } from './rpg';
+import type { Mats } from './forge';
 
 // ---------------------------------------------------------------------------
 // Regionen
@@ -222,9 +223,9 @@ export const capitalOf = (regionId: string) => `${regionId}-f`;
 export type WorldEvent =
   | { k: 'init'; at: string; date: string; pos: string; conquered: { region: string; date: string }[] }
   | { k: 'move'; at: string; date: string; path: string[]; ap: number }
-  | { k: 'fight'; at: string; date: string; node: string; ap: number; won: boolean; loot: string[]; denare: number }
-  | { k: 'chest'; at: string; date: string; node: string; ap: number; loot: string[]; denare: number }
-  | { k: 'siege'; at: string; date: string; node: string; ap: number; dmg: number; killed: boolean; loot: string[]; denare: number };
+  | { k: 'fight'; at: string; date: string; node: string; ap: number; won: boolean; loot: string[]; denare: number; mats?: Mats }
+  | { k: 'chest'; at: string; date: string; node: string; ap: number; loot: string[]; denare: number; mats?: Mats }
+  | { k: 'siege'; at: string; date: string; node: string; ap: number; dmg: number; killed: boolean; loot: string[]; denare: number; mats?: Mats };
 
 export interface WorldState {
   started: boolean;

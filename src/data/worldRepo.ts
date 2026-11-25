@@ -7,6 +7,7 @@ import { foeFor, simulateFight, type FightResult, type Foe, type Stats } from '@
 import { heroStatsFor, trainedToday } from '@/domain/gear';
 import { badgeTiers, bossOfRegionId } from '@/domain/equipment';
 import { pickWeapon, weaponLootIds } from '@/domain/weapons';
+import { PITY, dismantled, effectiveLists, lootDrought, matsFor, type Mats } from '@/domain/forge';
 import {
   AP_COST,
   REGIONS,
@@ -34,8 +35,9 @@ async function load(game: GameState) {
 async function append(log: WorldEvent[], e: WorldEvent, loot: string[] = []) {
   await setSetting('worldLog', [...log, e]);
   if (loot.length) {
+    // jedes Exemplar zählt (nach dem Zerlegen kann ein Teil erneut fallen)
     const s = await getSettings();
-    await setSetting('armorLoot', [...s.armorLoot, ...loot.filter((l) => !s.armorLoot.includes(l))]);
+    await setSetting('armorLoot', [...s.armorLoot, ...loot]);
   }
 }
 
@@ -72,6 +74,10 @@ export interface FightOutcome {
   result: FightResult;
   loot: string[];
   denare: number;
+  /** gewonnenes Schmiedematerial */
+  mats?: Mats;
+  /** Pech-Ausgleich hat gegriffen */
+  pity?: boolean;
   kampfgeist: boolean;
   regionName: string;
   /** Boss: Max-LP und ob er gefallen ist */
@@ -79,15 +85,31 @@ export interface FightOutcome {
   killed?: boolean;
 }
 
+/** Besitz nach Zerlegen (zerlegte Teile können wieder fallen) */
+function owned(s: Awaited<ReturnType<typeof getSettings>>, state: WorldState) {
+  return effectiveLists([...s.armorLoot, ...state.loot.filter((l) => !s.armorLoot.includes(l))], s.purchases, dismantled(s.forgeLog));
+}
+
 function lootCtx(game: GameState, s: Awaited<ReturnType<typeof getSettings>>, state: WorldState) {
-  return { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: [...s.armorLoot, ...state.loot], purchases: s.purchases };
+  const o = owned(s, state);
+  return { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: o.loot, purchases: o.purchases };
+}
+
+/** Pech-Ausgleich: nach PITY−1 leeren Siegen/Truhen fällt sicher ein Ausrüstungsteil. */
+function withPity(loot: string[], log: WorldEvent[], key: string, game: GameState, s: Awaited<ReturnType<typeof getSettings>>, state: WorldState, ri: number, source: 'gegner' | 'elite' | 'truhe'): { loot: string[]; pity: boolean } {
+  if (loot.length || lootDrought(log) < PITY - 1) return { loot, pity: false };
+  const forced = rollLoot(`${key}#gluck`, 1, lootCtx(game, s, state), 0, lootSets(ri, source === 'gegner' ? 'elite' : source));
+  if (forced.length) return { loot: forced, pity: true };
+  const w = weaponDrop(`${key}#gluck`, 'boss', ri, game, s, state);
+  return { loot: w, pity: w.length > 0 };
 }
 
 /** Waffen-Beute: Chance je Quelle, Fenster der Region, nichts doppelt */
 export const WEAPON_DROP_CHANCE = { gegner: 0.15, elite: 0.5, truhe: 0.35, boss: 1 } as const;
 function weaponDrop(key: string, source: keyof typeof WEAPON_DROP_CHANCE, regionIdx: number, game: GameState, s: Awaited<ReturnType<typeof getSettings>>, state: WorldState): string[] {
   if (hash(`${key}#waffe`) >= WEAPON_DROP_CHANCE[source]) return [];
-  const ctx = { classId: s.hero?.classId, purchases: s.purchases, loot: [...s.armorLoot, ...state.loot], defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), badgeTiers: badgeTiers(game.badges), bossOfRegion: bossOfRegionId };
+  const o = owned(s, state);
+  const ctx = { classId: s.hero?.classId, purchases: o.purchases, loot: o.loot, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), badgeTiers: badgeTiers(game.badges), bossOfRegion: bossOfRegionId };
   const id = pickWeapon(weaponLootIds(regionIdx, source), ctx, hash(`${key}#waffe-wahl`));
   return id ? [id] : [];
 }
@@ -103,20 +125,25 @@ export async function fight(nodeId: string, game: GameState): Promise<FightOutco
   needAp(ap, cost);
   if (!s.hero) throw new Error('Erschaffe zuerst deinen Helden.');
   const at = new Date().toISOString();
-  const hero = heroStatsFor(game, s.hero, s.purchases, s.armorLoot);
+  const hero = heroStatsFor(game, s.hero, s.purchases, s.armorLoot, s.forgeLog);
   const foe = foeFor(n.region, n.type, n.name);
   const kg = trainedToday(game, d);
   const result = simulateFight(hero, foe, `${nodeId}|${at}`, { kampfgeist: kg });
   const ri = regionIndex(n.region);
   let loot: string[] = [];
   let denare = 0;
+  let mats: Mats = {};
+  let pity = false;
   if (result.won) {
-    loot = rollLoot(`${nodeId}|${at}`, n.type === 'elite' ? 1 : 0, lootCtx(game, s, state), n.type === 'elite' ? 0 : 0.4, lootSets(ri, n.type === 'elite' ? 'elite' : 'gegner'));
-    loot.push(...weaponDrop(`${nodeId}|${at}`, n.type === 'elite' ? 'elite' : 'gegner', ri, game, s, state));
+    const src = n.type === 'elite' ? 'elite' : 'gegner';
+    loot = rollLoot(`${nodeId}|${at}`, n.type === 'elite' ? 1 : 0, lootCtx(game, s, state), n.type === 'elite' ? 0 : 0.4, lootSets(ri, src));
+    loot.push(...weaponDrop(`${nodeId}|${at}`, src, ri, game, s, state));
+    ({ loot, pity } = withPity(loot, log, `${nodeId}|${at}`, game, s, state, ri, src));
     denare = Math.round((n.type === 'elite' ? 20 : 5) * (1 + ri * 0.3) * (1 + hash(at)));
+    mats = matsFor(src, ri, `${nodeId}|${at}`);
   }
-  await append(log, { k: 'fight', at, date: d, node: nodeId, ap: cost, won: result.won, loot, denare }, loot);
-  return { foe, hero, result, loot, denare, kampfgeist: kg, regionName: REGIONS[ri]!.name };
+  await append(log, { k: 'fight', at, date: d, node: nodeId, ap: cost, won: result.won, loot, denare, mats }, loot);
+  return { foe, hero, result, loot, denare, mats, pity, kampfgeist: kg, regionName: REGIONS[ri]!.name };
 }
 
 export async function openChest(nodeId: string, game: GameState) {
@@ -128,10 +155,12 @@ export async function openChest(nodeId: string, game: GameState) {
   needAp(ap, AP_COST.chest);
   const at = new Date().toISOString();
   const ri = regionIndex(n.region);
-  const loot = [...rollLoot(`${nodeId}|${at}`, 0, lootCtx(game, s, state), 0.65, lootSets(ri, 'truhe')), ...weaponDrop(`${nodeId}|${at}`, 'truhe', ri, game, s, state)];
+  const rolled = [...rollLoot(`${nodeId}|${at}`, 0, lootCtx(game, s, state), 0.65, lootSets(ri, 'truhe')), ...weaponDrop(`${nodeId}|${at}`, 'truhe', ri, game, s, state)];
+  const { loot, pity } = withPity(rolled, log, `${nodeId}|${at}`, game, s, state, ri, 'truhe');
   const denare = Math.round((loot.length ? 10 : 30) * (1 + ri * 0.3) * (1 + hash(at)));
-  await append(log, { k: 'chest', at, date: today(), node: nodeId, ap: AP_COST.chest, loot, denare }, loot);
-  return { loot, denare };
+  const mats = matsFor('truhe', ri, `${nodeId}|${at}`);
+  await append(log, { k: 'chest', at, date: today(), node: nodeId, ap: AP_COST.chest, loot, denare, mats }, loot);
+  return { loot, denare, mats, pity };
 }
 
 /** Belagerung: ein Angriff pro Tag, höchstens ein Viertel der Boss-LP. */
@@ -146,7 +175,7 @@ export async function siege(nodeId: string, game: GameState): Promise<FightOutco
   needAp(ap, AP_COST.siege);
   if (!s.hero) throw new Error('Erschaffe zuerst deinen Helden.');
   const at = new Date().toISOString();
-  const hero = heroStatsFor(game, s.hero, s.purchases, s.armorLoot);
+  const hero = heroStatsFor(game, s.hero, s.purchases, s.armorLoot, s.forgeLog);
   const r = REGIONS[regionIndex(n.region)]!;
   const foe = foeFor(n.region, 'hauptstadt', bossOfRegion(r).name);
   const kg = trainedToday(game, d);
@@ -155,6 +184,7 @@ export async function siege(nodeId: string, game: GameState): Promise<FightOutco
   const killed = result.foeHpEnd <= 0;
   const loot = killed ? [...rollLoot(`${nodeId}|${at}`, 1, lootCtx(game, s, state), 0, lootSets(regionIndex(n.region), 'boss')), ...weaponDrop(`${nodeId}|${at}`, 'boss', regionIndex(n.region), game, s, state)] : [];
   const denare = killed ? 100 + regionIndex(n.region) * 40 : 0;
-  await append(log, { k: 'siege', at, date: d, node: nodeId, ap: AP_COST.siege, dmg: result.dealt, killed, loot, denare }, loot);
-  return { foe, hero, result, loot, denare, kampfgeist: kg, regionName: r.name, bossHpMax: foe.hp, killed };
+  const mats = matsFor(killed ? 'boss' : 'belagerung', regionIndex(n.region), `${nodeId}|${at}`);
+  await append(log, { k: 'siege', at, date: d, node: nodeId, ap: AP_COST.siege, dmg: result.dealt, killed, loot, denare, mats }, loot);
+  return { foe, hero, result, loot, denare, mats, kampfgeist: kg, regionName: r.name, bossHpMax: foe.hp, killed };
 }

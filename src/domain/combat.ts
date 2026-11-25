@@ -3,6 +3,7 @@
 import { ARMOR_SETS, parseArmorId, type ArmorClass, type ArmorSlot } from './armor';
 import type { Rarity, SlotId } from './equipment';
 import { WEAPON_WINDOWS, weaponById, weaponStats } from './weapons';
+import { forgeFactor } from './forge';
 import { REGIONS, regionIndex, type NodeType } from './world';
 
 export interface Stats {
@@ -17,22 +18,24 @@ export const SLOT_WEIGHT: Record<ArmorSlot, number> = { head: 1, chest: 1.6, han
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
 /** Werte eines einzelnen Teils (für Inventar-Anzeige) */
-export function itemStats(id: string, rarity: Rarity | null): Partial<Stats> {
+export function itemStats(id: string, rarity: Rarity | null, level = 0): Partial<Stats> {
+  const f = forgeFactor(level);
   const a = parseArmorId(id);
-  if (a) return { def: round1(ARMOR_DEF[a.set.cls] * SLOT_WEIGHT[a.slot]) };
+  if (a) return { def: round1(ARMOR_DEF[a.set.cls] * SLOT_WEIGHT[a.slot] * f) };
   const w = weaponById(id);
   if (!w || !rarity) return {};
-  return weaponStats(w);
+  const st = weaponStats(w);
+  return { ...(st.atk != null ? { atk: Math.round(st.atk * f) } : {}), ...(st.def != null ? { def: Math.round(st.def * f) } : {}) };
 }
 
 /** Heldenwerte aus Stufe und getragener Ausrüstung (`worn` = Item-ID → getragene Seltenheit). */
-export function heroStats(level: number, loadout: Partial<Record<SlotId, string | null>>, worn: (id: string) => Rarity | null): Stats {
+export function heroStats(level: number, loadout: Partial<Record<SlotId, string | null>>, worn: (id: string) => Rarity | null, levels: (id: string) => number = () => 0): Stats {
   let atk = 6 + 1.6 * level;
   let def = 0.6 * level;
   let armor = 0;
   for (const id of Object.values(loadout)) {
     if (!id) continue;
-    const s = itemStats(id, worn(id));
+    const s = itemStats(id, worn(id), levels(id));
     atk += s.atk ?? 0;
     if (parseArmorId(id)) armor += s.def ?? 0;
     else def += s.def ?? 0;

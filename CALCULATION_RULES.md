@@ -211,3 +211,11 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Zähler: Waffen x/100, Rüstungsteile x/180, komplette Sets x/36 und Anteil der ganzen Sammlung.
 - Filter Alle/Waffen/Rüstung und nach Platz; Sortierung: Angelegtes zuerst, dann nach Seltenheit und Stufe. „Auch noch fehlende zeigen“ blendet Gesperrtes grau ein.
 - Antippen: Details mit Art/Stufe bzw. Set, Seltenheit, Angriff/Abwehr, Set-Fortschritt und Set-Bonus; bei fehlenden Teilen der Weg zur Freischaltung; Anlegen bzw. ganzes Set anlegen.
+
+## Schmiede (1.27.0)
+- Jedes eigene Teil lässt sich von +0 auf +10 verbessern, ohne Fehlschlag. Je Stufe +6 % Angriff bzw. Abwehr (+10 = +60 %).
+- Kosten je Zielstufe: +1–+3: 2/3/4 Eisen · +4–+6: 3 Eisen + 1/2/3 Silber · +7–+9: 2 Silber + 1/2/3 Gold · +10: 4 Gold + 1 Reliquie. Boss-Waffen und Boss-Rüstung brauchen ab +6 zusätzlich je 1 Reliquie.
+- Material: Sieg gegen Gegner 1–2 Eisen (ab Region 4 Chance auf Silber, ab Region 8 auf Gold), Elite 2 Eisen + 1–2 Silber (ab Region 7 Chance auf Gold), Truhe 2 Eisen + Chance auf Silber/Gold, Boss-Sieg 2 Silber + 2 Gold + 1 Reliquie, Belagerung ohne Sieg 1 Eisen.
+- Zerlegen: nur eigene Beute- oder Kaufteile, nicht angelegt, keine Boss-Stücke, keine Start-/Abzeichen-Ausrüstung. Ertrag nach Seltenheit (Gewöhnlich 2 Eisen · Selten 3 Eisen + 1 Silber · Episch 2 Silber + 1 Gold · Legendär 2 Gold) plus ein Teil der investierten Stufen. Das Teil kann später erneut als Beute fallen; Denare werden nicht erstattet.
+- Pech-Ausgleich: nach 4 Siegen/Truhen ohne Ausrüstung fällt beim 5. sicher ein Teil („Glück des Tapferen“), Niederlagen zählen nicht.
+- Alles abgeleitet aus `worldLog` (Material je Ereignis) und `forgeLog` (Verbessern/Zerlegen).
