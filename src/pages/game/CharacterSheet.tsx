@@ -7,6 +7,9 @@ import { ArmorColorPicker, LookEditor, useNewLooks } from './LookEditor';
 import { gearExtra } from '@/domain/gear';
 import { ARMOR_CLASS_COLOR, ARMOR_CLASS_LABEL, ARMOR_CLASS_MIN_RANK, ARMOR_SETS, ARMOR_SLOTS, bonusText, fullArmorSet, setBonuses, type ArmorSlot } from '@/domain/armor';
 
+/** Plätze, die sich auf der Figur ausblenden lassen (Waffen und Rüstung) */
+const VIS_SLOTS: SlotId[] = ['main', 'off', 'head', 'chest', 'hands', 'legs', 'feet'];
+
 const setIdx = (o: OwnedItem) => (o.def.source.kind === 'armor' ? o.def.source.setIdx : -1);
 import { Badge, Button, Card, CardTitle, Sheet, fmt, cn } from '@/components/ui';
 import { HeroFigure, HeroPortrait, ItemIcon } from '@/components/rpg/Visuals';
@@ -134,9 +137,9 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
         <p className="mb-2 text-[11px] text-muted">Färbt den roten und purpurnen Stoff deiner Rüstung. Gold, Leder und Metall bleiben. Weitere Farben schaltest du über Rang, Abzeichen und Bosse frei.</p>
         <ArmorColorPicker game={game} />
         <div className="mb-1 mt-4 text-sm font-semibold">Anzeige auf der Figur</div>
-        <p className="mb-3 text-xs text-muted">Ausgeblendete Teile bleiben angelegt – Kampfwerte und Set-Bonus gelten weiter. Nur deine Figur zeigt sie nicht (z. B. Helm aus, damit die Frisur zu sehen ist).</p>
+        <p className="mb-3 text-xs text-muted">Ausgeblendete Teile bleiben angelegt – Kampfwerte und Set-Bonus gelten weiter. Nur deine Figur zeigt sie nicht (z. B. Helm aus, damit die Frisur zu sehen ist, oder Waffe weg).</p>
         <ul className="space-y-2">
-          {ARMOR_SLOTS.filter((s) => loadout[s]).map((s) => {
+          {VIS_SLOTS.filter((s) => loadout[s]).map((s) => {
             const off = !!hero.armorHidden?.includes(s);
             return (
               <li key={s}>
@@ -157,10 +160,10 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
           })}
         </ul>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <Button variant="secondary" data-testid="vis-all-on" onClick={() => void setArmorHidden([...ARMOR_SLOTS], false)}>
+          <Button variant="secondary" data-testid="vis-all-on" onClick={() => void setArmorHidden([...VIS_SLOTS], false)}>
             Alle zeigen
           </Button>
-          <Button variant="secondary" data-testid="vis-all-off" onClick={() => void setArmorHidden([...ARMOR_SLOTS], true)}>
+          <Button variant="secondary" data-testid="vis-all-off" onClick={() => void setArmorHidden([...VIS_SLOTS], true)}>
             Alle ausblenden
           </Button>
         </div>

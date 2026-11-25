@@ -183,3 +183,20 @@ describe('Geheime Erfolge', () => {
 describe('SLOTS', () => {
   it('sieben Slots in fester Reihenfolge', () => expect(SLOTS.map((s) => s.id)).toEqual(['main', 'off', 'head', 'chest', 'hands', 'legs', 'feet']));
 });
+
+describe('Waffen an der Figur', () => {
+  it('jede Waffe hat eine Haltung, jeder Körper Handpunkte im Kasten', async () => {
+    const { holdFor, handPoint } = await import('@/domain/weaponHold');
+    const { BODY_TYPES } = await import('@/domain/bodyType');
+    for (const w of WEAPONS) expect(holdFor(w), w.id).toBeTruthy();
+    for (const b of BODY_TYPES)
+      for (const s of ['L', 'R'] as const) {
+        const p = handPoint(b.id, s)!;
+        expect(p.x).toBeGreaterThan(0);
+        expect(p.x).toBeLessThan(100);
+        expect(p.y).toBeGreaterThan(50);
+        expect(p.y).toBeLessThan(80);
+        expect(s === 'L' ? p.x < 50 : p.x > 50).toBe(true);
+      }
+  });
+});

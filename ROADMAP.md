@@ -12,7 +12,7 @@
 10. Optional: Cloud-Sync (Supabase) mit Ende-zu-Ende-Zustimmung; native Hülle (Capacitor) für Health Connect/HealthKit.
 11. Update-Idee: weibliche Grundkörper (eigene 12 Bilder; Fettgrenzen sind bereits um +9 Punkte verschoben hinterlegt).
 12. Optional: Backup vollautomatisch in OneDrive (Microsoft Graph + MSAL, Scope `Files.ReadWrite.AppFolder`) – braucht eine eigene App-Registrierung in Microsoft Entra (Client-ID, Redirect-URI = GitHub-Pages-URL).
-13. Ganzkörper-Held: Frisuren/Bärte (1.17.0), Tattoos/Narben/Brillen (1.18.0) sind drin; Rüstung (36 Sets, 1.20.0) ist drin; danach Waffen/Schilde (Handanker je Körper) und Rüstung (4 Silhouettenklassen) und eine Anpassen-Seite.
+13. Ganzkörper-Held: Frisuren/Bärte (1.17.0), Tattoos/Narben/Brillen (1.18.0), Rüstung (36 Sets, 1.20.0) und Waffen an der Figur (100 Waffen, 1.25.0) sind drin. Offen: Schmiede (Verbesserung +1 … +10), Upgrade-Material.
 14. Weltkarte Phase 2: Kampfwerte je Teil mit Aufwertung +0 … +10 (Schmiede), Materialien Eisen/Silber/Gold/Reliquien, Drop-Tabellen je Region und Aktion mit Pech-Sicherung, Zerlegen, AP-Set-Boni (z. B. +1 AP je Wochen-Feldzug).
 15. Weltkarte Phase 3: Story-Kapitel je Region (Szenen mit Porträt), Prolog als Einstieg, Dashboard „Lager“; danach Endlos-Modus.
 16. Lager-Bilder: Stufen II–IV je Station (und fürs Lager selbst) nachliefern.

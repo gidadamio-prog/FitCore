@@ -112,5 +112,10 @@ if __name__ == '__main__':
         else:
             for k, p in enumerate(parts):
                 sizes[f'waffe_{kind}_{k:02d}'] = save(p, f'waffe_{kind}_{k:02d}')
-    json.dump(sizes, open('/tmp/weapon_sizes.json', 'w'), indent=0)
+    lines = ['// Generiert von scripts/weapons/process.py – Seitenverhältnis (Breite/Höhe) je Waffenbild.', 'export const WEAPON_ASPECT: Record<string, number> = {']
+    for k in sorted(sizes):
+        w, h = sizes[k]
+        lines.append(f"  '{k}': {w / h:.4f},")
+    lines.append('};')
+    open('src/domain/weaponAspect.ts', 'w').write('\n'.join(lines) + '\n')
     print(len(sizes), 'Bilder')
