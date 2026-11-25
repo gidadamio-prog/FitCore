@@ -162,7 +162,21 @@ export function WorldMap() {
             const A = nodeById(a)!;
             const B = nodeById(b)!;
             const onPath = pathSet.has(a) && pathSet.has(b);
-            return <line key={`${a}-${b}`} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={onPath ? '#f2c14e' : '#5a4127'} strokeWidth={onPath ? 7 : 4} strokeDasharray={onPath ? undefined : '10 8'} strokeLinecap="round" opacity={0.9} />;
+            // Auf dem gemalten Bild bleiben Wege dezent (Pergament-Tinte), der geplante Weg leuchtet
+            return (
+              <line
+                key={`${a}-${b}`}
+                x1={A.x}
+                y1={A.y}
+                x2={B.x}
+                y2={B.y}
+                stroke={onPath ? '#f2c14e' : mapImg ? '#2b1d10' : '#5a4127'}
+                strokeWidth={onPath ? 7 : mapImg ? 3.5 : 4}
+                strokeDasharray={onPath ? undefined : '10 8'}
+                strokeLinecap="round"
+                opacity={onPath ? 0.95 : mapImg ? 0.55 : 0.9}
+              />
+            );
           })}
           {/* Nebel */}
           <rect width={W} height={H} fill="#1b1712" opacity={0.82} mask="url(#fogmask)" pointerEvents="none" />
@@ -174,11 +188,12 @@ export function WorldMap() {
             const big = n.type === 'hauptstadt' || n.type === 'start';
             return (
               <g key={n.id} transform={`translate(${n.x} ${n.y})`} onClick={() => setSel(n.id)} className="cursor-pointer" data-testid={`node-${n.id}`} role="button" aria-label={`${n.name} (${NODE_LABEL[n.type]})`}>
-                <circle r={big ? 30 : 22} fill={COLOR[n.type]} stroke={sel === n.id ? '#f2c14e' : '#2b1d10'} strokeWidth={sel === n.id ? 5 : 3} opacity={done ? 0.45 : 1} />
+                <circle r={big ? 28 : 21} fill={COLOR[n.type]} stroke={sel === n.id ? '#f2c14e' : '#2b1d10'} strokeWidth={sel === n.id ? 5 : 3} opacity={done ? 0.45 : 1} />
                 <text textAnchor="middle" dominantBaseline="central" fontSize={big ? 28 : 20}>
                   {locked ? '🔒' : ICON[n.type]}
                 </text>
-                {(big || n.type === 'elite') && (
+                {/* Hauptstädte und Heimatstadt sind auf dem Kartenbild schon beschriftet */}
+                {!mapImg && (big || n.type === 'elite') && (
                   <text y={big ? 50 : 40} textAnchor="middle" fontSize="18" fontWeight="700" fill="#2b1d10" stroke="#e9dcb8" strokeWidth="4" paintOrder="stroke">
                     {n.name}
                   </text>

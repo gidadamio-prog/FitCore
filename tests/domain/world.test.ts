@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AP_CAP, AP_START, REGIONS, START_NODE, WORLD, apBalance, blocks, capitalOf, findPath, foeAvailable, neighbors, nodeById, regionAccess, replayWorld, revealed, type WorldEvent } from '@/domain/world';
+import { AP_CAP, AP_START, MAP_H, MAP_W, REGIONS, START_NODE, WORLD, apBalance, blocks, capitalOf, findPath, foeAvailable, neighbors, nodeById, regionAccess, replayWorld, revealed, type WorldEvent } from '@/domain/world';
 import { foeFor, heroStats, power, recommendedPower, referenceHero, simulateFight, winChance, SIEGE_CAP } from '@/domain/combat';
 import { CAMPAIGN } from '@/domain/rpg';
 
@@ -21,6 +21,18 @@ describe('Welt', () => {
     expect(seen.size).toBe(WORLD.nodes.length);
     expect(new Set(WORLD.nodes.map((n) => n.id)).size).toBe(WORLD.nodes.length);
     for (const r of REGIONS) expect(nodeById(capitalOf(r.id))?.type).toBe('hauptstadt');
+  });
+  it('Kartenbild: alle Orte auf der Karte, mit Abstand zueinander, gemalte Orte benannt', () => {
+    for (const n of WORLD.nodes) {
+      expect(n.x).toBeGreaterThan(40);
+      expect(n.x).toBeLessThan(MAP_W - 40);
+      expect(n.y).toBeGreaterThan(40);
+      expect(n.y).toBeLessThan(MAP_H - 40);
+    }
+    for (const a of WORLD.nodes) for (const b of WORLD.nodes) if (a !== b) expect(Math.hypot(a.x - b.x, a.y - b.y), `${a.id}/${b.id}`).toBeGreaterThan(50);
+    const names = WORLD.nodes.map((n) => n.name);
+    for (const t of ['Hügelfurt', 'Finsterhain', 'Nebelhafen', 'Weidmark', 'Drachenpass', 'Löwenrast', 'Deltahafen', 'Felswacht', 'Dünenrast', 'Steppenlager', 'Kaiservorstadt']) expect(names).toContain(t);
+    expect(neighbors('dunkelwald-h')).toContain('nebelinseln-a');
   });
   it('Nebel: nur Besuchtes und direkte Nachbarn', () => {
     const s = replayWorld([init()]);
