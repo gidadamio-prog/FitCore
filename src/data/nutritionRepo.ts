@@ -1,4 +1,4 @@
-import { searchBasicFoods } from './basicFoods';
+import { BASIC_BY_ID, searchBasicFoods } from './basicFoods';
 import { db } from './db';
 import type { DiaryEntry, FoodItem, MealId, Nutrients, Recipe, SavedMeal } from '@/domain/types';
 import { recipeNutrition, scaleNutrients, kcalFromMacros } from '@/domain/nutrition';
@@ -44,7 +44,11 @@ export async function findLocalByBarcode(code: string): Promise<FoodItem | undef
 export async function searchLocalFoods(q: string, limit = 30): Promise<FoodItem[]> {
   const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
-  const all = await db.foods.toArray();
+  // gespeicherte Grundnahrungsmittel mit aktuellen Werten und Portionen (z. B. Eier S/M/L)
+  const all = (await db.foods.toArray()).map((f) => {
+    const fresh = BASIC_BY_ID.get(f.id);
+    return fresh ? { ...f, name: fresh.name, per100: fresh.per100, servings: fresh.servings } : f;
+  });
   const hit = (f: FoodItem) => {
     const hay = (f.name + ' ' + (f.brand ?? '')).toLowerCase();
     return words.every((w) => hay.includes(w));
@@ -223,11 +227,11 @@ export async function deleteRecipe(id: string) {
 }
 
 /** Bucht Rezeptportionen als Snapshot – spätere Rezeptänderungen ändern diesen Eintrag nicht. */
-export async function logRecipe(date: string, meal: MealId, recipe: Recipe, servings: number) {
+export async function logRecipe(date: string, meal: MealId, recipe: Recipe, servings: number, mode: 'portion' | 'gramm' = 'portion') {
   amountSchema.parse(servings);
   const n = recipeNutrition(recipe);
-  const gramsPerServing = n.totalGrams / recipe.servings;
-  const grams = Math.round(gramsPerServing * servings * 100) / 100;
+  // Portionen beziehen sich auf das fertige Gericht (gewogen oder Summe der Zutaten)
+  const grams = mode === 'gramm' ? servings : Math.round((n.dishGrams / recipe.servings) * servings * 100) / 100;
   const ts = nowISO();
   const e: DiaryEntry = {
     id: uid(),
@@ -237,8 +241,8 @@ export async function logRecipe(date: string, meal: MealId, recipe: Recipe, serv
     name: recipe.name,
     source: 'recipe',
     amount: servings,
-    unit: 'serving',
-    servingLabel: 'Portion',
+    unit: mode === 'gramm' ? 'g' : 'serving',
+    servingLabel: mode === 'gramm' ? undefined : 'Portion',
     grams,
     per100: n.per100,
     nutrients: scaleNutrients(n.per100, grams),

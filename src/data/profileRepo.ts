@@ -3,6 +3,7 @@ import type { WorldEvent } from '@/domain/world';
 import type { Hero, ShareCard } from '@/domain/rpg';
 import { db } from './db';
 import { addDays } from '@/domain/dates';
+import type { ForgeEvent } from '@/domain/forge';
 import type { GoalType, GoalVersion, MacroStrategy, BmrFormula, Profile, Setting } from '@/domain/types';
 import { ageFromBirthDate, computeTargets, defaultWeeklyRate } from '@/domain/energy';
 import { profileSchema, type ProfileForm } from '@/domain/schemas';
@@ -183,6 +184,8 @@ export interface AppSettings {
   worldLog: WorldEvent[];
   /** Krankentage (YYYY-MM-DD) – pausieren Serien */
   sickDays: string[];
+  /** Schmiede: Verbessern und Zerlegen */
+  forgeLog: ForgeEvent[];
 }
 
 export type Rival = ShareCard & { importedAt: string };
@@ -208,6 +211,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   setBonusLog: [],
   worldLog: [],
   sickDays: [],
+  forgeLog: [],
 };
 
 export async function getSettings(): Promise<AppSettings> {

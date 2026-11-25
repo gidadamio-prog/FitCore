@@ -81,6 +81,8 @@ export type FoodSource = 'off' | 'usda' | 'custom' | 'basic';
 export interface Serving {
   label: string;
   grams: number;
+  /** zählbares Stück (Ei, Banane, Zwiebel …) – im Rezept per Anzahl wählbar */
+  piece?: boolean;
 }
 
 export interface FoodItem {
@@ -132,8 +134,15 @@ export interface DiaryEntry {
 export interface RecipeIngredient {
   foodId: string;
   name: string;
+  /** Gesamtmenge in g (bei Stück = Anzahl × Stückgewicht) */
   grams: number;
   per100: Nutrients;
+  /** Portionsgrößen des Lebensmittels (für Stück-Auswahl) */
+  servings?: Serving[];
+  /** gewählte Einheit: Index in `servings`, fehlt = Gramm */
+  servingIdx?: number;
+  /** Anzahl bei Stück-Einheit */
+  count?: number;
 }
 
 export interface Recipe {
@@ -143,6 +152,8 @@ export interface Recipe {
   servings: number;
   instructions: string;
   ingredients: RecipeIngredient[];
+  /** Gewicht des fertigen Gerichts (optional, z. B. nach dem Kochen gewogen) – für Buchen in Gramm */
+  cookedGrams?: number;
   imageDataUrl?: string;
   createdAt: string;
   updatedAt: string;

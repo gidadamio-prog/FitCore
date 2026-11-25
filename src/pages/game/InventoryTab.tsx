@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Check, Shirt, Swords } from 'lucide-react';
+import { Check, Hammer, Shirt, Swords } from 'lucide-react';
 import { Badge, Button, Card, Progress, Sheet, cn, fmt } from '@/components/ui';
 import { ItemIcon } from '@/components/rpg/Visuals';
 import { useSettings } from '@/hooks/data';
 import { equipArmorSet, equipToHero } from '@/data/arena';
+import { dismantleCheck, dismantleItem, isUnique, upgradeItem } from '@/data/forgeRepo';
+import { MATS, MAX_FORGE_LEVEL, canAfford, dismantleGain, forgeLevels, matBalance, matText, upgradeCost, type Mat, type Mats } from '@/domain/forge';
+import { confirmDialog } from '@/stores/ui';
 import { gearExtra } from '@/domain/gear';
 import { RARITY_COLOR, RARITY_LABEL, RARITIES, SLOTS, inventory, normalizeLoadout, type OwnedItem, type SlotId } from '@/domain/equipment';
 import { ARMOR_CLASS_LABEL, ARMOR_SETS, bonusText, setBonuses } from '@/domain/armor';
@@ -40,8 +43,11 @@ export function itemKindLabel(o: OwnedItem) {
 
 /** Sammlung aller Waffen und Rüstungsteile: Filter, Sortierung, Details und Anlegen. */
 export function InventoryTab({ game }: { game: GameState }) {
-  const { hero, purchases, armorLoot } = useSettings();
-  const inv = useMemo(() => inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot)), [game, hero?.classId, purchases, armorLoot]);
+  const settings = useSettings();
+  const { hero, purchases, armorLoot, forgeLog, worldLog } = settings;
+  const mats = matBalance(worldLog, forgeLog);
+  const levels = forgeLevels(forgeLog);
+  const inv = useMemo(() => inventory(game.badges, hero?.classId, game.rank.rank.level, purchases, gearExtra(game, armorLoot, forgeLog)), [game, hero?.classId, purchases, armorLoot, forgeLog]);
   const loadout = hero ? normalizeLoadout(hero.loadout, inv, hero.classId) : null;
   const equipped = new Set(Object.values(loadout ?? {}).filter(Boolean) as string[]);
   const [filter, setFilter] = useState<Filter>('alle');
@@ -97,6 +103,14 @@ export function InventoryTab({ game }: { game: GameState }) {
         <div className="mt-1 text-center text-[11px] text-muted">{fmt(Math.round((owned.length / Math.max(1, inv.length)) * 100))} % der Sammlung</div>
       </Card>
 
+      <Card data-testid="forge-card">
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+          <Hammer className="h-4 w-4 text-gold" /> Schmiede
+        </div>
+        <MatRow have={mats} />
+        <p className="mt-2 text-[11px] text-muted">Tippe ein Teil an, um es zu verbessern (+1 bis +10, je Stufe +6 % Angriff bzw. Abwehr, ohne Fehlschlag) oder Überzähliges zu zerlegen. Material gibt es bei Siegen, aus Truhen und von Bossen auf der Weltkarte.</p>
+      </Card>
+
       <div className="space-y-2">
         <div className="flex gap-1" role="tablist" aria-label="Art">
           {FILTERS.map((f) => (
@@ -138,6 +152,11 @@ export function InventoryTab({ game }: { game: GameState }) {
                 <span className="relative">
                   <ItemIcon item={o.def} rarity={o.worn ?? o.unlocked} locked={!o.worn} size={62} animate={false} />
                   {equipped.has(o.def.id) && <Check className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-gold p-0.5 text-black" />}
+                  {(levels.get(o.def.id) ?? 0) > 0 && o.worn && (
+                    <span className="absolute -bottom-1 -left-1 rounded-md bg-black/80 px-1 text-[10px] font-bold text-gold" data-testid={`forge-level-${o.def.id}`}>
+                      +{levels.get(o.def.id)}
+                    </span>
+                  )}
                 </span>
                 <span className={cn('line-clamp-2 text-[10px] leading-tight', o.worn ? 'text-fg' : 'text-muted')}>{o.def.name}</span>
               </button>
@@ -146,19 +165,33 @@ export function InventoryTab({ game }: { game: GameState }) {
         </ul>
       )}
 
-      {current && <ItemSheet o={current} game={game} equipped={equipped.has(current.def.id)} owned={owned} canEquip={!!hero} onClose={() => setOpen(null)} />}
+      {current && (
+        <ItemSheet
+          o={current}
+          game={game}
+          equipped={equipped.has(current.def.id)}
+          owned={owned}
+          canEquip={!!hero}
+          level={levels.get(current.def.id) ?? 0}
+          mats={mats}
+          dismantleBlock={dismantleCheck(current.def.id, settings, equipped)}
+          onClose={() => setOpen(null)}
+        />
+      )}
     </div>
   );
 }
 
-function ItemSheet({ o, game, equipped, owned, canEquip, onClose }: { o: OwnedItem; game: GameState; equipped: boolean; owned: OwnedItem[]; canEquip: boolean; onClose: () => void }) {
+function ItemSheet({ o, game, equipped, owned, canEquip, level, mats, dismantleBlock, onClose }: { o: OwnedItem; game: GameState; equipped: boolean; owned: OwnedItem[]; canEquip: boolean; level: number; mats: Record<Mat, number>; dismantleBlock: string | null; onClose: () => void }) {
   const r = o.worn ?? o.unlocked;
-  const st = o.worn ? itemStats(o.def.id, o.worn) : o.def.source.kind === 'weapon' ? weaponStats(weaponById(o.def.id)!) : itemStats(o.def.id, 'common');
+  const st = o.worn ? itemStats(o.def.id, o.worn, level) : o.def.source.kind === 'weapon' ? weaponStats(weaponById(o.def.id)!) : itemStats(o.def.id, 'common');
+  const next = o.worn && level < MAX_FORGE_LEVEL ? itemStats(o.def.id, o.worn, level + 1) : null;
+  const cost = level < MAX_FORGE_LEVEL ? upgradeCost(level + 1, isUnique(o.def.id)) : null;
   const set = o.def.source.kind === 'armor' ? ARMOR_SETS[o.def.source.setIdx]! : null;
   const setOwned = set ? owned.filter((x) => x.def.source.kind === 'armor' && x.def.source.setIdx === set.idx).length : 0;
   const slotLabel = SLOTS.find((s) => s.id === o.def.slot)!.label;
   return (
-    <Sheet open onClose={onClose} title={o.def.name}>
+    <Sheet open onClose={onClose} title={`${o.def.name}${level > 0 && o.worn ? ` +${level}` : ''}`}>
       <div className="space-y-3" data-testid="item-sheet">
         <div className="flex items-center gap-4">
           <ItemIcon item={o.def} rarity={r} locked={!o.worn} size={96} />
@@ -223,7 +256,90 @@ function ItemSheet({ o, game, equipped, owned, canEquip, onClose }: { o: OwnedIt
               )}
             </div>
           ))}
+        {o.worn && (
+          <div className="rounded-xl border border-gold/25 p-3" data-testid="forge-section">
+            <div className="mb-2 flex items-center justify-between text-sm font-semibold">
+              <span className="flex items-center gap-1">
+                <Hammer className="h-4 w-4 text-gold" /> Schmiede
+              </span>
+              <span className="text-gold" data-testid="forge-level">
+                +{level} / +{MAX_FORGE_LEVEL}
+              </span>
+            </div>
+            {next && cost ? (
+              <>
+                <div className="mb-2 text-xs text-muted">
+                  Auf +{level + 1}: {next.atk != null && `Angriff ${st.atk} → ${next.atk}`}
+                  {next.atk != null && next.def != null && ' · '}
+                  {next.def != null && `Abwehr ${st.def} → ${next.def}`}
+                </div>
+                <MatRow have={mats} need={cost} />
+                <Button
+                  className="mt-2 w-full"
+                  disabled={!canAfford(mats, cost)}
+                  data-testid="forge-upgrade"
+                  onClick={async () => {
+                    try {
+                      const to = await upgradeItem(o.def.id, game);
+                      toast(`${o.def.name} ist jetzt +${to}`, 'success');
+                    } catch (e) {
+                      toast((e as Error).message, 'error');
+                    }
+                  }}
+                >
+                  <Hammer className="h-4 w-4" /> Verbessern auf +{level + 1}
+                </Button>
+              </>
+            ) : (
+              <p className="text-xs text-gold">Meisterhaft geschmiedet – höchste Stufe erreicht.</p>
+            )}
+            <div className="mt-3 border-t pt-2">
+              {dismantleBlock ? (
+                <p className="text-[11px] text-muted">{dismantleBlock}</p>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  data-testid="forge-dismantle"
+                  onClick={async () => {
+                    const gain = dismantleGain(o.worn!, level);
+                    if (!(await confirmDialog({ title: `${o.def.name} zerlegen?`, text: `Du bekommst ${matText(gain)}. Das Teil ist danach weg (es kann später erneut als Beute fallen).`, confirmLabel: 'Zerlegen' }))) return;
+                    try {
+                      const g = await dismantleItem(o.def.id, game);
+                      toast(`Zerlegt: ${matText(g)}`, 'success');
+                      onClose();
+                    } catch (e) {
+                      toast((e as Error).message, 'error');
+                    }
+                  }}
+                >
+                  Zerlegen · {matText(dismantleGain(o.worn, level))}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Sheet>
+  );
+}
+
+/** Materialbestand, optional mit Bedarf (rot, wenn es nicht reicht) */
+export function MatRow({ have, need }: { have: Record<Mat, number>; need?: Mats }) {
+  const list = need ? MATS.filter((m) => (need[m.id] ?? 0) > 0) : MATS;
+  return (
+    <div className="flex flex-wrap gap-2" data-testid={need ? 'forge-cost' : 'mats'}>
+      {list.map((m) => {
+        const n = need?.[m.id];
+        const ok = n == null || have[m.id] >= n;
+        return (
+          <span key={m.id} className={cn('inline-flex items-center gap-1 rounded-full bg-fg/[0.06] px-2 py-0.5 text-xs tabular-nums', !ok && 'text-danger')} data-testid={`mat-${m.id}`}>
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.color }} />
+            {m.label} {n != null ? `${have[m.id]}/${n}` : have[m.id]}
+          </span>
+        );
+      })}
+    </div>
   );
 }

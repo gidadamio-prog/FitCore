@@ -2,7 +2,8 @@
 // Auf der Weltkarte: Kampfszene gegen Gegnertrupps, Elite-Gegner und Bosse (Belagerung).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map as MapIcon, Swords, Zap, Coins, Flame } from 'lucide-react';
+import { Map as MapIcon, Swords, Zap, Coins, Flame, Hammer } from 'lucide-react';
+import { matText } from '@/domain/forge';
 import { Button, cn, fmt } from './ui';
 import { useBattle, type BattleScene as Scene } from '@/stores/battle';
 import { useGame, useBodyType } from '@/hooks/game';
@@ -218,6 +219,11 @@ function FightStage({ scene }: { scene: Extract<Scene, { kind: 'fight' }> }) {
                 <Coins className="h-4 w-4 text-gold" /> +{o.denare} Denare
               </span>
             )}
+            {o.mats && matText(o.mats) && (
+              <span className="flex items-center gap-1" data-testid="battle-mats">
+                <Hammer className="h-4 w-4 text-gold" /> {matText(o.mats)}
+              </span>
+            )}
           </div>
           {isBoss && !o.killed && <p className="mt-1 text-sm text-muted">Noch {fmt(o.result.foeHpEnd)} LP. Ein Angriff pro Tag – morgen geht die Belagerung weiter.</p>}
           {!isBoss && !o.result.won && <p className="mt-1 text-sm text-muted">Zu stark für dich. Verbessere deine Ausrüstung oder trainiere heute für Kampfgeist.</p>}
@@ -228,7 +234,7 @@ function FightStage({ scene }: { scene: Extract<Scene, { kind: 'fight' }> }) {
           )}
           {o.loot.length > 0 && (
             <div className="mt-3" data-testid="battle-loot">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gold">Beute</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-gold">Beute{o.pity ? ' · Glück des Tapferen' : ''}</div>
               <div className="mt-1 flex flex-wrap justify-center gap-2">
                 {o.loot.map((id) => {
                   const def = itemById(id);

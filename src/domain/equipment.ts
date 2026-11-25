@@ -4,6 +4,7 @@ import type { HeroClassId } from './rpg';
 import { CAMPAIGN } from './rpg';
 import { BADGE_WEAPONS, START_WEAPONS, WEAPONS, firstLootRegion, isBuyable, minRankForQuality, ownsWeapon, weaponById, weaponPrice, weaponRarity, type WeaponContext } from './weapons';
 import { REGIONS } from './world';
+import { effectiveLists } from './forge';
 import { ARMOR_CLASS_RARITY, ARMOR_SETS, ARMOR_SLOTS, START_SET, armorHint, armorIconFile, armorItemId, armorPieceName, ownsArmorPiece, parseArmorId, type ArmorContext } from './armor';
 
 export type SlotId = 'main' | 'off' | 'head' | 'chest' | 'hands' | 'legs' | 'feet';
@@ -81,11 +82,16 @@ export interface OwnedItem {
 export interface InventoryExtra {
   defeatedBossIds: string[];
   loot: string[];
+  /** zerlegte Teile (je Zerlegen ein Eintrag) */
+  dismantled?: string[];
   rankName?: (lvl: number) => string;
   bossName?: (id: string) => string;
 }
 
-export function inventory(badges: BadgeStatus[], classId: HeroClassId | undefined, rankLevel: number, purchases: string[], extra: InventoryExtra = { defeatedBossIds: [], loot: [] }): OwnedItem[] {
+export function inventory(badges: BadgeStatus[], classId: HeroClassId | undefined, rankLevel: number, allPurchases: string[], extraIn: InventoryExtra = { defeatedBossIds: [], loot: [] }): OwnedItem[] {
+  const eff = effectiveLists(extraIn.loot, allPurchases, extraIn.dismantled ?? []);
+  const purchases = eff.purchases;
+  const extra = { ...extraIn, loot: eff.loot };
   const bt = badgeTiers(badges);
   const ctx: ArmorContext = { rankLevel, defeatedBossIds: extra.defeatedBossIds, loot: extra.loot, purchases };
   return ITEMS.flatMap((def): OwnedItem[] => {

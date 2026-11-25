@@ -94,14 +94,15 @@ test('E2E-04 Rezept erstellen → Portion berechnen → ins Tagebuch', async ({ 
   await page.getByRole('button', { name: 'Neues Rezept' }).click();
   const dlg = page.getByRole('dialog');
   await dlg.getByLabel('Name', { exact: true }).fill('Porridge');
-  await dlg.getByLabel('Portionen').fill('2');
+  await expect(dlg.getByTestId('stepper-Portionen')).toHaveText('2'); // Standard für neue Rezepte
   await dlg.getByLabel('Zutat suchen').fill('Hafer');
   await dlg.getByRole('button', { name: /^Haferflocken 372/ }).click();
   await dlg.getByLabel('Zutat suchen').fill('Milch');
   await dlg.getByRole('button', { name: /^Milch 64/ }).click();
   await dlg.getByLabel('Menge Milch (g)').fill('300');
+  await expect(dlg.getByTestId('recipe-summary')).toContainText('282 kcal');
+  await dlg.getByText('Alle Nährwerte').click();
   await expect(dlg.getByTestId('recipe-nutrition')).toContainText('564 kcal');
-  await expect(dlg.getByTestId('recipe-nutrition')).toContainText('282 kcal');
   await dlg.getByRole('button', { name: 'Rezept speichern' }).click();
   await dismissCelebrations(page); // Abzeichen „Koch des Kaisers“
   await expect(page.getByTestId('recipe-card')).toContainText('282 kcal');
@@ -109,6 +110,47 @@ test('E2E-04 Rezept erstellen → Portion berechnen → ins Tagebuch', async ({ 
   await page.getByRole('dialog').getByRole('button', { name: 'Buchen' }).click();
   await page.getByRole('tab', { name: 'Tagebuch' }).click();
   await expect(page.getByTestId('day-kcal')).toHaveText('282');
+});
+
+test('AK-118 Rezept: Eier per Stück (S/M/L), Mehl gefunden, Fertiggewicht, Buchen in Gramm, Kopieren', async ({ page }) => {
+  await onboard(page);
+  await page.getByRole('link', { name: 'Ernährung' }).first().click();
+  await page.getByRole('tab', { name: 'Rezepte' }).click();
+  await page.getByRole('button', { name: 'Neues Rezept' }).click();
+  const dlg = page.getByRole('dialog');
+  await dlg.getByLabel('Name', { exact: true }).fill('Eierpfannkuchen');
+  // Ei: startet mit 1 Ei M (52 g), per Stück zählbar
+  await dlg.getByLabel('Zutat suchen').fill('Ei');
+  await dlg.getByRole('button', { name: /^Ei \(Hühnerei\)/ }).click();
+  const egg = dlg.getByTestId('ingredient').filter({ hasText: 'Ei (Hühnerei)' });
+  await expect(egg.getByLabel('Einheit Ei (Hühnerei)')).toHaveValue('1');
+  await egg.getByRole('button', { name: 'Anzahl Ei (Hühnerei) mehr' }).click();
+  await egg.getByRole('button', { name: 'Anzahl Ei (Hühnerei) mehr' }).click();
+  await expect(egg).toContainText('156 g');
+  await egg.getByLabel('Einheit Ei (Hühnerei)').selectOption({ label: 'Ei L (60 g)' });
+  await expect(egg).toContainText('180 g');
+  // Mehl ist ein Grundnahrungsmittel
+  await dlg.getByLabel('Zutat suchen').fill('Mehl');
+  await dlg.getByRole('button', { name: /^Weizenmehl Type 405/ }).click();
+  await dlg.getByLabel('Menge Weizenmehl Type 405 (g)').fill('200');
+  await expect(dlg.getByTestId('recipe-summary')).toContainText('2 Zutaten · 380 g roh');
+  // Fertiggewicht → Portion = Hälfte des Gerichts
+  await dlg.getByLabel('Gewicht fertig (optional, g)').fill('500');
+  await expect(dlg.getByTestId('recipe-summary')).toContainText('250 g je Portion');
+  await page.waitForTimeout(300);
+  await dlg.screenshot({ path: 'test-results/rezept-editor.png' });
+  await dlg.getByRole('button', { name: /Rezept speichern/ }).click();
+  await dismissCelebrations(page);
+  // Buchen in Gramm
+  await page.getByRole('button', { name: 'Ins Tagebuch' }).click();
+  const log = page.getByRole('dialog');
+  await log.getByRole('tab', { name: 'Gramm' }).click();
+  await log.getByLabel('Gramm vom fertigen Gericht').fill('100');
+  await expect(log.getByTestId('recipe-amount-preview')).toContainText('≈ 100 g');
+  await log.getByRole('button', { name: 'Buchen' }).click();
+  // Kopieren
+  await page.getByRole('button', { name: 'Rezept kopieren' }).click();
+  await expect(page.getByRole('dialog').getByLabel('Name', { exact: true })).toHaveValue('Eierpfannkuchen (Kopie)');
 });
 
 test('E2E-05 Navy-Berechnung → speichern → Verlauf', async ({ page }) => {
