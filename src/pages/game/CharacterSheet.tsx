@@ -115,7 +115,7 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
               <Palette className="h-3.5 w-3.5" /> Rüstung: Farbe & Anzeige
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="mt-1" data-testid="open-inventory" onClick={() => nav('/erfolge?tab=inventar')}>
+          <Button size="sm" variant="ghost" className="mt-1" data-testid="open-inventory" onClick={() => nav('/held?tab=inventar')}>
             <Backpack className="h-3.5 w-3.5" /> Inventar
           </Button>
           {fullSet && (
@@ -261,7 +261,7 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
                   )}
                 </div>
               ) : (o.def.source.kind === 'weapon' && isBuyable(weaponById(o.def.id)!) && game.rank.rank.level >= minRankForQuality(weaponById(o.def.id)!.q)) || (o.def.source.kind === 'armor' && ARMOR_SETS[o.def.source.setIdx]!.cls !== 'boss' && game.rank.rank.level >= ARMOR_CLASS_MIN_RANK[ARMOR_SETS[o.def.source.setIdx]!.cls]) ? (
-                <Button size="sm" variant="secondary" onClick={() => nav('/erfolge?tab=markt')}>
+                <Button size="sm" variant="secondary" onClick={() => nav('/held?tab=markt')}>
                   Markt
                 </Button>
               ) : null}
@@ -325,7 +325,7 @@ export function ClassFocusCard({ hero }: { hero: Hero }) {
         ))}
       </ul>
       <div className="mt-2 text-xs text-muted">
-        Klassen-Feldzug jede Woche: <b className="text-fg">{t.quest.title}</b> – {t.quest.description}
+        Klassen-Auftrag jede Woche: <b className="text-fg">{t.quest.title}</b> – {t.quest.description}
       </div>
       <div className="mt-3 text-xs text-muted">Empfohlene Planvorlagen:</div>
       <div className="mt-1 flex flex-wrap gap-1">

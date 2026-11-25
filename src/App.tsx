@@ -15,7 +15,7 @@ import { Body } from './pages/Body';
 import { Stats } from './pages/Stats';
 import { Coach } from './pages/Coach';
 import { SettingsPage } from './pages/Settings';
-import { Achievements } from './pages/Achievements';
+import { ErfolgeRedirect, HeroHall } from './pages/Achievements';
 import { WorldMap } from './pages/WorldMap';
 import { Vorschau } from './pages/Vorschau';
 import { CelebrationHost, GameWatcher } from './components/Celebration';
@@ -92,7 +92,8 @@ export function App() {
           <Route path="stats" element={<Stats />} />
           <Route path="coach" element={<Coach />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="erfolge" element={<Achievements />} />
+          <Route path="held" element={<HeroHall />} />
+          <Route path="erfolge" element={<ErfolgeRedirect />} />
           <Route path="karte" element={<WorldMap />} />
           <Route path="vorschau" element={<Vorschau />} />
           <Route path="*" element={<Navigate to="/" replace />} />

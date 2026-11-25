@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, BarChart3, Dumbbell, Home, Settings, Utensils, Timer, WifiOff, Trophy, Map as MapIcon } from 'lucide-react';
+import { Activity, BarChart3, Dumbbell, Home, Settings, Utensils, Timer, WifiOff, Swords, Map as MapIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn, Button, Sheet } from './ui';
 import { useActiveWorkout } from '@/hooks/data';
@@ -10,7 +10,8 @@ const NAV = [
   { to: '/nutrition', label: 'Ernährung', icon: Utensils },
   { to: '/training', label: 'Training', icon: Dumbbell },
   { to: '/body', label: 'Körper', icon: Activity },
-  { to: '/stats', label: 'Statistiken', icon: BarChart3 },
+  { to: '/held', label: 'Held', icon: Swords },
+  { to: '/stats', label: 'Statistik', icon: BarChart3 },
 ];
 
 function useOnline() {
@@ -48,9 +49,6 @@ export function Layout() {
         <NavLink to="/karte" className={({ isActive }) => cn('flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-fg/5')}>
           <MapIcon className="h-5 w-5" /> Weltkarte
         </NavLink>
-        <NavLink to="/erfolge" className={({ isActive }) => cn('flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-fg/5')}>
-          <Trophy className="h-5 w-5 text-gold" /> Ruhmeshalle
-        </NavLink>
         <NavLink to="/settings" className={({ isActive }) => cn('flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium', isActive ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-fg/5')}>
           <Settings className="h-5 w-5" /> Einstellungen
         </NavLink>
@@ -63,9 +61,6 @@ export function Layout() {
           <div className="flex">
             <Button variant="ghost" size="icon" aria-label="Weltkarte" onClick={() => nav('/karte')}>
               <MapIcon className="h-5 w-5 text-gold" />
-            </Button>
-            <Button variant="ghost" size="icon" aria-label="Ruhmeshalle (Erfolge)" onClick={() => nav('/erfolge')}>
-              <Trophy className="h-5 w-5 text-gold" />
             </Button>
             <Button variant="ghost" size="icon" aria-label="Einstellungen und Profil" onClick={() => nav('/settings')}>
               <Settings className="h-5 w-5" />
@@ -86,9 +81,9 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-card/95 backdrop-blur md:hidden" aria-label="Hauptnavigation">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t bg-card/95 backdrop-blur md:hidden" aria-label="Hauptnavigation">
         {NAV.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium', isActive ? 'text-accent' : 'text-muted')}>
+          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('flex h-16 flex-col items-center justify-center gap-1 text-[10.5px] font-medium', isActive ? 'text-accent' : 'text-muted')}>
             <n.icon className="h-5 w-5" />
             {n.label}
           </NavLink>

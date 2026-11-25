@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Flame, Shield, Swords, Trophy, Info } from 'lucide-react';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Flame, Shield, Swords, Trophy, Info, ChevronRight, Map as MapIcon } from 'lucide-react';
 import { Card, CardTitle, Progress, Badge, Tabs, fmt, cn } from '@/components/ui';
 import { PageHeader } from '@/components/Layout';
 import { Laurel } from '@/components/Laurel';
@@ -13,27 +13,37 @@ import { ItemIcon } from '@/components/rpg/Visuals';
 import type { SecretAchievement } from '@/domain/achievements';
 import { HeroTab } from './game/HeroTab';
 import { DailyQuestBanner, QuestBoard } from '@/components/QuestBoard';
-import { CampaignTab } from './game/CampaignTab';
 import { ArenaTab } from './game/ArenaTab';
 import { MarketTab } from './game/MarketTab';
 import { InventoryTab } from './game/InventoryTab';
 
-type GameTab = 'held' | 'inventar' | 'feldzug' | 'arena' | 'ruhm' | 'markt';
+type GameTab = 'held' | 'inventar' | 'auftraege' | 'arena' | 'markt';
 const GAME_TABS: { value: GameTab; label: string }[] = [
   { value: 'held', label: 'Held' },
   { value: 'inventar', label: 'Inventar' },
-  { value: 'feldzug', label: 'Feldzug' },
+  { value: 'auftraege', label: 'Aufträge' },
   { value: 'arena', label: 'Arena' },
-  { value: 'ruhm', label: 'Ruhm' },
   { value: 'markt', label: 'Markt' },
 ];
 
-export function Achievements() {
+/** Alte Links (#/erfolge?tab=…) weiterleiten: Ruhm → Statistiken, Feldzug → Aufträge, Rest → Held. Teilen-Links der Arena bleiben gültig. */
+export function ErfolgeRedirect() {
+  const [params] = useSearchParams();
+  const tab = params.get('tab');
+  if (tab === 'ruhm') return <Navigate to="/stats?section=ruhm" replace />;
+  const next = new URLSearchParams(params);
+  if (tab === 'feldzug') next.set('tab', 'auftraege');
+  return <Navigate to={`/held${next.toString() ? `?${next}` : ''}`} replace />;
+}
+
+/** Bereich „Held“: Charakter, Inventar, Aufträge, Arena, Markt – und der Weg zur Weltkarte. */
+export function HeroHall() {
   const game = useGame();
+  const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const initial = (params.get('tab') as GameTab) || 'held';
   const [tab, setTab] = useState<GameTab>(GAME_TABS.some((t) => t.value === initial) ? initial : 'held');
-  // Links innerhalb der Ruhmeshalle (z. B. „Inventar“ am Charakterbogen) wechseln den Reiter
+  // Links innerhalb des Bereichs (z. B. „Inventar“ am Charakterbogen) wechseln den Reiter
   useEffect(() => {
     if (GAME_TABS.some((t) => t.value === initial) && initial !== tab) setTab(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,7 +51,17 @@ export function Achievements() {
   if (!game) return null;
   return (
     <div className="space-y-4">
-      <PageHeader title="Ruhmeshalle" subtitle="Dein Held, Inventar, Feldzug, Arena und Abzeichen – berechnet aus deinen echten Einträgen." />
+      <PageHeader title="Held" subtitle="Dein Held, seine Ausrüstung, Aufträge, Arena und Markt – gespeist aus deinen echten Einträgen." />
+      <button type="button" onClick={() => nav('/karte')} className="flex w-full items-center gap-3 rounded-2xl border border-gold/30 bg-gold/[0.06] p-3 text-left" data-testid="hall-map">
+        <MapIcon className="h-6 w-6 shrink-0 text-gold" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Weltkarte</span>
+          <span className="block text-xs text-muted">
+            {game.world.ap} Aktionspunkte · {game.world.state.conquered.size}/12 Regionen erobert · nächster Boss: {game.campaign.current.boss.name}
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted" />
+      </button>
       <Tabs
         value={tab}
         onChange={(t) => {
@@ -53,22 +73,18 @@ export function Achievements() {
         items={GAME_TABS}
       />
       {tab === 'held' && <HeroTab game={game} />}
-      {tab === 'feldzug' && (
-        <div className="space-y-4">
-          <Card data-testid="week-quests">
-            <CardTitle>Feldzug der Woche</CardTitle>
-            {game.dailyQuest && (
-              <div className="mb-3">
-                <DailyQuestBanner q={game.dailyQuest} />
-              </div>
-            )}
-            <QuestBoard game={game} />
-          </Card>
-          <CampaignTab game={game} />
-        </div>
+      {tab === 'auftraege' && (
+        <Card data-testid="week-quests">
+          <CardTitle>Aufträge der Woche</CardTitle>
+          {game.dailyQuest && (
+            <div className="mb-3">
+              <DailyQuestBanner q={game.dailyQuest} />
+            </div>
+          )}
+          <QuestBoard game={game} />
+        </Card>
       )}
       {tab === 'arena' && <ArenaTab game={game} />}
-      {tab === 'ruhm' && <FameTab game={game} />}
       {tab === 'markt' && <MarketTab game={game} />}
       {tab === 'inventar' && <InventoryTab game={game} />}
     </div>
@@ -189,7 +205,7 @@ function SecretTile({ a }: { a: SecretAchievement }) {
   );
 }
 
-function FameTab({ game }: { game: GameState }) {
+export function FameTab({ game }: { game: GameState }) {
   const nav = useNavigate();
   const maxDay = Math.max(1, ...game.xpLast7.map((d) => d.xp));
   return (

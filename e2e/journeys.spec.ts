@@ -257,14 +257,14 @@ test('E2E-09 Daten ändern → Statistiken aktualisieren sich', async ({ page })
   await page.getByRole('dialog').getByLabel('Menge').fill('1000');
   await page.getByRole('dialog').getByRole('button', { name: 'Hinzufügen' }).click();
   await page.getByTestId('add-done').click();
-  await nav(page, 'Statistiken');
+  await nav(page, 'Statistik');
   await page.getByRole('tab', { name: '7 T' }).click();
   await expect(page.getByTestId('avg-kcal')).toHaveText('1.500');
   await nav(page, 'Ernährung');
   await page.getByTestId('meal-lunch').getByRole('button', { name: /Reis/ }).click();
   await page.getByRole('dialog').getByLabel(/Menge/).fill('500');
   await page.getByRole('dialog').getByRole('button', { name: 'Speichern' }).click();
-  await nav(page, 'Statistiken');
+  await nav(page, 'Statistik');
   await expect(page.getByTestId('avg-kcal')).toHaveText('750');
   // Training ändern
   await page.goto('/#/training');
@@ -279,7 +279,7 @@ test('E2E-09 Daten ändern → Statistiken aktualisieren sich', async ({ page })
   await page.getByRole('button', { name: 'Training abschließen' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Abschließen' }).click();
   await dismissCelebrations(page);
-  await nav(page, 'Statistiken');
+  await nav(page, 'Statistik');
   await page.getByRole('tab', { name: 'Training' }).click();
   await expect(page.getByTestId('total-volume')).toHaveText('500');
   await expect(page.getByTestId('sessions')).toHaveText('1');
@@ -287,7 +287,7 @@ test('E2E-09 Daten ändern → Statistiken aktualisieren sich', async ({ page })
   await page.getByTestId('history-list').getByRole('button').first().click();
   await page.getByRole('button', { name: 'Workout löschen' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Löschen' }).click();
-  await nav(page, 'Statistiken');
+  await nav(page, 'Statistik');
   await page.getByRole('tab', { name: 'Training' }).click();
   await expect(page.getByTestId('sessions')).toHaveText('0');
 });

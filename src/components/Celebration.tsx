@@ -1,4 +1,4 @@
-// Feier-Overlay (Bestleistung, Rangaufstieg, Abzeichen, Feldzug) und Beobachter für neue Erfolge.
+// Feier-Overlay (Bestleistung, Rangaufstieg, Abzeichen, Auftrag) und Beobachter für neue Erfolge.
 import { ARMOR_CLASS_LABEL, ARMOR_CLASS_RARITY, ARMOR_SETS, START_SET, armorItemId, setSource } from '@/domain/armor';
 import { useEffect, useRef } from 'react';
 import { Trophy } from 'lucide-react';
@@ -43,7 +43,7 @@ export function CelebrationHost() {
             </Laurel>
           )}
         </div>
-        <div className="font-brand relative text-xs uppercase tracking-[0.2em] text-gold">{{ pr: 'Neue Bestleistung', rank: 'Rangaufstieg', badge: 'Abzeichen', quest: 'Feldzug erfüllt', season: 'Saison-Triumph', boss: 'Provinz erobert', colosseum: 'Champion des Kolosseums', mastery: 'Meisterschaft', comeback: 'Comeback', duel: 'Schatten besiegt', level: 'Stufenaufstieg', triumph: 'Triumphzug', item: 'Neue Ausrüstung', transform: 'Verwandlung' }[c.kind]}</div>
+        <div className="font-brand relative text-xs uppercase tracking-[0.2em] text-gold">{{ pr: 'Neue Bestleistung', rank: 'Rangaufstieg', badge: 'Abzeichen', quest: 'Auftrag erfüllt', season: 'Saison-Triumph', boss: 'Provinz erobert', colosseum: 'Champion des Kolosseums', mastery: 'Meisterschaft', comeback: 'Comeback', duel: 'Schatten besiegt', level: 'Stufenaufstieg', triumph: 'Triumphzug', item: 'Neue Ausrüstung', transform: 'Verwandlung' }[c.kind]}</div>
         <h2 className="font-brand relative mt-1 text-2xl font-bold" data-testid="celebration-title">
           {c.title}
         </h2>

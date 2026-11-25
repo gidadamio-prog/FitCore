@@ -39,7 +39,7 @@ export async function mockOff(page: Page) {
   });
 }
 
-export async function nav(page: Page, label: 'Heute' | 'Ernährung' | 'Training' | 'Körper' | 'Statistiken') {
+export async function nav(page: Page, label: 'Heute' | 'Ernährung' | 'Training' | 'Körper' | 'Held' | 'Statistik') {
   await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name: label }).click();
 }
 

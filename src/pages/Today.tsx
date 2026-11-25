@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, CloudUpload, Footprints, Map as MapIcon } from 'lucide-react';
+import { Copy, Droplets, Dumbbell, Plus, Scale, Sparkles, ChevronRight, Moon, CloudUpload, Footprints, Info, CalendarDays, Swords, Crown } from 'lucide-react';
 import { Button, Card, CardTitle, Field, NumberInput, Progress, Sheet, Stat, fmt } from '@/components/ui';
-import { HeroCamp, SceneCard, SceneValue, StationTile } from '@/components/lager/Lager';
+import { HeroCamp, SceneCard, SceneValue, StationTile, sceneUrl } from '@/components/lager/Lager';
+import { ROMAN } from '@/domain/lager';
+import type { GameState } from '@/domain/gamification';
 import type { StationId, StationState } from '@/domain/lager';
 import { BossStage } from '@/components/rpg/BossStage';
 import { PageHeader } from '@/components/Layout';
@@ -46,6 +48,7 @@ export function Today() {
   const lager = game?.lager;
   // geöffnete Station (nur eine zugleich); scrollt sie ins Bild
   const [open, setOpen] = useState<StationId | null>(null);
+  const [levelInfo, setLevelInfo] = useState(false);
   const toggle = (id: StationId | null) => {
     setOpen(id);
     if (id) requestAnimationFrame(() => document.querySelector(`[data-testid="${id === 'pfad' ? 'steps-card' : `station-${id}`}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
@@ -122,20 +125,25 @@ export function Today() {
       <SickBanner />
       {game && (
         <Card className="overflow-hidden border-gold/25 p-2" data-testid="game-card">
-          <HeroCamp game={game} onHero={() => nav('/erfolge?tab=held')} />
+          <HeroCamp game={game} onHero={() => nav('/held?tab=held')} />
           <div className="px-2 pb-2 pt-2">
-            <button className="flex w-full items-center gap-2 text-left text-xs" onClick={() => nav('/erfolge?tab=ruhm')} aria-label="Zur Ruhmeshalle">
-              <span className="font-brand text-sm font-bold text-gold" data-testid="rank-name">
-                {game.rank.rank.name}
-              </span>
-              <span className="text-muted">
-                Rang {game.rank.rank.level} · <span data-testid="xp-total">{fmt(game.xp)}</span> EP
-              </span>
-              <span className="ml-auto min-w-0 flex-1">
-                <Progress value={game.rank.progress * 100} max={100} label="Fortschritt zum nächsten Rang" />
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
-            </button>
+            <div className="flex w-full items-center gap-2 text-xs">
+              <button className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => nav('/stats?section=ruhm')} aria-label="Rang und Ruhm ansehen">
+                <span className="font-brand text-sm font-bold text-gold" data-testid="rank-name">
+                  {game.rank.rank.name}
+                </span>
+                <span className="text-muted">
+                  Rang {game.rank.rank.level} · <span data-testid="xp-total">{fmt(game.xp)}</span> EP
+                </span>
+                <span className="ml-auto min-w-0 flex-1">
+                  <Progress value={game.rank.progress * 100} max={100} label="Fortschritt zum nächsten Rang" />
+                </span>
+              </button>
+              <button className="shrink-0 rounded-full p-1 text-muted hover:text-fg" onClick={() => setLevelInfo(true)} aria-label="Was ist Stufe, was ist Rang?" data-testid="level-rank-info">
+                <Info className="h-4 w-4" />
+              </button>
+            </div>
+            {levelInfo && <LevelRankSheet game={game} onClose={() => setLevelInfo(false)} />}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StreakChips game={game} compact />
               <SickButton />
@@ -143,17 +151,16 @@ export function Today() {
           </div>
         </Card>
       )}
-      {game && <BossStage compact game={game} onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')} cta={settings.hero ? `Zur Weltkarte · ${game.world.ap} AP` : 'Helden erschaffen und losziehen'} />}
       {game && (game.dailyQuest || game.quests.length > 0 || game.questOffers.length > 0) && (
         <Card data-testid="quest-card">
           {game.dailyQuest && <DailyQuestBanner q={game.dailyQuest} />}
           <details className={game.dailyQuest ? 'mt-3' : undefined}>
             <summary className="cursor-pointer text-sm font-medium">
               {!game.questsPicked && game.questOffers.length > 0 ? (
-                <span className="text-gold">Feldzug der Woche wählen (3 aus {game.questOffers.length})</span>
+                <span className="text-gold">Aufträge der Woche wählen (3 aus {game.questOffers.length})</span>
               ) : (
                 <>
-                  Feldzüge dieser Woche · {game.quests.filter((q) => q.done).length}/{game.quests.length}
+                  Aufträge dieser Woche · {game.quests.filter((q) => q.done).length}/{game.quests.length}
                 </>
               )}
             </summary>
@@ -165,6 +172,23 @@ export function Today() {
       )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3" data-testid="stations">
+        {lager && game && (
+          <div className="col-span-2 md:col-span-3" data-testid="station-kartentisch">
+            <BossStage
+              compact
+              game={game}
+              bg={sceneUrl('kartentisch', lager.kartentisch.tier)}
+              kicker="Kartentisch"
+              badge={
+                <span className="rounded-full bg-black/55 px-1.5 text-[10px] font-semibold text-gold" title={`Ausbau ${ROMAN[lager.kartentisch.tier]} · ${lager.kartentisch.name}`}>
+                  {ROMAN[lager.kartentisch.tier]}
+                </span>
+              }
+              onOpen={() => nav(settings.hero ? '/karte' : '/held?tab=held')}
+              cta={settings.hero ? `Zur Weltkarte · ${game.world.ap} AP` : 'Helden erschaffen und losziehen'}
+            />
+          </div>
+        )}
         {lager &&
           (open === 'proviant' ? (
           <SceneCard
@@ -213,6 +237,9 @@ export function Today() {
               </Button>
               <Button variant="secondary" onClick={() => nav('/nutrition?copy=1')}>
                 <Copy className="h-4 w-4" /> Mahlzeit kopieren
+              </Button>
+              <Button variant="secondary" className="col-span-2" onClick={() => nav('/nutrition?tab=plan')} data-testid="proviant-plan">
+                <CalendarDays className="h-4 w-4" /> Wochenplan
               </Button>
             </div>
           </SceneCard>
@@ -409,20 +436,6 @@ export function Today() {
               }
             />
           ))}
-
-        {lager && game && (
-          <StationTile
-            st={lager.kartentisch}
-            onOpen={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')}
-            value={`${game.world.ap} AP`}
-            sub={`${game.world.state.conquered.size}/12 Regionen erobert`}
-            action={
-              <Button size="sm" variant="secondary" className="w-full" onClick={() => nav(settings.hero ? '/karte' : '/erfolge?tab=held')}>
-                <MapIcon className="h-4 w-4" /> Zur Karte
-              </Button>
-            }
-          />
-        )}
       </div>
 
       <Card data-testid="coach-card">
@@ -591,5 +604,32 @@ function StepsCard({ date, goal, bonus = 0, st, open, onToggle }: { date: string
         })}
       </div>
     </SceneCard>
+  );
+}
+
+/** Erklärt den Unterschied: Stufe = Kampfkraft des Helden, Rang = Freischaltungen im Markt und Lager. */
+function LevelRankSheet({ game, onClose }: { game: GameState; onClose: () => void }) {
+  const lv = game.level;
+  const r = game.rank;
+  return (
+    <Sheet open onClose={onClose} title="Stufe und Rang">
+      <div className="space-y-4 text-sm" data-testid="level-rank-sheet">
+        <p className="text-muted">Beides wächst aus denselben Erfahrungspunkten (EP) – aber es bedeutet etwas anderes.</p>
+        <div className="rounded-xl border p-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Swords className="h-4 w-4 text-gold" /> Stufe {lv.level} · Kampfkraft
+          </div>
+          <p className="mt-1 text-muted">Steigt oft und in kleinen Schritten. Sie erhöht Angriff, Verteidigung und Leben deines Helden und öffnet neue Regionen auf der Weltkarte.</p>
+          {lv.next && <p className="mt-1 text-xs">Noch {fmt(lv.toNext)} EP bis Stufe {lv.level + 1}.</p>}
+        </div>
+        <div className="rounded-xl border p-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Crown className="h-4 w-4 text-gold" /> Rang {r.rank.level} · {r.rank.name} ({r.rank.title})
+          </div>
+          <p className="mt-1 text-muted">Steigt selten (10 Ränge). Jeder Rang schaltet im Markt neue Rüstungs- und Waffenklassen frei, lässt dein Lager wachsen und bringt 3 Aktionspunkte als Beförderungssold.</p>
+          {r.next && <p className="mt-1 text-xs">Noch {fmt(r.toNext)} EP bis {r.next.name}.</p>}
+        </div>
+      </div>
+    </Sheet>
   );
 }

@@ -3,7 +3,7 @@ import { lootLabel } from '@/domain/armor';
 import { weaponLootLabel } from '@/domain/weapons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Info, Swords, Shield, Heart, Lock, Flame, ChevronLeft } from 'lucide-react';
+import { Zap, Info, Swords, Shield, Heart, Lock, Flame, ChevronLeft, ListOrdered } from 'lucide-react';
 import { Badge, Button, Card, Sheet, cn, fmt } from '@/components/ui';
 import { useGame } from '@/hooks/game';
 import type { GameState } from '@/domain/gamification';
@@ -37,6 +37,7 @@ import {
   regionIndex,
 } from '@/domain/world';
 import { fight, openChest, siege, travel } from '@/data/worldRepo';
+import { CampaignTab } from './game/CampaignTab';
 import { matText } from '@/domain/forge';
 
 const SCALE = 0.7;
@@ -59,6 +60,7 @@ export function WorldMap() {
   const level = game?.level.level ?? 1;
   const stats = useMemo(() => (game && settings.hero ? heroStatsFor(game, settings.hero, settings.purchases, settings.armorLoot, settings.forgeLog) : null), [game, settings.hero, settings.purchases, settings.armorLoot, settings.forgeLog]);
   const pos = w ? nodeById(w.pos)! : WORLD.nodes[0]!;
+  const [regions, setRegions] = useState(false);
 
   // Auf den Helden scrollen
   useEffect(() => {
@@ -73,7 +75,7 @@ export function WorldMap() {
     return (
       <Card className="space-y-3">
         <p className="text-sm">Erschaffe zuerst deinen Helden – dann beginnt die Reise.</p>
-        <Button onClick={() => nav('/erfolge?tab=held')}>Helden erschaffen</Button>
+        <Button onClick={() => nav('/held?tab=held')}>Helden erschaffen</Button>
       </Card>
     );
 
@@ -124,10 +126,18 @@ export function WorldMap() {
             {kg && <Flame className="h-4 w-4 shrink-0 text-gold" aria-label="Kampfgeist aktiv" />}
           </div>
         )}
+        <Button variant="ghost" size="icon" aria-label="Regionen und Bosse" onClick={() => setRegions(true)} data-testid="open-regions">
+          <ListOrdered className="h-5 w-5" />
+        </Button>
         <Button variant="ghost" size="icon" aria-label="Wie bekomme ich Aktionspunkte?" onClick={() => setHelp(true)}>
           <Info className="h-5 w-5" />
         </Button>
       </div>
+      {regions && (
+        <Sheet open onClose={() => setRegions(false)} title="Regionen und Bosse">
+          <CampaignTab game={game} />
+        </Sheet>
+      )}
 
       <div ref={scroller} className="relative h-[calc(100dvh-12.5rem)] overflow-auto overscroll-contain bg-[#1b1712] md:h-[calc(100dvh-6rem)] md:rounded-2xl" data-testid="map-scroller">
         <svg width={W * SCALE} height={H * SCALE} viewBox={`0 0 ${W} ${H}`} className="block select-none" role="img" aria-label="Weltkarte">

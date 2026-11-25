@@ -1,4 +1,4 @@
-// Quest-Brett: Feldzug der Woche wählen (3 aus 5) und Tagesauftrag anzeigen.
+// Quest-Brett: Aufträge der Woche wählen (3 aus 5) und Tagesauftrag anzeigen.
 import { useState } from 'react';
 import { Check, Scroll, Sparkles } from 'lucide-react';
 import { Badge, Button, Progress, cn, fmt } from './ui';
@@ -51,7 +51,7 @@ export function QuestBoard({ game }: { game: GameState }) {
         </ul>
         {game.questsPicked && (
           <p className="mt-3 text-[11px] text-muted">
-            Je Feldzug {XP_RULES.quest.xp} EP, alle drei geschafft: +{XP_RULES.questAll.xp} EP Bonus{done === game.quests.length && done > 0 ? ' ✓' : ''}. Nächste Woche gibt es neue Angebote.
+            Je Auftrag {XP_RULES.quest.xp} EP, alle drei geschafft: +{XP_RULES.questAll.xp} EP Bonus{done === game.quests.length && done > 0 ? ' ✓' : ''}. Nächste Woche gibt es neue Angebote.
           </p>
         )}
       </div>
@@ -61,12 +61,12 @@ export function QuestBoard({ game }: { game: GameState }) {
   const toggle = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length < PICKS_PER_WEEK ? [...s, id] : s));
   const start = async () => {
     await setSetting('questPicks', { ...settings.questPicks, [game.weekStart]: sel });
-    toast('Feldzug der Woche steht – auf in die Schlacht!', 'success');
+    toast('Aufträge der Woche stehen – auf ans Werk!', 'success');
   };
   return (
     <div data-testid="quest-offers">
       <p className="mb-2 text-sm text-muted">
-        Wähle <b className="text-fg">{PICKS_PER_WEEK} von {game.questOffers.length}</b> Aufträgen als deinen Feldzug der Woche. Die Ziele richten sich nach deinem Schnitt der letzten 4 Wochen – mit etwas mehr Anspruch.
+        Wähle <b className="text-fg">{PICKS_PER_WEEK} von {game.questOffers.length}</b> Aufträgen als deine Aufträge der Woche. Die Ziele richten sich nach deinem Schnitt der letzten 4 Wochen – mit etwas mehr Anspruch.
       </p>
       <ul className="space-y-2">
         {game.questOffers.map((q) => {
@@ -98,7 +98,7 @@ export function QuestBoard({ game }: { game: GameState }) {
         })}
       </ul>
       <Button className="mt-3 w-full" disabled={sel.length !== PICKS_PER_WEEK} onClick={() => void start()}>
-        <Scroll className="h-4 w-4" /> Feldzug starten ({sel.length}/{PICKS_PER_WEEK})
+        <Scroll className="h-4 w-4" /> Aufträge annehmen ({sel.length}/{PICKS_PER_WEEK})
       </Button>
     </div>
   );
