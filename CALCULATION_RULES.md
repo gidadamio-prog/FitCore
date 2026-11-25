@@ -219,3 +219,12 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - Zerlegen: nur eigene Beute- oder Kaufteile, nicht angelegt, keine Boss-Stücke, keine Start-/Abzeichen-Ausrüstung. Ertrag nach Seltenheit (Gewöhnlich 2 Eisen · Selten 3 Eisen + 1 Silber · Episch 2 Silber + 1 Gold · Legendär 2 Gold) plus ein Teil der investierten Stufen. Das Teil kann später erneut als Beute fallen; Denare werden nicht erstattet.
 - Pech-Ausgleich: nach 4 Siegen/Truhen ohne Ausrüstung fällt beim 5. sicher ein Teil („Glück des Tapferen“), Niederlagen zählen nicht.
 - Alles abgeleitet aus `worldLog` (Material je Ereignis) und `forgeLog` (Verbessern/Zerlegen).
+
+## Rezepte (1.28.0)
+- Zutaten per Stück: Lebensmittel mit Stückgrößen (Ei S/M/L/XL mit 45/52/60/67 g essbarem Anteil, Zwiebel, Knoblauchzehe, Banane, Brötchen, Scheibe Brot …) starten mit 1 Stück (Ei: Größe M) und werden per −/+ gezählt; Gramm = Anzahl × Stückgewicht. Einheit jederzeit auf Gramm oder eine andere Größe umstellbar.
+- Suche im Rezept wie beim Essen eintragen: Gespeichertes + Grundnahrungsmittel sofort, online (Open Food Facts/USDA) automatisch ab 3 Zeichen, wenn die Online-Suche erlaubt ist. 65 Grundnahrungsmittel inkl. Mehl, Zucker, Backpulver, Milch, Sahne, Käse, Gemüse, Obst.
+- Ohne Suchbegriff: „Schnell hinzufügen“ der meistgenutzten Lebensmittel.
+- Live-Bilanz pro Portion (kcal, Protein, KH, Fett) oben im Editor; alle Nährwerte aufklappbar.
+- Fertiggewicht (optional): je 100 g und Portionsgewicht beziehen sich auf das gewogene fertige Gericht; Portionen bleiben gleich energiereich.
+- Buchen in Portionen (Stepper, halbe Portionen) oder in Gramm vom fertigen Gericht, mit kcal-Vorschau.
+- Rezept kopieren als Vorlage für Varianten.

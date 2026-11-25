@@ -8,7 +8,7 @@ Typdefinitionen: `src/domain/types.ts`. Schema & Migrationen: `src/data/db.ts`.
 | goals | `++id`, effectiveFrom | **Versionierte** Ziele: Hauptziel, Nebenziele, Rate kg/Woche, Strategie, Formel, BMR, TDEE, Anpassung, kcal-/Makroziele, manuell-Flags, Grund |
 | foods | id, name, barcode, source, favorite, useCount, lastUsedAt | Lebensmittel (OFF/USDA/eigen), `per100` (null = unbekannt), Portionen, Quelle/Lizenz/URL, kcal-Herkunft |
 | diary | id, date, meal, foodId, recipeId, [date+meal] | Einträge mit Menge/Einheit/Gramm, optional Zubereitung `prep` (dann ist `per100` darauf umgerechnet), **Snapshot `per100`** und berechneten Nährwerten |
-| recipes | id, name, category | Zutaten (Snapshot per100 + Gramm), Portionen, Zubereitung, Bild |
+| recipes | id, name, category | Zutaten (Snapshot per100 + Gramm, optional Stückgrößen `servings`, gewählte `servingIdx` und `count`), Portionen, optional `cookedGrams` (Fertiggewicht), Zubereitung, Bild |
 | measurements | id, date, bodyFatMethod | Gewicht, Größe, KF% + Methode (manual/device/navy), Muskelmasse, Umfänge, eigene Werte, Notiz |
 | exercises | id, name, primaryMuscle, isCustom | Übungsbibliothek (60 mitgeliefert) + eigene |
 | plans | id, status, updatedAt | Pläne: Split, Status (draft/active/archived), Tage (Wochentage, Übungen mit Sätzen/Wdh.-Ziel/optional „ab“/Zielgewicht/Pause/RPE/RIR/Notiz; optional Einheiten `groups` {Name, Durchgänge, Pause nach Durchgang} – Übungen einer Einheit tragen `groupId`, stehen hintereinander, Sätze = Durchgänge) |

@@ -13,6 +13,7 @@ import { checkKcal, completeness, recipeNutrition, scaleNutrients, NUTRIENT_LABE
 import { firstError, fieldErrors } from '@/domain/schemas';
 import { z } from 'zod';
 import { toast } from '@/stores/ui';
+import { RecipeAmount, type RecipeAmountValue } from './Recipes';
 import { useMeals, useSettings } from '@/hooks/data';
 
 function useDebounced<T>(v: T, ms: number) {
@@ -256,7 +257,7 @@ export function SourceBadge({ source }: { source: FoodItem['source'] | 'recipe' 
   return <Badge tone={source === 'off' || source === 'usda' ? 'info' : 'neutral'}>{label}</Badge>;
 }
 
-function SearchResults({ q, onPick }: { q: string; onPick: (f: FoodItem) => void }) {
+export function SearchResults({ q, onPick }: { q: string; onPick: (f: FoodItem) => void }) {
   const dq = useDebounced(q.trim(), 700);
   const settings = useSettings();
   const localRaw = useLiveQuery(() => searchLocalFoods(q), [q]);
@@ -513,15 +514,16 @@ function FoodAmount({ food, date, meal, setMeal, onBack, onDone, onReplace }: { 
 function RecipePick({ date, meal, onDone }: { date: string; meal: MealId; onDone: (a: Added) => void }) {
   const recipes = useLiveQuery(() => db.recipes.orderBy('name').toArray(), []) ?? [];
   const [sel, setSel] = useState<Recipe | null>(null);
-  const [servings, setServings] = useState<number | undefined>(1);
+  const [amount, setAmount] = useState<RecipeAmountValue>({ mode: 'portion', value: 1 });
   if (!recipes.length) return <p className="py-6 text-center text-sm text-muted">Noch keine Rezepte. Lege sie im Tab „Rezepte“ an.</p>;
   if (sel) {
     const n = recipeNutrition(sel);
+    const grams = amount.mode === 'gramm' ? amount.value ?? 0 : (n.dishGrams / sel.servings) * (amount.value ?? 0);
     return (
       <div className="space-y-3">
         <div className="font-semibold">{sel.name}</div>
-        <Field label={`Portionen (Rezept ergibt ${sel.servings})`}>{(id) => <NumberInput id={id} value={servings} onValue={setServings} />}</Field>
-        {servings && servings > 0 && <NutrientTable n={scaleNutrients(n.per100, (n.totalGrams / sel.servings) * servings)} title={`${servings} Portion(en)`} />}
+        <RecipeAmount recipe={sel} value={amount} onChange={setAmount} />
+        {grams > 0 && <NutrientTable n={scaleNutrients(n.per100, grams)} title={amount.mode === 'gramm' ? `${fmt(grams)} g` : `${fmt(amount.value ?? 0, 1)} Portion(en)`} />}
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setSel(null)}>
             Zurück
@@ -530,8 +532,8 @@ function RecipePick({ date, meal, onDone }: { date: string; meal: MealId; onDone
             className="flex-1"
             onClick={async () => {
               try {
-                await logRecipe(date, meal, sel, servings ?? 0);
-                onDone({ label: `${sel.name} ${fmt(servings ?? 0, 1)} Port.`, kcal: (n.perServing.kcal ?? 0) * (servings ?? 0) });
+                await logRecipe(date, meal, sel, amount.value ?? 0, amount.mode);
+                onDone({ label: `${sel.name} ${amount.mode === 'gramm' ? `${fmt(amount.value ?? 0)} g` : `${fmt(amount.value ?? 0, 1)} Port.`}`, kcal: ((n.per100.kcal ?? 0) * grams) / 100 });
               } catch (e) {
                 toast(firstError(e), 'error');
               }

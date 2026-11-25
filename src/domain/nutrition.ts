@@ -101,14 +101,17 @@ export function completeness(per100: Nutrients): Completeness {
 // ---------- Rezepte ----------
 
 export interface RecipeNutrition {
+  /** Summe der Zutaten (roh) */
   totalGrams: number;
+  /** Gewicht des fertigen Gerichts (gewogen) oder Summe der Zutaten */
+  dishGrams: number;
   total: Nutrients;
   perServing: Nutrients;
   per100: Nutrients;
   unknownIngredients: string[];
 }
 
-export function recipeNutrition(recipe: Pick<Recipe, 'ingredients' | 'servings'>): RecipeNutrition {
+export function recipeNutrition(recipe: Pick<Recipe, 'ingredients' | 'servings'> & { cookedGrams?: number }): RecipeNutrition {
   if (recipe.ingredients.length === 0) throw new ValidationError('Ein Rezept braucht mindestens eine Zutat.');
   if (!Number.isFinite(recipe.servings) || recipe.servings <= 0) throw new ValidationError('Portionen müssen größer als 0 sein.');
   const unknownIngredients: string[] = [];
@@ -118,6 +121,7 @@ export function recipeNutrition(recipe: Pick<Recipe, 'ingredients' | 'servings'>
     return s;
   });
   const totalGrams = recipe.ingredients.reduce((a, i) => a + i.grams, 0);
+  const dishGrams = recipe.cookedGrams && recipe.cookedGrams > 0 ? recipe.cookedGrams : totalGrams;
   const total: Nutrients = emptyNutrients();
   for (const k of NUTRIENT_KEYS) {
     const values = scaled.map((s) => s[k]);
@@ -132,9 +136,9 @@ export function recipeNutrition(recipe: Pick<Recipe, 'ingredients' | 'servings'>
     const v = total[k];
     if (v === undefined) continue;
     perServing[k] = v === null ? null : roundNutrient(k, v / recipe.servings);
-    per100[k] = v === null || totalGrams === 0 ? null : roundNutrient(k, (v / totalGrams) * 100);
+    per100[k] = v === null || dishGrams === 0 ? null : roundNutrient(k, (v / dishGrams) * 100);
   }
-  return { totalGrams, total, perServing, per100, unknownIngredients };
+  return { totalGrams, dishGrams, total, perServing, per100, unknownIngredients };
 }
 
 // ---------- Einheiten-Normalisierung ----------
