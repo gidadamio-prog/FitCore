@@ -242,3 +242,12 @@ Angerechnete Trainings-kcal (siehe Anrechnungsquote) erhöhen auch die Makroziel
 - **Stufe** (1–99) = Kampfkraft: steigt oft, erhöht Angriff/Verteidigung/Leben und öffnet Regionen. **Rang** (10 Ränge) = Freischaltungen: neue Rüstungs-/Waffenklassen im Markt, Lagerausbau, +3 AP je Beförderung. Beides aus denselben EP; Erklärung über das Info-Symbol neben dem Rang. Lager-Stationen sprechen von „Ausbau I–IV“, damit „Stufe“ eindeutig bleibt.
 - Kartentisch und Boss sind eine Kachel: aktueller Hauptstadt-Boss mit Lebenspunkten vor dem Kartentisch-Bild, AP und eroberte Regionen; Antippen öffnet die Weltkarte.
 - Proviant (aufgeklappt) führt direkt zum Wochenplan (`#/nutrition?tab=plan`).
+
+## Küchen-Rüstung (1.31.0)
+- Drei Sets der Klasse **Küche**, nur verdienbar (kein Markt, keine Beute, nicht zerlegbar):
+  - **Küchenjunge** (Set 36): erstes eigenes Rezept angelegt. Werte wie Stoff, Set-Bonus +5 % EP aus Ernährung.
+  - **Koch** (Set 37): 5 eigene Rezepte angelegt **und** 10 Verwendungen. Werte wie Leder, +10 % EP aus Ernährung.
+  - **Meisterkoch** (Set 38): 50 eigene Rezepte angelegt **und** 150 Verwendungen. Werte wie Boss (legendär), +20 % EP aus Ernährung und +20 % Denare.
+- **Verwendung** = ein Tagebuch-Eintrag aus einem eigenen Rezept (`recipeId`). Je Tag und Mahlzeit zählt höchstens eine, je Tag höchstens 4 (Frühstück, Mittag, Abend, Snack). Zukünftige Tage zählen nicht.
+- Gezählt wird aus den aktuellen Daten: angelegte Rezepte = Rezepte in der Datenbank (auch kopierte), Verwendungen = vorhandene Tagebuch-Einträge.
+- Fortschritt steht unter Ernährung → Rezepte („Küchen-Rüstung x/3“) und bei gesperrten Teilen im Inventar.

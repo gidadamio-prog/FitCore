@@ -4,7 +4,7 @@ import { encodeShare, SHOP, classById, denare, pathById, type Hero, type PathId,
 import { isBuyable, minRankForQuality, weaponById, weaponPrice } from '@/domain/weapons';
 import { equipItem, inventory, itemById, normalizeLoadout, unequip, type SlotId } from '@/domain/equipment';
 import { gearExtra } from '@/domain/gear';
-import { ARMOR_CLASS_MIN_RANK, ARMOR_SLOTS, armorItemId, armorPrice, fullArmorSet, parseArmorId, updateBonusLog, type BonusLogEntry } from '@/domain/armor';
+import { ARMOR_CLASS_MIN_RANK, ARMOR_SLOTS, isEarnedOnly, armorItemId, armorPrice, fullArmorSet, parseArmorId, updateBonusLog, type BonusLogEntry } from '@/domain/armor';
 import type { GameState } from '@/domain/gamification';
 import { today, uid } from '@/domain/dates';
 
@@ -121,7 +121,7 @@ export async function buyArmor(itemIds: string[], game: GameState) {
   let price = 0;
   for (const id of itemIds) {
     const a = parseArmorId(id);
-    if (!a || a.set.cls === 'boss') throw new Error('Dieses Teil ist nicht käuflich.');
+    if (!a || isEarnedOnly(a.set.cls)) throw new Error('Dieses Teil ist nicht käuflich.');
     if (game.rank.rank.level < ARMOR_CLASS_MIN_RANK[a.set.cls]) throw new Error('Diese Rüstungsklasse gibt es erst ab einem höheren Rang.');
     if (inv.find((o) => o.def.id === id)?.unlocked) throw new Error('Hast du schon.');
     price += armorPrice(a.set);

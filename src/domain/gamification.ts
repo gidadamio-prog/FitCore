@@ -3,7 +3,7 @@
 import { lagerState, type StationId, type StationState } from './lager';
 import { REGIONS, apBalance, bossOfRegion, nextRegion, regionIndex, replayWorld, type WorldEvent, type WorldState } from './world';
 import { foeFor } from './combat';
-import { bonusValue, bonusesAt, effectiveStepGoal, type BonusLogEntry, type SetBonus } from './armor';
+import { MAX_RECIPE_USES_PER_DAY, bonusValue, bonusesAt, effectiveStepGoal, type BonusLogEntry, type CookingProgress, type SetBonus } from './armor';
 import type { CardioSession, DiaryEntry, Exercise, GoalVersion, Measurement, Plan, RecoveryLog, Sex, WaterLog, Workout } from './types';
 import type { MealDayHits } from './mealGame';
 import { secretAchievements, type SecretAchievement } from './achievements';
@@ -434,7 +434,23 @@ export function badgeStatus(def: BadgeDef): BadgeStatus {
 
 // ---------- Gesamtauswertung ----------
 
+/** Verwendungen eigener Rezepte: je Tag und Mahlzeit einmal, höchstens 4 pro Tag, nur bis heute. */
+export function recipeUses(entries: Pick<DiaryEntry, 'date' | 'meal' | 'recipeId'>[], today: string): number {
+  const byDay = new Map<string, Set<string>>();
+  for (const e of entries) {
+    if (!e.recipeId || e.date > today) continue;
+    const s = byDay.get(e.date) ?? new Set<string>();
+    s.add(e.meal);
+    byDay.set(e.date, s);
+  }
+  let n = 0;
+  for (const s of byDay.values()) n += Math.min(MAX_RECIPE_USES_PER_DAY, s.size);
+  return n;
+}
+
 export interface GameState {
+  /** Eigene Rezepte: angelegt und gewertete Verwendungen (Küchen-Sets) */
+  cooking: CookingProgress;
   xp: number;
   breakdown: Record<XpKey, { count: number; xp: number }>;
   xpLast7: { date: string; xp: number }[];
@@ -689,6 +705,7 @@ export function computeGame(i: GameInput): GameState {
 
   const xpLast7 = rangeDates(addDays(i.today, -6), i.today).map((d) => ({ date: d, xp: xpByDay.get(d) ?? 0 }));
   return {
+    cooking: { recipes: i.recipesCount, uses: recipeUses(i.entries, i.today) },
     xp,
     breakdown,
     xpLast7,

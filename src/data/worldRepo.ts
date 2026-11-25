@@ -92,7 +92,7 @@ function owned(s: Awaited<ReturnType<typeof getSettings>>, state: WorldState) {
 
 function lootCtx(game: GameState, s: Awaited<ReturnType<typeof getSettings>>, state: WorldState) {
   const o = owned(s, state);
-  return { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: o.loot, purchases: o.purchases };
+  return { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: o.loot, purchases: o.purchases, cooking: game.cooking };
 }
 
 /** Pech-Ausgleich: nach PITY−1 leeren Siegen/Truhen fällt sicher ein Ausrüstungsteil. */

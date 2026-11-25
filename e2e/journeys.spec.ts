@@ -421,3 +421,38 @@ test('AK-108 Essen eintragen: Suche oben, Reis gekocht umrechnen, mehrere Eintr�
   await dlg.getByTestId('add-done').click();
   await expect(page.getByTestId('meal-dinner')).toContainText('250 g gekocht');
 });
+
+test('AK-121 Küchen-Rüstung: erstes eigenes Rezept → Küchenjunge, Verwendungen zählen fürs Koch-Set', async ({ page }) => {
+  await onboard(page);
+  await page.getByRole('link', { name: 'Ernährung' }).first().click();
+  await page.getByRole('tab', { name: 'Rezepte' }).click();
+  const prog = page.getByTestId('kitchen-progress');
+  await expect(prog).toContainText('Küchen-Rüstung 0/3');
+  await expect(prog).toContainText('Küchenjunge');
+  await page.getByRole('button', { name: 'Neues Rezept' }).click();
+  const dlg = page.getByRole('dialog');
+  await dlg.getByLabel('Name', { exact: true }).fill('Rührei');
+  await dlg.getByLabel('Zutat suchen').fill('Ei');
+  await dlg.getByRole('button', { name: /^Ei \(Hühnerei\)/ }).click();
+  await dlg.getByRole('button', { name: /Rezept speichern/ }).click();
+  await expect(page.getByText('Rüstung: Küchenjunge')).toBeVisible({ timeout: 8000 }).catch(() => undefined);
+  await dismissCelebrations(page);
+  await expect(prog).toContainText('Küchen-Rüstung 1/3');
+  await expect(prog).toContainText('„Koch“: 1/5 Rezepte angelegt · 0/10× eigenes Rezept gegessen (max. 4 pro Tag)');
+  // Rezept essen → zählt als Verwendung (je Mahlzeit einmal)
+  await page.getByTestId('recipe-card').getByRole('button', { name: 'Ins Tagebuch' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Buchen' }).click();
+  await dismissCelebrations(page);
+  await expect(prog).toContainText('1/10×');
+  await page.getByTestId('recipe-card').getByRole('button', { name: 'Ins Tagebuch' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Buchen' }).click(); // gleiche Mahlzeit
+  await dismissCelebrations(page);
+  await expect(prog).toContainText('1/10×');
+  // Inventar: Küchenjungen-Set gehört dir, Koch-Set zeigt den Weg
+  await page.goto('/#/held?tab=inventar');
+  await expect(page.getByTestId('inv-tile-armor-36-chest')).toHaveAttribute('aria-label', 'Küchenjungen-Schürze');
+  await page.getByTestId('inv-show-locked').check();
+  await page.getByTestId('inv-tile-armor-37-head').click();
+  await expect(page.getByTestId('item-sheet')).toContainText('Küche · Set Koch');
+  await expect(page.getByTestId('item-sheet')).toContainText('5 eigene Rezepte anlegen (1/5) · 10× eigenes Rezept essen (1/10, max. 4 pro Tag)');
+});

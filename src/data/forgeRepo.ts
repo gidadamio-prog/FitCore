@@ -4,11 +4,11 @@ import type { GameState } from '@/domain/gamification';
 import { inventory, normalizeLoadout } from '@/domain/equipment';
 import { gearExtra } from '@/domain/gear';
 import { MAX_FORGE_LEVEL, canAfford, dismantleGain, effectiveLists, dismantled, forgeLevels, matBalance, upgradeCost, type Mats } from '@/domain/forge';
-import { parseArmorId } from '@/domain/armor';
+import { isEarnedOnly, parseArmorId } from '@/domain/armor';
 import { weaponById } from '@/domain/weapons';
 
 /** Einzigartige Teile (Boss-Waffen und Boss-Rüstung) brauchen ab +6 Reliquien und lassen sich nicht zerlegen. */
-export const isUnique = (id: string) => !!weaponById(id)?.boss || parseArmorId(id)?.set.cls === 'boss';
+export const isUnique = (id: string) => !!weaponById(id)?.boss || isEarnedOnly(parseArmorId(id)?.set.cls ?? 'stoff');
 
 async function ctx(game: GameState) {
   const s = await getSettings();

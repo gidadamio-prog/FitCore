@@ -1,13 +1,15 @@
-// Rüstungs-Sets: 36 Sets mit je 5 Teilen (Kopf, Brust, Arme, Hose, Stiefel) in vier Klassen.
-// Freischaltung auf drei Wegen: verdienen (Start, Ränge, Bosse), kaufen (Markt, ab Rang je Klasse) und Beute nach Kämpfen.
+// Rüstungs-Sets: 39 Sets mit je 5 Teilen (Kopf, Brust, Arme, Hose, Stiefel) in fünf Klassen.
+// Freischaltung: verdienen (Start, Ränge, Bosse, eigene Rezepte), kaufen (Markt, ab Rang je Klasse) und Beute nach Kämpfen.
 import type { Rarity } from './equipment';
 
-export type ArmorClass = 'stoff' | 'leder' | 'schwer' | 'boss';
-export const ARMOR_CLASS_LABEL: Record<ArmorClass, string> = { stoff: 'Stoff', leder: 'Leder', schwer: 'Schwer', boss: 'Boss' };
-export const ARMOR_CLASS_RARITY: Record<ArmorClass, Rarity> = { stoff: 'common', leder: 'rare', schwer: 'epic', boss: 'legendary' };
-export const ARMOR_CLASS_COLOR: Record<ArmorClass, string> = { stoff: '#d9c7a0', leder: '#b0814c', schwer: '#c3cad6', boss: '#f0b43c' };
-/** Ab diesem Rang im Markt kaufbar bzw. als Beute möglich (Boss-Sets nur durch Bosse) */
-export const ARMOR_CLASS_MIN_RANK: Record<ArmorClass, number> = { stoff: 1, leder: 3, schwer: 5, boss: 99 };
+export type ArmorClass = 'stoff' | 'leder' | 'schwer' | 'boss' | 'kueche';
+export const ARMOR_CLASS_LABEL: Record<ArmorClass, string> = { stoff: 'Stoff', leder: 'Leder', schwer: 'Schwer', boss: 'Boss', kueche: 'Küche' };
+export const ARMOR_CLASS_RARITY: Record<ArmorClass, Rarity> = { stoff: 'common', leder: 'rare', schwer: 'epic', boss: 'legendary', kueche: 'rare' };
+export const ARMOR_CLASS_COLOR: Record<ArmorClass, string> = { stoff: '#d9c7a0', leder: '#b0814c', schwer: '#c3cad6', boss: '#f0b43c', kueche: '#e2704a' };
+/** Ab diesem Rang im Markt kaufbar bzw. als Beute möglich (Boss- und Küchen-Sets nur durch Leistung) */
+export const ARMOR_CLASS_MIN_RANK: Record<ArmorClass, number> = { stoff: 1, leder: 3, schwer: 5, boss: 99, kueche: 99 };
+/** Nur verdienbar: nicht im Markt, nicht als Beute, nicht zerlegbar */
+export const isEarnedOnly = (cls: ArmorClass) => cls === 'boss' || cls === 'kueche';
 
 export type ArmorSlot = 'head' | 'chest' | 'hands' | 'legs' | 'feet';
 export const ARMOR_SLOTS: ArmorSlot[] = ['head', 'chest', 'hands', 'legs', 'feet'];
@@ -21,6 +23,8 @@ export interface ArmorSet {
   cls: ArmorClass;
   /** Stufe innerhalb der Klasse (0 …) – bestimmt den Preis */
   tier: number;
+  /** Werte (Seltenheit, Verteidigung, Bonus-Stärke) wie diese Klasse – für Küchen-Sets */
+  like?: ArmorClass;
   head: string;
   chest: string;
   hands: string;
@@ -73,7 +77,14 @@ const BOSS: Row[] = [
   ['Usurpatoren', 'Usurpator', 'Visierhelm', 'Panzer', 'Panzerhandschuhe', 'Beinschutz', 'Panzerstiefel'],
   ['Grenzwächter', 'Grenzwächter', 'Flügelhelm', 'Panzer', 'Panzerhandschuhe', 'Beinschutz', 'Panzerstiefel'],
 ];
-const DEFAULTS: Record<Exclude<ArmorClass, 'boss'>, [string, string, string, string]> = {
+/** Küchen-Sets: nur durch eigene Rezepte (anlegen und im Tagebuch verwenden) */
+const KITCHEN: [prefix: string, name: string, like: ArmorClass, head: string, chest: string, hands: string, legs: string, feet: string][] = [
+  ['Küchenjungen', 'Küchenjunge', 'stoff', 'Kopftuch', 'Schürze', 'Stulpen', 'Hose', 'Schnürstiefel'],
+  ['Koch', 'Koch', 'leder', 'Kochmütze', 'Kochjacke', 'Handschuhe', 'Hose', 'Stiefel'],
+  ['Meisterkoch', 'Meisterkoch', 'boss', 'Kochhaube', 'Prunkjacke', 'Handschuhe', 'Hose', 'Stiefel'],
+];
+
+const DEFAULTS: Record<Exclude<ArmorClass, 'boss' | 'kueche'>, [string, string, string, string]> = {
   stoff: ['Gewand', 'Ärmel', 'Hose', 'Stiefel'],
   leder: ['Wams', 'Armschienen', 'Lederhose', 'Stiefel'],
   schwer: ['Panzer', 'Panzerhandschuhe', 'Beinschutz', 'Panzerstiefel'],
@@ -85,13 +96,17 @@ export const ARMOR_SETS: ArmorSet[] = (
     ['leder', LEATHER],
     ['schwer', HEAVY],
     ['boss', BOSS],
-  ] as [ArmorClass, Row[]][]
+  ] as [Exclude<ArmorClass, 'kueche'>, Row[]][]
 ).flatMap(([cls, rows], ci) =>
-  rows.map(([prefix, name, head, chest, hands, legs, feet], tier) => {
+  rows.map(([prefix, name, head, chest, hands, legs, feet], tier): ArmorSet => {
     const d = cls === 'boss' ? DEFAULTS.schwer : DEFAULTS[cls];
     return { idx: ci * 10 + tier, prefix, name, cls, tier, head, chest: chest ?? d[0], hands: hands ?? d[1], legs: legs ?? d[2], feet: feet ?? d[3] };
   }),
-);
+).concat(KITCHEN.map(([prefix, name, like, head, chest, hands, legs, feet], tier): ArmorSet => ({ idx: 36 + tier, prefix, name, cls: 'kueche' as const, tier, like, head, chest, hands, legs, feet })));
+
+/** Klasse, nach der sich Werte richten (Küchen-Sets wie Stoff/Leder/Boss) */
+export const statClass = (set: ArmorSet): ArmorClass => set.like ?? set.cls;
+export const armorRarity = (set: ArmorSet): Rarity => ARMOR_CLASS_RARITY[statClass(set)];
 
 export const armorItemId = (idx: number, slot: ArmorSlot) => `armor-${String(idx).padStart(2, '0')}-${slot}`;
 export function parseArmorId(id: string): { set: ArmorSet; slot: ArmorSlot } | null {
@@ -113,6 +128,28 @@ export const armorFile = (idx: number, part: 'kopf' | 'brust' | 'hose' | 'arm_l'
 export const START_SET = 0;
 /** Ränge 2–10 schenken je ein Set */
 export const RANK_SETS: Record<number, number> = { 2: 1, 3: 12, 4: 4, 5: 24, 6: 13, 7: 25, 8: 9, 9: 27, 10: 29 };
+/**
+ * Küchen-Sets: eigene Rezepte angelegt und verwendet. Verwendung = eigenes Rezept im Tagebuch,
+ * je Tag und Mahlzeit höchstens einmal, höchstens 4 pro Tag (Frühstück, Mittag, Abend, Snack).
+ */
+export const COOK_SETS: { idx: number; recipes: number; uses: number }[] = [
+  { idx: 36, recipes: 1, uses: 0 },
+  { idx: 37, recipes: 5, uses: 10 },
+  { idx: 38, recipes: 50, uses: 150 },
+];
+export const MAX_RECIPE_USES_PER_DAY = 4;
+export interface CookingProgress {
+  /** angelegte eigene Rezepte */
+  recipes: number;
+  /** gewertete Verwendungen eigener Rezepte im Tagebuch */
+  uses: number;
+}
+/** Nächstes noch offenes Küchen-Set (oder null, wenn alle verdient) */
+export function nextCookSet(c: CookingProgress): { set: ArmorSet; recipes: number; uses: number; earned: number } | null {
+  const earned = COOK_SETS.filter((k) => c.recipes >= k.recipes && c.uses >= k.uses).length;
+  const k = COOK_SETS.find((x) => !(c.recipes >= x.recipes && c.uses >= x.uses));
+  return k ? { set: ARMOR_SETS[k.idx]!, recipes: k.recipes, uses: k.uses, earned } : null;
+}
 /** Feldzug-Bosse schenken ein Set (Boss-Sets gibt es nur so) */
 export const BOSS_SETS: Record<string, number> = {
   gallia: 15, germania: 17, britannia: 16, hispania: 26, dacia: 22, africa: 33, aegyptus: 32,
@@ -134,6 +171,8 @@ export interface ArmorContext {
   /** Beute aus Kämpfen (Item-IDs) */
   loot: string[];
   purchases: string[];
+  /** Fortschritt mit eigenen Rezepten (Küchen-Sets) */
+  cooking?: CookingProgress;
 }
 
 /** Woher ein Set (ganz) stammt – oder null. */
@@ -143,6 +182,8 @@ export function setSource(set: ArmorSet, ctx: ArmorContext): string | null {
   if (rank && ctx.rankLevel >= Number(rank[0])) return `Rang ${rank[0]}`;
   const boss = Object.entries(BOSS_SETS).find(([, i]) => i === set.idx);
   if (boss && ctx.defeatedBossIds.includes(boss[0])) return 'Boss besiegt';
+  const cook = COOK_SETS.find((c) => c.idx === set.idx);
+  if (cook && ctx.cooking && ctx.cooking.recipes >= cook.recipes && ctx.cooking.uses >= cook.uses) return 'Eigene Rezepte';
   return null;
 }
 
@@ -153,13 +194,20 @@ export function ownsArmorPiece(itemId: string, ctx: ArmorContext): boolean {
 }
 
 /** Wie man ein Teil bekommt (für gesperrte Teile im Inventar). */
-export function armorHint(set: ArmorSet, ctx: Pick<ArmorContext, 'rankLevel'>, rankName: (lvl: number) => string, bossName: (id: string) => string): string {
+export function armorHint(set: ArmorSet, ctx: Pick<ArmorContext, 'rankLevel' | 'cooking'>, rankName: (lvl: number) => string, bossName: (id: string) => string): string {
   const ways: string[] = [];
+  const cook = COOK_SETS.find((c) => c.idx === set.idx);
+  if (cook) {
+    const c = ctx.cooking ?? { recipes: 0, uses: 0 };
+    ways.push(`${cook.recipes === 1 ? 'Erstes eigenes Rezept anlegen' : `${cook.recipes} eigene Rezepte anlegen`} (${Math.min(c.recipes, cook.recipes)}/${cook.recipes})`);
+    if (cook.uses) ways.push(`${cook.uses}× eigenes Rezept essen (${Math.min(c.uses, cook.uses)}/${cook.uses}, max. ${MAX_RECIPE_USES_PER_DAY} pro Tag)`);
+    return ways.join(' · ');
+  }
   const rank = Object.entries(RANK_SETS).find(([, i]) => i === set.idx);
   if (rank) ways.push(`Set ab Rang ${rankName(Number(rank[0]))}`);
   const boss = Object.entries(BOSS_SETS).find(([, i]) => i === set.idx);
   if (boss) ways.push(`Set für den Sieg über ${bossName(boss[0])}`);
-  if (set.cls !== 'boss') {
+  if (!isEarnedOnly(set.cls)) {
     const min = ARMOR_CLASS_MIN_RANK[set.cls];
     ways.push(ctx.rankLevel >= min ? `Markt ${armorPrice(set)} Denare oder Beute` : `Markt/Beute ab Rang ${rankName(min)}`);
   }
@@ -213,7 +261,7 @@ export function lootSets(regionIdx: number, source: LootSource): number[] {
 /** Klartext fürs Kartenblatt, z. B. „Stoff II–IV“ */
 export function lootLabel(regionIdx: number): string {
   const R = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-  const CLS: Record<ArmorClass, string> = { stoff: 'Stoff', leder: 'Leder', schwer: 'Schwer', boss: 'Boss' };
+  const CLS = ARMOR_CLASS_LABEL;
   return LOOT_WINDOWS[Math.max(0, Math.min(LOOT_WINDOWS.length - 1, regionIdx))]!.map(([c, a, b]) => `${CLS[c]} ${R[a]}–${R[b]}`).join(', ');
 }
 
@@ -222,7 +270,7 @@ export function lootLabel(regionIdx: number): string {
  * sonst alles bis zum eigenen Rang. Bereits Besessenes fällt nicht doppelt.
  */
 export function rollLoot(key: string, kills: number, ctx: ArmorContext, chance = LOOT_CHANCE, sets?: number[]): string[] {
-  const pool = ARMOR_SETS.filter((s) => s.cls !== 'boss' && (sets ? sets.includes(s.idx) : ctx.rankLevel >= ARMOR_CLASS_MIN_RANK[s.cls]))
+  const pool = ARMOR_SETS.filter((s) => !isEarnedOnly(s.cls) && (sets ? sets.includes(s.idx) : ctx.rankLevel >= ARMOR_CLASS_MIN_RANK[s.cls]))
     .flatMap((s) => ARMOR_SLOTS.map((slot) => armorItemId(s.idx, slot)))
     .filter((id) => !ownsArmorPiece(id, ctx));
   const out: string[] = [];
@@ -258,6 +306,7 @@ const STRENGTH: Record<ArmorClass, Record<BonusKind, number>> = {
   leder: { steps: 1000, xpTraining: 10, xpNutrition: 10, damage: 10, loot: 10, denare: 10 },
   schwer: { steps: 1500, xpTraining: 15, xpNutrition: 15, damage: 15, loot: 15, denare: 15 },
   boss: { steps: 2000, xpTraining: 20, xpNutrition: 20, damage: 20, loot: 15, denare: 20 },
+  kueche: { steps: 1000, xpTraining: 10, xpNutrition: 10, damage: 10, loot: 10, denare: 10 },
 };
 
 /** Passend zum Set: Wanderer laufen, Gelehrte essen bewusst, Zenturionen schlagen härter … */
@@ -270,10 +319,12 @@ const BONUS_KINDS: BonusKind[][] = [
   ['steps'], ['loot'], ['xpNutrition'], ['denare'], ['xpTraining'], ['steps'], ['damage'], ['denare'], ['damage'], ['xpTraining'],
   // Boss (je zwei)
   ['denare', 'loot'], ['damage', 'xpTraining'], ['denare', 'xpNutrition'], ['damage', 'steps'], ['damage', 'loot'], ['steps', 'xpTraining'],
+  // Küche: Küchenjunge (wie Stoff), Koch (wie Leder), Meisterkoch (wie Boss)
+  ['xpNutrition'], ['xpNutrition'], ['xpNutrition', 'denare'],
 ];
 
 export function setBonuses(set: ArmorSet): SetBonus[] {
-  return (BONUS_KINDS[set.idx] ?? []).map((kind) => ({ kind, value: STRENGTH[set.cls][kind] }));
+  return (BONUS_KINDS[set.idx] ?? []).map((kind) => ({ kind, value: STRENGTH[statClass(set)][kind] }));
 }
 
 export function bonusText(b: SetBonus): string {
