@@ -116,7 +116,7 @@ test('RPG: Held erschaffen, Feldzug, Teilen-Link, Rivale per Link, Rangliste, Ma
   await expect(page.getByTestId('reward-prs')).toContainText('Legionärsschwert');
   await dismissCelebrations(page);
   // Kein horizontales Überlaufen auf dem Handy
-  for (const t of ['Held', 'Feldzug', 'Arena', 'Ruhm', 'Markt']) {
+  for (const t of ['Held', 'Inventar', 'Feldzug', 'Arena', 'Ruhm', 'Markt']) {
     await page.getByRole('tab', { name: t, exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   }

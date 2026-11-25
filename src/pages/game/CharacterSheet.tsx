@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Dumbbell, Salad, Check, Scissors, Eye, EyeOff, Palette } from 'lucide-react';
+import { Lock, Dumbbell, Salad, Check, Scissors, Eye, EyeOff, Palette, Backpack } from 'lucide-react';
 import { WEAPONS, artById, isBuyable, minRankForQuality, weaponById, weaponStats } from '@/domain/weapons';
 import type { Rarity } from '@/domain/equipment';
 import { ArmorColorPicker, LookEditor, useNewLooks } from './LookEditor';
@@ -68,6 +68,7 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
   const [flash, setFlash] = useState<SlotId | null>(null);
   const [lookOpen, setLookOpen] = useState(false);
   const [visOpen, setVisOpen] = useState(false);
+  const nav = useNavigate();
   const newLooks = useNewLooks(game);
   const path = pathById(pathForGoal(goal?.primaryGoal) ?? undefined);
   const stage = appearanceStage(game.rank.rank.level);
@@ -113,6 +114,9 @@ export function CharacterSheet({ hero, game }: { hero: Hero; game: GameState }) 
               <Palette className="h-3.5 w-3.5" /> Rüstung: Farbe & Anzeige
             </Button>
           )}
+          <Button size="sm" variant="ghost" className="mt-1" data-testid="open-inventory" onClick={() => nav('/erfolge?tab=inventar')}>
+            <Backpack className="h-3.5 w-3.5" /> Inventar
+          </Button>
           {fullSet && (
             <Badge tone="accent" className="mt-1" data-testid="armor-set-bonus">
               Set-Bonus: {fullSet.name} ({ARMOR_CLASS_LABEL[fullSet.cls]})
