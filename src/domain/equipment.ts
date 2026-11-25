@@ -5,7 +5,7 @@ import { CAMPAIGN } from './rpg';
 import { BADGE_WEAPONS, START_WEAPONS, WEAPONS, firstLootRegion, isBuyable, minRankForQuality, ownsWeapon, weaponById, weaponPrice, weaponRarity, type WeaponContext } from './weapons';
 import { REGIONS } from './world';
 import { effectiveLists } from './forge';
-import { ARMOR_CLASS_RARITY, ARMOR_SETS, ARMOR_SLOTS, START_SET, armorHint, armorIconFile, armorItemId, armorPieceName, ownsArmorPiece, parseArmorId, type ArmorContext } from './armor';
+import { armorRarity, ARMOR_SETS, ARMOR_SLOTS, START_SET, armorHint, armorIconFile, armorItemId, armorPieceName, ownsArmorPiece, parseArmorId, type ArmorContext, type CookingProgress } from './armor';
 
 export type SlotId = 'main' | 'off' | 'head' | 'chest' | 'hands' | 'legs' | 'feet';
 export const SLOTS: { id: SlotId; label: string; file: string }[] = [
@@ -51,7 +51,7 @@ export interface ItemDef {
 
 /** Waffen aus den Waffen-Blättern (12 Arten in Stufen + 10 Boss-Unikate) */
 const WEAPON_ITEMS: ItemDef[] = WEAPONS.map((w) => ({ id: w.id, name: w.name, slot: w.slot, twoHanded: w.twoHanded, motif: '', source: { kind: 'weapon', weaponId: w.id }, icon: w.file }));
-/** Rüstungsteile aus den 36 Sets */
+/** Rüstungsteile aus den 39 Sets */
 const ARMOR_ITEMS: ItemDef[] = ARMOR_SETS.flatMap((set) =>
   ARMOR_SLOTS.map((slot): ItemDef => ({ id: armorItemId(set.idx, slot), name: armorPieceName(set, slot), slot, motif: '', source: { kind: 'armor', setIdx: set.idx }, icon: armorIconFile(set.idx, slot) })),
 );
@@ -82,6 +82,8 @@ export interface OwnedItem {
 export interface InventoryExtra {
   defeatedBossIds: string[];
   loot: string[];
+  /** Fortschritt mit eigenen Rezepten (Küchen-Sets) */
+  cooking?: CookingProgress;
   /** zerlegte Teile (je Zerlegen ein Eintrag) */
   dismantled?: string[];
   rankName?: (lvl: number) => string;
@@ -93,12 +95,12 @@ export function inventory(badges: BadgeStatus[], classId: HeroClassId | undefine
   const purchases = eff.purchases;
   const extra = { ...extraIn, loot: eff.loot };
   const bt = badgeTiers(badges);
-  const ctx: ArmorContext = { rankLevel, defeatedBossIds: extra.defeatedBossIds, loot: extra.loot, purchases };
+  const ctx: ArmorContext = { rankLevel, defeatedBossIds: extra.defeatedBossIds, loot: extra.loot, purchases, cooking: extra.cooking };
   return ITEMS.flatMap((def): OwnedItem[] => {
     if (def.source.kind === 'armor') {
       const set = ARMOR_SETS[def.source.setIdx]!;
       const own = ownsArmorPiece(def.id, ctx);
-      const r = own ? ARMOR_CLASS_RARITY[set.cls] : null;
+      const r = own ? armorRarity(set) : null;
       return [{ def, unlocked: r, worn: r, rankLocked: null, hint: own ? undefined : armorHint(set, ctx, extra.rankName ?? ((l) => `${l}`), extra.bossName ?? ((b) => b)) }];
     }
     const w = weaponById(def.source.weaponId)!;

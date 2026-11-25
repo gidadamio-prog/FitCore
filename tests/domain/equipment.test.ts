@@ -17,10 +17,10 @@ const allBadges = (tier: BadgeStatus['tier'] = null) => Object.keys(BADGE_WEAPON
 const W = weaponId;
 
 describe('Katalog', () => {
-  it('100 Waffen (90 in Reihen, 10 Boss-Waffen), 180 Rüstungsteile, eindeutige IDs, jede Waffe hat ein Bild', () => {
+  it('100 Waffen (90 in Reihen, 10 Boss-Waffen), 195 Rüstungsteile, eindeutige IDs, jede Waffe hat ein Bild', () => {
     expect(ITEMS.filter((i) => i.source.kind === 'weapon')).toHaveLength(100);
     expect(WEAPONS.filter((w) => w.boss)).toHaveLength(10);
-    expect(ITEMS.filter((i) => i.source.kind === 'armor')).toHaveLength(180);
+    expect(ITEMS.filter((i) => i.source.kind === 'armor')).toHaveLength(195);
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
     for (const w of WEAPONS) expect(existsSync(`src/assets/rpg/${w.file}.webp`), w.file).toBe(true);
     for (const i of ITEMS) expect(itemFile(i)).toMatch(/^waffe_[a-z]+_\d\d(_R)?$|^ruestung_\d\d_(kopf|brust|arm_l|hose|stiefel_l)$/);

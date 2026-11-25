@@ -62,6 +62,9 @@ export const ARMOR_HEAD: [number, number, number][] = [
   [38.62, -2.7, 22.75],
   [38.77, -5.61, 22.75],
   [38.68, 0.25, 22.75],
+  [38.71, -2.75, 22.75],
+  [38.62, -3.21, 22.75],
+  [38.69, -9.52, 22.75],
 ];
 
 /** Seitenverhältnis (Höhe/Breite) jeder Ebene */
@@ -318,6 +321,27 @@ export const ARMOR_ASPECT: Record<string, number> = {
   'ruestung_35_kopf': 0.9557,
   'ruestung_35_stiefel_l': 1.7579,
   'ruestung_35_stiefel_r': 1.7766,
+  'ruestung_36_arm_l': 2.2973,
+  'ruestung_36_arm_r': 2.4286,
+  'ruestung_36_brust': 1.887,
+  'ruestung_36_hose': 1.3554,
+  'ruestung_36_kopf': 0.7328,
+  'ruestung_36_stiefel_l': 1.7935,
+  'ruestung_36_stiefel_r': 1.8222,
+  'ruestung_37_arm_l': 3.2206,
+  'ruestung_37_arm_r': 3.2687,
+  'ruestung_37_brust': 2.0134,
+  'ruestung_37_hose': 1.4685,
+  'ruestung_37_kopf': 0.7609,
+  'ruestung_37_stiefel_l': 1.7188,
+  'ruestung_37_stiefel_r': 1.7368,
+  'ruestung_38_arm_l': 3.2687,
+  'ruestung_38_arm_r': 3.1857,
+  'ruestung_38_brust': 2.0457,
+  'ruestung_38_hose': 1.4856,
+  'ruestung_38_kopf': 1.1768,
+  'ruestung_38_stiefel_l': 1.8764,
+  'ruestung_38_stiefel_r': 1.8352,
 };
 
 /** Ebenen mit Färbe-Maske (roter/purpurner Stoff) */
@@ -563,4 +587,24 @@ export const ARMOR_DYE = new Set<string>([
   'ruestung_35_kopf',
   'ruestung_35_stiefel_l',
   'ruestung_35_stiefel_r',
+  'ruestung_36_arm_l',
+  'ruestung_36_arm_r',
+  'ruestung_36_brust',
+  'ruestung_36_hose',
+  'ruestung_36_kopf',
+  'ruestung_36_stiefel_l',
+  'ruestung_36_stiefel_r',
+  'ruestung_37_arm_l',
+  'ruestung_37_arm_r',
+  'ruestung_37_brust',
+  'ruestung_38_arm_l',
+  'ruestung_38_arm_r',
+  'ruestung_38_brust',
+  'ruestung_38_kopf',
+  'ruestung_38_stiefel_l',
 ]);
+
+/** Breitenfaktor einzelner Ebenen (z. B. Brust mit weitem Umhang: Schultern sitzen wie bei anderen Sets) */
+export const ARMOR_SCALE: Record<string, number> = {
+  'ruestung_38_brust': 1.182,
+};

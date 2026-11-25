@@ -95,6 +95,8 @@ exact same position and scale as on the character, [HINWEIS]. No body, no face, 
 
 Geliefert: 36 Sets (10 Stoff, 10 Leder, 10 Schwer, 6 Boss) je Kopf, Brust, Arme (Paar), Hose, Stiefel (Paar). Für weitere Sets genauso: **ein Sammelbild je Teil-Art, 6 × 6 Raster, frontal, transparenter Hintergrund**; Arme als Paar nebeneinander (links/rechts aus Sicht des Betrachters), Stiefel als Paar in einer Zelle. Zerlegt und eingepasst wird automatisch (`scripts/armor/process.py`).
 
+Zusatz-Sets (z. B. die 3 Küchen-Sets, 1.31.0) gehen auch als **ein Bild mit einem Set je Spalte**: Kopf oben, Brust mit den Armteilen links und rechts daneben, darunter Hose und das Stiefelpaar, weißer oder transparenter Hintergrund (`scripts/armor/process_extra.py`).
+
 ## 1. Testlauf zuerst (2 Bilder)
 
 Damit legen wir den Stil fest, bevor du den Rest machst.

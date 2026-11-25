@@ -14,7 +14,7 @@ import { useBodyType } from '@/hooks/game';
 import { useSettings } from '@/hooks/data';
 import { DEFAULT_HAIR_COLOR, FACE_BOX, HAIR_COLORS, armorColorById, SCAR_PLACE, TATTOO_TEMPLATE, tintStops, traitById, traitFile, type HeroLook } from '@/domain/appearance';
 import { BODY_PARTS, HEAD_LAYOUT_EXTRA, SCAR_ASPECT } from '@/domain/bodyLayout';
-import { ARMOR_ASPECT, ARMOR_BODY, ARMOR_DYE, ARMOR_HEAD } from '@/domain/armorLayout';
+import { ARMOR_ASPECT, ARMOR_BODY, ARMOR_DYE, ARMOR_HEAD, ARMOR_SCALE } from '@/domain/armorLayout';
 import { armorFile, parseArmorId, type ArmorSlot } from '@/domain/armor';
 import { defaultLoadout } from '@/domain/equipment';
 import { TRAIT_LAYOUT } from '@/domain/traitLayout';
@@ -406,7 +406,8 @@ function ArmorBody({ bodyId, armor }: { bodyId: string; armor: WornArmor }) {
   if (armor.chest != null) {
     const c = a.chest;
     const file = armorFile(armor.chest, 'brust');
-    out.push(<ArmorImg key="chest" color={armor.color} file={file} testId="armor-chest" style={{ left: `${c.cx - c.w / 2}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.w * (2 / 3) * asp(file) * c.ky}%` }} />);
+    const w = c.w * (ARMOR_SCALE[file] ?? 1);
+    out.push(<ArmorImg key="chest" color={armor.color} file={file} testId="armor-chest" style={{ left: `${c.cx - w / 2}%`, top: `${c.top}%`, width: `${w}%`, height: `${w * (2 / 3) * asp(file) * c.ky}%` }} />);
   }
   if (armor.hands != null)
     for (const s of ['L', 'R'] as const) {

@@ -15,8 +15,8 @@ test('AK-116 Inventar: Sammlung mit Zählern, Filter, Details, fehlende Teile mi
   await page.getByTestId('open-inventory').click();
   const tab = page.getByTestId('inventory-tab');
   await expect(tab.getByTestId('inv-count-weapons')).toHaveText('2/100');
-  await expect(tab.getByTestId('inv-count-armor')).toHaveText('5/180'); // Novizen-Set inkl. Kapuze
-  await expect(tab.getByTestId('inv-count-sets')).toHaveText('1/36');
+  await expect(tab.getByTestId('inv-count-armor')).toHaveText('5/195'); // Novizen-Set inkl. Kapuze
+  await expect(tab.getByTestId('inv-count-sets')).toHaveText('1/39');
   await expect(tab.getByTestId('forge-card').getByTestId('mat-eisen')).toContainText('Eisen 0');
   await expect(tab.getByTestId('inv-grid').locator('li')).toHaveCount(7);
 

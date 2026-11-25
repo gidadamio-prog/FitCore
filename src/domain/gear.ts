@@ -15,6 +15,7 @@ export function gearExtra(game: GameState, loot: string[], forgeLog: ForgeEvent[
   return {
     defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id),
     loot,
+    cooking: game.cooking,
     dismantled: dismantled(forgeLog),
     rankName: (l) => RANKS[l - 1]?.name ?? String(l),
     bossName: bossNameById,

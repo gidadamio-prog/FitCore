@@ -1,5 +1,5 @@
 // Feier-Overlay (Bestleistung, Rangaufstieg, Abzeichen, Auftrag) und Beobachter für neue Erfolge.
-import { ARMOR_CLASS_LABEL, ARMOR_CLASS_RARITY, ARMOR_SETS, START_SET, armorItemId, setSource } from '@/domain/armor';
+import { ARMOR_CLASS_LABEL, armorRarity, ARMOR_SETS, START_SET, armorItemId, setSource } from '@/domain/armor';
 import { useEffect, useRef } from 'react';
 import { Trophy } from 'lucide-react';
 import { Button } from './ui';
@@ -110,7 +110,7 @@ export function GameWatcher() {
         items: [],
         weapons: badgeWeaponIds(game.badges),
         stage: appearanceStage(game.rank.rank.level),
-        armorSets: ARMOR_SETS.filter((st) => st.idx !== START_SET && setSource(st, { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: [], purchases: [] })).map((st) => st.idx),
+        armorSets: ARMOR_SETS.filter((st) => st.idx !== START_SET && setSource(st, { rankLevel: game.rank.rank.level, defeatedBossIds: game.campaign.defeated.map((d) => d.boss.id), loot: [], purchases: [], cooking: game.cooking })).map((st) => st.idx),
       };
       const row = await db.settings.get('gameAck');
       const ack = row?.value as Ack | undefined;
@@ -168,7 +168,7 @@ export function GameWatcher() {
       }
       for (const idx of now.armorSets.filter((x) => !prevSets.includes(x))) {
         const st = ARMOR_SETS[idx]!;
-        celebrate({ kind: 'item', title: `Rüstung: ${st.name}`, subtitle: `${ARMOR_CLASS_LABEL[st.cls]} · komplettes Set (5 Teile)`, lines: ['Im Inventar – jetzt anlegen unter Held'], item: { id: armorItemId(idx, 'chest'), rarity: ARMOR_CLASS_RARITY[st.cls] } });
+        celebrate({ kind: 'item', title: `Rüstung: ${st.name}`, subtitle: `${ARMOR_CLASS_LABEL[st.cls]} · komplettes Set (5 Teile)`, lines: ['Im Inventar – jetzt anlegen unter Held'], item: { id: armorItemId(idx, 'chest'), rarity: armorRarity(st) } });
       }
       if (hero && now.stage > prevStage) {
         const st = APPEARANCE_STAGES[now.stage - 1]!;

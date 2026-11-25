@@ -28,6 +28,8 @@ import { BASIC_BY_ID } from "@/data/basicFoods";
 import { useMeals, useRecipes } from "@/hooks/data";
 import { firstError } from "@/domain/schemas";
 import { toast, confirmDialog, useUi } from "@/stores/ui";
+import { useGame } from "@/hooks/game";
+import { COOK_SETS, MAX_RECIPE_USES_PER_DAY, nextCookSet } from "@/domain/armor";
 
 const CATEGORIES = [
   "Frühstück",
@@ -57,6 +59,7 @@ export function Recipes() {
       >
         <Plus className="h-4 w-4" /> Neues Rezept
       </Button>
+      <KitchenProgress />
       {!recipes.length && (
         <Empty
           icon={<BookOpen className="h-8 w-8" />}
@@ -782,5 +785,42 @@ function RecipeEditor({
         </p>
       </div>
     </Sheet>
+  );
+}
+
+/** Küchen-Rüstung: Fortschritt zum nächsten Set aus eigenen Rezepten */
+function KitchenProgress() {
+  const game = useGame();
+  if (!game) return null;
+  const c = game.cooking;
+  const next = nextCookSet(c);
+  return (
+    <div
+      className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/[0.06] p-3 text-xs"
+      data-testid="kitchen-progress"
+    >
+      <span className="text-xl" aria-hidden>
+        🍳
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold">
+          Küchen-Rüstung {next ? next.earned : COOK_SETS.length}/
+          {COOK_SETS.length}
+        </div>
+        {next ? (
+          <div className="text-muted">
+            Nächstes Set „{next.set.name}“: {Math.min(c.recipes, next.recipes)}/
+            {next.recipes} Rezepte angelegt
+            {next.uses
+              ? ` · ${Math.min(c.uses, next.uses)}/${next.uses}× eigenes Rezept gegessen (max. ${MAX_RECIPE_USES_PER_DAY} pro Tag)`
+              : ""}
+          </div>
+        ) : (
+          <div className="text-muted">
+            Alle Küchen-Sets verdient – Meisterkoch!
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

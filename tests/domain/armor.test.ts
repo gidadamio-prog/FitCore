@@ -1,22 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { ARMOR_SETS, BOSS_SETS, LOOT_WINDOWS, RANK_SETS, armorItemId, armorPrice, fullArmorSet, lootLabel, lootSets, ownsArmorPiece, parseArmorId, rollLoot, type ArmorContext } from '@/domain/armor';
+import { ARMOR_SETS, BOSS_SETS, LOOT_WINDOWS, RANK_SETS, armorHint, nextCookSet, setSource, armorItemId, armorPrice, fullArmorSet, lootLabel, lootSets, ownsArmorPiece, parseArmorId, rollLoot, type ArmorContext } from '@/domain/armor';
 import { inventory, itemById } from '@/domain/equipment';
 import { ARMOR_ASPECT, ARMOR_BODY, ARMOR_HEAD } from '@/domain/armorLayout';
 import { CAMPAIGN } from '@/domain/rpg';
+import { recipeUses } from '@/domain/gamification';
 
 const ctx = (o: Partial<ArmorContext> = {}): ArmorContext => ({ rankLevel: 1, defeatedBossIds: [], loot: [], purchases: [], ...o });
 
 describe('Rüstungs-Sets', () => {
-  it('36 Sets der Reihe nach: 10 Stoff, 10 Leder, 10 Schwer, 6 Boss; Namen wie „Legionärs-Helm“', () => {
-    expect(ARMOR_SETS.map((s) => s.cls).join(',')).toBe([...Array(10).fill('stoff'), ...Array(10).fill('leder'), ...Array(10).fill('schwer'), ...Array(6).fill('boss')].join(','));
+  it('39 Sets der Reihe nach: 10 Stoff, 10 Leder, 10 Schwer, 6 Boss, 3 Küche; Namen wie „Legionärs-Helm“', () => {
+    expect(ARMOR_SETS.map((s) => s.cls).join(',')).toBe([...Array(10).fill('stoff'), ...Array(10).fill('leder'), ...Array(10).fill('schwer'), ...Array(6).fill('boss'), ...Array(3).fill('kueche')].join(','));
+    expect(ARMOR_SETS.every((s, i) => s.idx === i)).toBe(true);
     expect(itemById(armorItemId(25, 'head'))?.name).toBe('Legionärs-Helm');
     expect(parseArmorId('armor-25-chest')).toMatchObject({ slot: 'chest' });
     expect(parseArmorId('galea')).toBeNull();
   });
   it('jede Ebene hat Lage und Seitenverhältnis, jeder Körper Ankerpunkte', () => {
-    expect(ARMOR_HEAD).toHaveLength(36);
+    expect(ARMOR_HEAD).toHaveLength(39);
     expect(Object.keys(ARMOR_BODY)).toHaveLength(12);
-    for (let i = 0; i < 36; i++) for (const p of ['kopf', 'brust', 'hose', 'arm_l', 'arm_r', 'stiefel_l', 'stiefel_r']) expect(ARMOR_ASPECT[`ruestung_${String(i).padStart(2, '0')}_${p}`], `${i} ${p}`).toBeGreaterThan(0);
+    for (let i = 0; i < 39; i++) for (const p of ['kopf', 'brust', 'hose', 'arm_l', 'arm_r', 'stiefel_l', 'stiefel_r']) expect(ARMOR_ASPECT[`ruestung_${String(i).padStart(2, '0')}_${p}`], `${i} ${p}`).toBeGreaterThan(0);
   });
   it('Start-Set sofort, Rang- und Boss-Sets komplett, Boss-Sets nur durch Bosse', () => {
     expect(ownsArmorPiece('armor-00-head', ctx())).toBe(true);
@@ -78,7 +80,7 @@ import { ex, set, workout } from './fixtures';
 
 describe('Set-Boni', () => {
   it('jedes Set hat 1 Bonus (Boss 2), Stärke wächst mit der Klasse', () => {
-    expect(ARMOR_SETS.every((s) => setBonuses(s).length === (s.cls === 'boss' ? 2 : 1))).toBe(true);
+    expect(ARMOR_SETS.every((s) => setBonuses(s).length === (s.cls === 'boss' || s.like === 'boss' ? 2 : 1))).toBe(true);
     expect(setBonuses(ARMOR_SETS[1]!).map(bonusText)).toEqual(['Schrittziel −500']);
     expect(setBonuses(ARMOR_SETS[13]!).map(bonusText)).toEqual(['Schrittziel −1.000']);
     expect(setBonuses(ARMOR_SETS[26]!).map(bonusText)).toEqual(['+15 % Schaden gegen Bosse']);
@@ -112,5 +114,50 @@ describe('Set-Boni', () => {
     const dmg = computeGame(base({ workouts: ws, setBonusLog: [{ from: '2026-11-23', setIdx: 26 }] })); // Zenturio: +15 % Schaden
     expect(dmg.damageByDay.get('2026-11-23')).toBe(Math.round(plain.damageByDay.get('2026-11-23')! * 1.15));
     expect(dmg.damageByDay.get('2026-11-21')).toBe(plain.damageByDay.get('2026-11-21'));
+  });
+});
+
+describe('Küchen-Sets (eigene Rezepte)', () => {
+  const c = (recipes: number, uses: number) => ctx({ cooking: { recipes, uses } });
+  it('Küchenjunge ab dem ersten Rezept, Koch ab 5 Rezepten + 10 Verwendungen, Meisterkoch ab 50 Rezepten + 150 Verwendungen', () => {
+    const [junge, koch, meister] = [ARMOR_SETS[36]!, ARMOR_SETS[37]!, ARMOR_SETS[38]!];
+    expect([junge.name, koch.name, meister.name]).toEqual(['Küchenjunge', 'Koch', 'Meisterkoch']);
+    expect(setSource(junge, c(0, 0))).toBeNull();
+    expect(setSource(junge, c(1, 0))).toBe('Eigene Rezepte');
+    expect(setSource(koch, c(5, 9))).toBeNull();
+    expect(setSource(koch, c(4, 10))).toBeNull();
+    expect(setSource(koch, c(5, 10))).toBe('Eigene Rezepte');
+    expect(setSource(meister, c(49, 400))).toBeNull();
+    expect(setSource(meister, c(50, 149))).toBeNull();
+    expect(setSource(meister, c(50, 150))).toBe('Eigene Rezepte');
+    expect(ownsArmorPiece(armorItemId(37, 'head'), c(5, 10))).toBe(true);
+  });
+  it('nicht im Markt, nicht als Beute; Werte wie Stoff, Leder bzw. Boss; Fortschritt im Hinweis', () => {
+    const pool = ARMOR_SETS.flatMap((s) => rollLoot(`k${s.idx}`, 5, ctx({ rankLevel: 10 }), 1));
+    expect(pool.some((id) => parseArmorId(id)!.set.cls === 'kueche')).toBe(false);
+    expect(setBonuses(ARMOR_SETS[36]!).map(bonusText)).toEqual(['+5 % EP aus Ernährung']);
+    expect(setBonuses(ARMOR_SETS[38]!).map(bonusText)).toEqual(['+20 % EP aus Ernährung', '+20 % Denare']);
+    expect(armorHint(ARMOR_SETS[37]!, c(3, 4), String, String)).toBe('5 eigene Rezepte anlegen (3/5) · 10× eigenes Rezept essen (4/10, max. 4 pro Tag)');
+    expect(nextCookSet({ recipes: 1, uses: 0 })).toMatchObject({ earned: 1, recipes: 5, uses: 10 });
+    expect(nextCookSet({ recipes: 60, uses: 200 })).toBeNull();
+  });
+  it('Verwendung: je Tag und Mahlzeit einmal, höchstens 4 pro Tag, keine Zukunft, nur Rezepte', () => {
+    const e = (date: string, meal: string, recipeId?: string) => ({ date, meal, recipeId });
+    expect(
+      recipeUses(
+        [
+          e('2026-11-20', 'breakfast', 'r1'),
+          e('2026-11-20', 'breakfast', 'r2'), // gleiche Mahlzeit zählt einmal
+          e('2026-11-20', 'lunch', 'r1'),
+          e('2026-11-20', 'dinner', 'r1'),
+          e('2026-11-20', 'snack', 'r1'),
+          e('2026-11-20', 'snack2', 'r1'), // 5. Mahlzeit: Deckel 4
+          e('2026-11-21', 'lunch'), // kein Rezept
+          e('2026-11-21', 'dinner', 'r3'),
+          e('2026-11-30', 'dinner', 'r3'), // Zukunft
+        ],
+        '2026-11-25',
+      ),
+    ).toBe(5);
   });
 });

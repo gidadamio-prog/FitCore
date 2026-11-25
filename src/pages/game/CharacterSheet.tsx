@@ -299,7 +299,7 @@ function SlotSheet({ slot, hero, game, inv, current, onClose, onEquipped }: { sl
         </Button>
       )}
       <p className="mt-3 text-[11px] text-muted">
-        Ausrüstung ist rein kosmetisch. Rüstung bekommst du als Start-Set, durch Ränge und Bosse, im Markt (Leder ab {rankName(ARMOR_CLASS_MIN_RANK.leder)}, Schwer ab {rankName(ARMOR_CLASS_MIN_RANK.schwer)}) und als Beute nach Kämpfen; ein
+        Ausrüstung ist rein kosmetisch. Rüstung bekommst du als Start-Set, durch Ränge und Bosse, mit eigenen Rezepten (Küchen-Sets), im Markt (Leder ab {rankName(ARMOR_CLASS_MIN_RANK.leder)}, Schwer ab {rankName(ARMOR_CLASS_MIN_RANK.schwer)}) und als Beute nach Kämpfen; ein
         komplettes Set gibt einen Set-Bonus. Seltenheit von Waffen wächst mit der Stufe des Erfolgs (Bronze = Selten, Silber = Episch, Gold = Legendär); Episch ist ab {rankName(RARITY_MIN_RANK.epic)}, Legendär ab{' '}
         {rankName(RARITY_MIN_RANK.legendary)} tragbar. {hero.name} ist {game.rank.rank.name}.
       </p>

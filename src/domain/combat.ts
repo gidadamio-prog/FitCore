@@ -1,6 +1,6 @@
 // Kampfwerte und Kampfsimulation auf der Weltkarte. Stärke kommt aus Heldenstufe und Ausrüstung –
 // Schaden am Boss entsteht nur im direkten Kampf (Belagerung über mehrere Tage).
-import { ARMOR_SETS, parseArmorId, type ArmorClass, type ArmorSlot } from './armor';
+import { ARMOR_SETS, parseArmorId, statClass, type ArmorClass, type ArmorSlot } from './armor';
 import type { Rarity, SlotId } from './equipment';
 import { WEAPON_WINDOWS, weaponById, weaponStats } from './weapons';
 import { forgeFactor } from './forge';
@@ -12,7 +12,7 @@ export interface Stats {
   hp: number;
 }
 
-export const ARMOR_DEF: Record<ArmorClass, number> = { stoff: 2, leder: 4, schwer: 7, boss: 10 };
+export const ARMOR_DEF: Record<ArmorClass, number> = { stoff: 2, leder: 4, schwer: 7, boss: 10, kueche: 4 };
 export const SLOT_WEIGHT: Record<ArmorSlot, number> = { head: 1, chest: 1.6, hands: 0.8, legs: 1.2, feet: 0.8 };
 
 const round1 = (x: number) => Math.round(x * 10) / 10;
@@ -21,7 +21,7 @@ const round1 = (x: number) => Math.round(x * 10) / 10;
 export function itemStats(id: string, rarity: Rarity | null, level = 0): Partial<Stats> {
   const f = forgeFactor(level);
   const a = parseArmorId(id);
-  if (a) return { def: round1(ARMOR_DEF[a.set.cls] * SLOT_WEIGHT[a.slot] * f) };
+  if (a) return { def: round1(ARMOR_DEF[statClass(a.set)] * SLOT_WEIGHT[a.slot] * f) };
   const w = weaponById(id);
   if (!w || !rarity) return {};
   const st = weaponStats(w);
